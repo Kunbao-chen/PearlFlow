@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>珍珠聯合會計師事務所 - PearlFlow v1.6.0</title>
+    <title>珍珠聯合會計師事務所 - PearlFlow v1.8.0</title>
     <!-- Tailwind CSS 樣式庫 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -31,7 +31,6 @@
         }
     </script>
     <style>
-        /* 名片幾何背景風格 */
         .bg-pearl-geometric {
             background-color: #fff8f8;
             background-image: 
@@ -51,20 +50,18 @@
     <!-- 頁首導覽列 -->
     <header class="bg-white border-b border-pearl-200 shadow-sm sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <!-- LOGO 區塊 -->
             <div class="flex items-center space-x-3">
                 <img src="logo.png" alt="珍珠聯合會計師事務所 LOGO" class="h-10 w-auto object-contain">
                 <div class="border-l border-pearl-200 pl-3">
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold tracking-tight text-slate-800">珍珠聯合會計師事務所</h1>
-                        <span class="text-xs font-semibold text-pearl-600 bg-pearl-100 px-2 py-0.5 rounded-full">v1.6.0</span>
+                        <span class="text-xs font-semibold text-pearl-600 bg-pearl-100 px-2 py-0.5 rounded-full">v1.8.0</span>
                     </div>
                     <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Pearl Certified Public Accountants Firm</p>
                 </div>
             </div>
 
             <div class="flex items-center space-x-4 text-xs">
-                <!-- 角色權限動態切換器 -->
                 <div class="flex items-center gap-1.5 bg-pearl-50 border border-pearl-200 px-3 py-1 rounded-full font-medium">
                     <i class="fa-solid fa-user-shield text-pearl-500"></i>
                     <span class="text-slate-600">當前權限：</span>
@@ -81,24 +78,30 @@
     <!-- 主內容區 -->
     <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
         <!-- 分頁切換 Tab -->
-        <div class="flex border-b border-pearl-200 mb-6 space-x-2">
-            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-2.5 px-4 font-bold text-pearl-600 border-b-2 border-pearl-500 flex items-center gap-2 transition">
+        <div class="flex border-b border-pearl-200 mb-6 space-x-2 overflow-x-auto">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-2.5 px-4 font-bold text-pearl-600 border-b-2 border-pearl-500 flex items-center gap-2 whitespace-nowrap">
                 <i class="fa-solid fa-chart-line"></i> Dashboard 進度看板
             </button>
-            <button onclick="switchTab('projects')" id="tab-projects" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 transition">
-                <i class="fa-solid fa-list-check"></i> 專案與流程設定
+            <button onclick="switchTab('calendar')" id="tab-calendar" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-calendar-days"></i> 申報行事曆
             </button>
-            <button onclick="switchTab('clients')" id="tab-clients" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 transition">
+            <button onclick="switchTab('analytics')" id="tab-analytics" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-chart-pie"></i> 管理分析
+            </button>
+            <button onclick="switchTab('projects')" id="tab-projects" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-list-check"></i> 專案與流程
+            </button>
+            <button onclick="switchTab('clients')" id="tab-clients" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
                 <i class="fa-solid fa-building"></i> 客戶基本資料
+            </button>
+            <button onclick="switchTab('backup')" id="tab-backup" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-database"></i> 備份與還原
             </button>
         </div>
 
         <!-- 分頁 1: Dashboard 進度看板 -->
         <div id="content-dashboard" class="space-y-6">
-            
-            <!-- 【時效聚焦看板】今天與本週必須完成的工作 -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- 今日必辦 -->
                 <div class="pearl-card rounded-xl p-4 shadow-sm border-l-4 border-l-pearl-500">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -109,7 +112,6 @@
                     <div id="list-today" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div>
                 </div>
 
-                <!-- 本週必辦 -->
                 <div class="pearl-card rounded-xl p-4 shadow-sm border-l-4 border-l-amber-400">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -121,22 +123,20 @@
                 </div>
             </div>
 
-            <!-- 【第一層】首頁總覽：進行中專案卡片 -->
             <div id="dashboard-level-1" class="space-y-4">
                 <div class="flex justify-between items-center">
                     <div>
                         <h2 class="text-base font-bold text-slate-800">所有專案進行進度</h2>
-                        <p class="text-xs text-slate-500">點擊專案卡片，即可展開查看該專案全體客戶的作業進度矩陣。</p>
+                        <p class="text-xs text-slate-500">點擊專案卡片，展開查看該專案全體客戶的作業進度矩陣。</p>
                     </div>
                 </div>
                 <div id="project-kpi-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             </div>
 
-            <!-- 【第二層】專案客戶進度矩陣 -->
             <div id="dashboard-level-2" class="space-y-4 hidden">
                 <div class="flex items-center justify-between pearl-card p-4 rounded-xl shadow-sm">
                     <div class="flex items-center gap-3">
-                        <button onclick="backToLevel1()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1 transition">
+                        <button onclick="backToLevel1()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1">
                             <i class="fa-solid fa-arrow-left"></i> 返回總覽
                         </button>
                         <div>
@@ -147,7 +147,6 @@
                     <span id="current-project-rate" class="text-xl font-black text-pearl-600 bg-pearl-50 px-3 py-1 rounded-lg border border-pearl-200">0%</span>
                 </div>
 
-                <!-- 矩陣表格 -->
                 <div class="pearl-card p-4 rounded-xl shadow-sm overflow-x-auto">
                     <table class="w-full text-left border-collapse min-w-[750px]">
                         <thead>
@@ -156,40 +155,71 @@
                         <tbody id="matrix-body" class="divide-y divide-pearl-50 text-sm"></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
 
-                <!-- 圖例 -->
-                <div class="flex flex-wrap items-center gap-4 text-xs text-slate-500 pearl-card p-3 rounded-xl">
-                    <span class="font-semibold text-slate-700">狀態說明：</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-200 inline-block"></span> 未開始</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> 進行中 (實時計時)</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> 已完成</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-300 inline-block"></span> 無此步驟</span>
+        <!-- 分頁 2: 申報行事曆 -->
+        <div id="content-calendar" class="space-y-6 hidden">
+            <div class="flex justify-between items-center pearl-card p-4 rounded-xl shadow-sm">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800">申報行事曆與自動提醒設定</h2>
+                    <p class="text-xs text-slate-500">設定法定申報期限與提前提醒天數，系統會自動在 Dashboard 的「今天／本週必辦」中進行動態提醒。</p>
+                </div>
+                <button id="btn-add-event" onclick="openEventModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> 新增申報日程
+                </button>
+            </div>
+            <div id="calendar-event-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+
+        <!-- 分頁 3: 管理分析看板 -->
+        <div id="content-analytics" class="space-y-6 hidden">
+            <div class="pearl-card p-4 rounded-xl shadow-sm">
+                <h2 class="text-base font-bold text-slate-800 mb-1">工時與效率管理分析</h2>
+                <p class="text-xs text-slate-500">統計全所人員累積操作工時與專案完成率，提供精準的管理決策參考。</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 人員工時統計 -->
+                <div class="pearl-card p-5 rounded-xl shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-users text-pearl-500"></i> 人員累積工時與貢獻度
+                    </h3>
+                    <div id="analytics-staff-list" class="space-y-3 text-xs"></div>
+                </div>
+
+                <!-- 專案完成率與投入工時 -->
+                <div class="pearl-card p-5 rounded-xl shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-chart-column text-pearl-500"></i> 專案累積投入工時
+                    </h3>
+                    <div id="analytics-project-list" class="space-y-3 text-xs"></div>
                 </div>
             </div>
         </div>
 
-        <!-- 分頁 2: 專案與流程設定 -->
+        <!-- 分頁 4: 專案與流程設定 -->
         <div id="content-projects" class="space-y-6 hidden">
             <div class="flex justify-between items-center pearl-card p-4 rounded-xl shadow-sm">
                 <div>
                     <h2 class="text-base font-bold text-slate-800">專案列表與標準流程</h2>
                     <p class="text-xs text-slate-500" id="project-subtitle">在此設定事務所各項服務的作業標準流程與步驟。</p>
                 </div>
-                <button id="btn-add-project" onclick="openProjectModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow-sm">
+                <button id="btn-add-project" onclick="openProjectModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
                     <i class="fa-solid fa-plus"></i> 新增專案
                 </button>
             </div>
             <div id="project-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </div>
 
-        <!-- 分頁 3: 客戶基本資料 -->
+        <!-- 分頁 5: 客戶基本資料 -->
         <div id="content-clients" class="space-y-6 hidden">
             <div class="flex justify-between items-center pearl-card p-4 rounded-xl shadow-sm">
                 <div>
                     <h2 class="text-base font-bold text-slate-800">客戶基本資料</h2>
                     <p class="text-xs text-slate-500">管理事務所服務的所有公司客戶檔。</p>
                 </div>
-                <button id="btn-add-client" onclick="openClientModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow-sm">
+                <button id="btn-add-client" onclick="openClientModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
                     <i class="fa-solid fa-plus"></i> 新增客戶
                 </button>
             </div>
@@ -206,6 +236,45 @@
                     </thead>
                     <tbody id="client-table-body" class="divide-y divide-pearl-50 text-sm"></tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- 分頁 6: 資料備份與還原 -->
+        <div id="content-backup" class="space-y-6 hidden">
+            <div class="pearl-card p-6 rounded-xl shadow-sm space-y-4 max-w-2xl">
+                <h2 class="text-base font-bold text-slate-800 border-b pb-2">資料安全備份與還原 (JSON)</h2>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    為了防止瀏覽器快取被清空導致資料遺失，建議定期進行資料導出備份。匯出的 JSON 檔包含所有專案、客戶、打卡工時與行事曆提醒設定。
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div class="bg-pearl-50/50 p-4 rounded-xl border border-pearl-100 flex flex-col justify-between space-y-3">
+                        <div>
+                            <h3 class="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1">
+                                <i class="fa-solid fa-download text-pearl-500"></i> 一鍵匯出資料備份
+                            </h3>
+                            <p class="text-[11px] text-slate-400">將目前的全站資料備份為 JSON 檔案下載至本地。</p>
+                        </div>
+                        <button onclick="exportSystemData()" class="w-full py-2 bg-pearl-500 hover:bg-pearl-600 text-white text-xs font-bold rounded-lg transition">
+                            下載 JSON 備份檔
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                        <div>
+                            <h3 class="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1">
+                                <i class="fa-solid fa-upload text-slate-600"></i> 匯入備份資料覆原
+                            </h3>
+                            <p class="text-[11px] text-slate-400">選擇先前下載的 `.json` 檔案進行資料覆蓋恢復。</p>
+                        </div>
+                        <div>
+                            <input type="file" id="import-file" accept=".json" class="hidden" onchange="importSystemData(event)">
+                            <button onclick="document.getElementById('import-file').click()" class="w-full py-2 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition">
+                                選擇檔案並還原
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -228,18 +297,47 @@
             </div>
 
             <div class="grid grid-cols-2 gap-2 pt-2">
-                <button id="btn-start" onclick="handleTimerAction('start')" class="py-2.5 bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition shadow-sm">
+                <button id="btn-start" onclick="handleTimerAction('start')" class="py-2.5 bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
                     <i class="fa-solid fa-play"></i> 開始執行
                 </button>
-                <button id="btn-pause" onclick="handleTimerAction('pause')" class="py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition shadow-sm">
+                <button id="btn-pause" onclick="handleTimerAction('pause')" class="py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
                     <i class="fa-solid fa-pause"></i> 暫停執行
                 </button>
-                <button id="btn-complete" onclick="handleTimerAction('complete')" class="col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition shadow-sm">
+                <button id="btn-complete" onclick="handleTimerAction('complete')" class="col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
                     <i class="fa-solid fa-check"></i> 完成此步驟
                 </button>
                 <button id="btn-skip" onclick="handleTimerAction('skip')" class="col-span-2 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-xs font-medium border border-slate-200">
                     標記為「無此步驟」
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: 新增申報日程彈窗 -->
+    <div id="event-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-pearl-100">
+            <h3 class="text-base font-bold text-slate-800 border-b pb-2">新增申報日程與提醒</h3>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">連動專案</label>
+                    <select id="input-event-project" class="w-full border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-pearl-400"></select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">申報事項名稱</label>
+                    <input type="text" id="input-event-title" placeholder="例如：115年7-8月 營業稅申報截止" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">法定申報截止日 (DueDate)</label>
+                    <input type="date" id="input-event-date" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">提前幾天動態提醒 (RemindDays)</label>
+                    <input type="number" id="input-event-remind" value="7" min="1" max="30" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeEventModal()" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
+                <button onclick="saveEvent()" class="px-4 py-2 text-xs bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg font-bold">儲存日程</button>
             </div>
         </div>
     </div>
@@ -309,10 +407,15 @@
             { id: 102, name: '寶島科技股份有限公司', taxId: '12345678', owner: '陳大明', phone: '02-23456789' }
         ];
 
+        let events = JSON.parse(localStorage.getItem('pf_events')) || [
+            { id: 201, projectId: 1, title: '115年7-8月 營業稅申報截止', dueDate: '2026-09-15', remindDays: 7 },
+            { id: 202, projectId: 2, title: '114年度 營所稅結算申報截止', dueDate: '2026-05-31', remindDays: 14 }
+        ];
+
         let stepLogs = JSON.parse(localStorage.getItem('pf_step_logs')) || {
             '1_101_0': { status: 'done', operator: '老闆 (Admin)', elapsed: 300 },
-            '1_101_1': { status: 'progress', operator: '老闆 (Admin)', elapsed: 120, priority: 'today', lastStart: Date.now() },
-            '1_102_0': { status: 'progress', operator: '員工 A', elapsed: 60, priority: 'week', lastStart: Date.now() }
+            '1_101_1': { status: 'progress', operator: '老闆 (Admin)', elapsed: 120, lastStart: Date.now() },
+            '1_102_0': { status: 'progress', operator: '員工 (Staff)', elapsed: 60, lastStart: Date.now() }
         };
 
         let activeProjectId = null;
@@ -341,12 +444,15 @@
 
             document.getElementById('btn-add-project').style.display = isAdmin ? 'inline-flex' : 'none';
             document.getElementById('btn-add-client').style.display = isAdmin ? 'inline-flex' : 'none';
+            document.getElementById('btn-add-event').style.display = isAdmin ? 'inline-flex' : 'none';
+            
             document.getElementById('project-subtitle').innerText = isAdmin ? 
                 '在此設定事務所各項服務的作業標準流程與步驟。' : 
                 '唯讀視角：僅老闆 (Admin) 權限可新增或修改標準作業流程。';
 
             renderProjects();
             renderClients();
+            renderCalendarEvents();
         }
 
         // ==========================================
@@ -360,20 +466,20 @@
         });
 
         function switchTab(tab) {
-            document.getElementById('content-dashboard').classList.toggle('hidden', tab !== 'dashboard');
-            document.getElementById('content-projects').classList.toggle('hidden', tab !== 'projects');
-            document.getElementById('content-clients').classList.toggle('hidden', tab !== 'clients');
-
-            ['dashboard', 'projects', 'clients'].forEach(t => {
+            const tabs = ['dashboard', 'calendar', 'analytics', 'projects', 'clients', 'backup'];
+            tabs.forEach(t => {
+                document.getElementById(`content-${t}`).classList.toggle('hidden', t !== tab);
                 const btn = document.getElementById(`tab-${t}`);
                 btn.className = (t === tab) ? 
-                    'py-2.5 px-4 font-bold text-pearl-600 border-b-2 border-pearl-500 flex items-center gap-2 transition' : 
-                    'py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 transition';
+                    'py-2.5 px-4 font-bold text-pearl-600 border-b-2 border-pearl-500 flex items-center gap-2 whitespace-nowrap' : 
+                    'py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap';
             });
 
             if (tab === 'dashboard') {
                 renderDashboardLevel1();
                 renderTaskFocus();
+            } else if (tab === 'analytics') {
+                renderAnalytics();
             }
         }
 
@@ -382,38 +488,50 @@
             const weekList = document.getElementById('list-week');
             let todayItems = [], weekItems = [];
 
-            projects.forEach(p => {
-                clients.forEach(c => {
-                    p.steps.forEach((step, idx) => {
-                        const key = `${p.id}_${c.id}_${idx}`;
-                        const log = stepLogs[key];
-                        if (log && log.status !== 'done' && log.status !== 'skip') {
-                            const itemHTML = `
-                                <div class="flex items-center justify-between bg-white/80 p-2 rounded border border-pearl-100 hover:border-pearl-300 transition">
-                                    <div>
-                                        <span class="font-bold text-slate-800">${c.name}</span>
-                                        <span class="text-slate-400 mx-1">·</span>
-                                        <span class="text-pearl-600 font-medium">${p.name}</span>
-                                        <span class="text-slate-500">（${step}）</span>
+            const todayStr = new Date().toISOString().split('T')[0];
+            const now = new Date();
+
+            events.forEach(evt => {
+                const dueDate = new Date(evt.dueDate);
+                const diffTime = dueDate - now;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays <= evt.remindDays) {
+                    const project = projects.find(p => p.id === evt.projectId);
+                    if (!project) return;
+
+                    clients.forEach(c => {
+                        project.steps.forEach((step, idx) => {
+                            const key = `${project.id}_${c.id}_${idx}`;
+                            const log = stepLogs[key];
+                            if (!log || (log.status !== 'done' && log.status !== 'skip')) {
+                                const itemHTML = `
+                                    <div class="flex items-center justify-between bg-white/80 p-2 rounded border border-pearl-100 hover:border-pearl-300 transition">
+                                        <div>
+                                            <span class="font-bold text-slate-800">${c.name}</span>
+                                            <span class="text-slate-400 mx-1">·</span>
+                                            <span class="text-pearl-600 font-medium">${project.name}</span>
+                                            <span class="text-slate-500">（${step}）</span>
+                                        </div>
+                                        <button onclick="openProjectDetail(${project.id})" class="text-[10px] bg-pearl-50 text-pearl-600 border border-pearl-200 px-2 py-0.5 rounded">查看</button>
                                     </div>
-                                    <button onclick="openProjectDetail(${p.id})" class="text-[10px] bg-pearl-50 text-pearl-600 border border-pearl-200 px-2 py-0.5 rounded hover:bg-pearl-100">查看</button>
-                                </div>
-                            `;
-                            if (log.priority === 'today' || log.status === 'progress') {
-                                todayItems.push(itemHTML);
-                            } else if (log.priority === 'week') {
-                                weekItems.push(itemHTML);
+                                `;
+                                if (diffDays <= 1 || (log && log.status === 'progress')) {
+                                    todayItems.push(itemHTML);
+                                } else {
+                                    weekItems.push(itemHTML);
+                                }
                             }
-                        }
+                        });
                     });
-                });
+                }
             });
 
             document.getElementById('count-today').innerText = `${todayItems.length} 件`;
-            todayList.innerHTML = todayItems.length ? todayItems.join('') : '<p class="text-slate-400 italic">今日暫無緊急事項</p>';
+            todayList.innerHTML = todayItems.length ? todayItems.join('') : '<p class="text-slate-400 italic">今日無過期或緊急事項</p>';
 
             document.getElementById('count-week').innerText = `${weekItems.length} 件`;
-            weekList.innerHTML = weekItems.length ? weekItems.join('') : '<p class="text-slate-400 italic">本週暫無待辦事項</p>';
+            weekList.innerHTML = weekItems.length ? weekItems.join('') : '<p class="text-slate-400 italic">本週尚無動態提醒事項</p>';
         }
 
         function renderDashboardLevel1() {
@@ -541,7 +659,6 @@
 
             updateTimerDisplay();
 
-            // 若目前為進行中狀態，啟動實時每秒秒針
             if (timerInterval) clearInterval(timerInterval);
             if (log.status === 'progress') {
                 timerInterval = setInterval(() => {
@@ -569,7 +686,6 @@
             const currentUser = (currentRole === 'admin') ? '老闆 (Admin)' : '員工 (Staff)';
             let log = stepLogs[activeKey] || { status: 'none', elapsed: 0 };
 
-            // 防呆機制：同人檢查 (當已有 operator 且不一致時發出警告)
             if (log.operator && log.operator !== currentUser && (action === 'pause' || action === 'complete')) {
                 alert(`[防呆警告] 此步驟最初由「${log.operator}」開始執行，請由同一操作人員進行暫停或完成！`);
                 return;
@@ -577,7 +693,6 @@
 
             if (action === 'start') {
                 log.status = 'progress';
-                log.priority = 'today';
                 log.operator = currentUser;
                 log.lastStart = Date.now();
             } else if (action === 'pause') {
@@ -604,7 +719,174 @@
         }
 
         // ==========================================
-        // 5. CRUD MODULE (資料管理模組)
+        // 5. CALENDAR MODULE (行事曆模組)
+        // ==========================================
+        function renderCalendarEvents() {
+            const container = document.getElementById('calendar-event-list');
+            const isAdmin = (currentRole === 'admin');
+
+            container.innerHTML = events.map(e => {
+                const project = projects.find(p => p.id === e.projectId);
+                return `
+                    <div class="pearl-card p-4 rounded-xl shadow-sm space-y-2 border-l-4 border-l-pearl-500">
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs bg-pearl-50 text-pearl-600 font-bold px-2 py-0.5 rounded border border-pearl-200">${project ? project.name : '全域專案'}</span>
+                            ${isAdmin ? `<button onclick="deleteEvent(${e.id})" class="text-xs text-rose-500 hover:underline"><i class="fa-solid fa-trash"></i></button>` : ''}
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-sm">${e.title}</h3>
+                        <div class="flex justify-between items-center text-xs text-slate-500 pt-1">
+                            <span>截止日：<strong class="text-slate-700">${e.dueDate}</strong></span>
+                            <span class="bg-slate-100 px-2 py-0.5 rounded text-slate-600">提前 ${e.remindDays} 天提醒</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            localStorage.setItem('pf_events', JSON.stringify(events));
+        }
+
+        function openEventModal() {
+            if (currentRole !== 'admin') return alert('僅老闆 (Admin) 具備新增日程權限');
+            const selector = document.getElementById('input-event-project');
+            selector.innerHTML = projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            document.getElementById('event-modal').classList.remove('hidden');
+        }
+
+        function closeEventModal() { document.getElementById('event-modal').classList.add('hidden'); }
+
+        function saveEvent() {
+            if (currentRole !== 'admin') return;
+            const projectId = parseInt(document.getElementById('input-event-project').value);
+            const title = document.getElementById('input-event-title').value.trim();
+            const dueDate = document.getElementById('input-event-date').value;
+            const remindDays = parseInt(document.getElementById('input-event-remind').value) || 7;
+
+            if (!title || !dueDate) return alert('請填寫日程名稱與截止日期');
+
+            events.push({ id: Date.now(), projectId, title, dueDate, remindDays });
+            renderCalendarEvents();
+            closeEventModal();
+            renderTaskFocus();
+        }
+
+        function deleteEvent(id) {
+            if (currentRole !== 'admin') return;
+            events = events.filter(e => e.id !== id);
+            renderCalendarEvents();
+            renderTaskFocus();
+        }
+
+        // ==========================================
+        // 6. ANALYTICS MODULE (管理分析模組)
+        // ==========================================
+        function renderAnalytics() {
+            const staffContainer = document.getElementById('analytics-staff-list');
+            const projectContainer = document.getElementById('analytics-project-list');
+
+            let userStats = {};
+            let projStats = {};
+
+            // 統計人員工時與完成步驟
+            Object.values(stepLogs).forEach(log => {
+                if (log.operator) {
+                    if (!userStats[log.operator]) userStats[log.operator] = { seconds: 0, doneCount: 0 };
+                    userStats[log.operator].seconds += (log.elapsed || 0);
+                    if (log.status === 'done') userStats[log.operator].doneCount++;
+                }
+            });
+
+            staffContainer.innerHTML = Object.keys(userStats).length ? Object.entries(userStats).map(([user, data]) => `
+                <div class="flex justify-between items-center p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                    <div>
+                        <span class="font-bold text-slate-800">${user}</span>
+                        <span class="text-slate-400 text-[10px] block">已完成 ${data.doneCount} 個步驟</span>
+                    </div>
+                    <span class="font-mono font-bold text-pearl-600">${formatSeconds(data.seconds)}</span>
+                </div>
+            `).join('') : '<p class="text-slate-400 italic">尚無工時紀錄</p>';
+
+            // 統計專案投入工時與完成度
+            projectContainer.innerHTML = projects.map(p => {
+                let totalSec = 0;
+                clients.forEach(c => {
+                    p.steps.forEach((_, idx) => {
+                        const key = `${p.id}_${c.id}_${idx}`;
+                        const log = stepLogs[key];
+                        if (log) totalSec += (log.elapsed || 0);
+                    });
+                });
+                const stats = calculateProjectProgress(p);
+
+                return `
+                    <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-800">${p.name}</span>
+                            <span class="font-mono font-bold text-pearl-600">${formatSeconds(totalSec)}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-pearl-500 h-full" style="width: ${stats.rate}%"></div>
+                            </div>
+                            <span class="font-bold text-slate-600">${stats.rate}%</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==========================================
+        // 7. BACKUP & RESTORE MODULE (備份與還原模組)
+        // ==========================================
+        function exportSystemData() {
+            const data = {
+                projects,
+                clients,
+                events,
+                stepLogs,
+                exportTime: new Date().toISOString()
+            };
+            const jsonStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `PearlFlow_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importSystemData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.projects && data.clients) {
+                        projects = data.projects;
+                        clients = data.clients;
+                        events = data.events || [];
+                        stepLogs = data.stepLogs || {};
+
+                        localStorage.setItem('pf_projects', JSON.stringify(projects));
+                        localStorage.setItem('pf_clients', JSON.stringify(clients));
+                        localStorage.setItem('pf_events', JSON.stringify(events));
+                        localStorage.setItem('pf_step_logs', JSON.stringify(stepLogs));
+
+                        alert('資料還原成功！');
+                        location.reload();
+                    } else {
+                        alert('檔案格式不正確，請選擇有效的 PearlFlow 備份檔。');
+                    }
+                } catch (err) {
+                    alert('讀取 JSON 檔案失敗！');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ==========================================
+        // 8. CRUD MODULE (專案與客戶資料管理)
         // ==========================================
         function renderProjects() {
             const container = document.getElementById('project-list');
