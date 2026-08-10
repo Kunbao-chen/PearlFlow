@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>珍珠聯合會計師事務所 - PearlFlow v1.4.0</title>
+    <title>珍珠聯合會計師事務所 - PearlFlow v1.5.0</title>
     <!-- Tailwind CSS 樣式庫 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -31,7 +31,7 @@
         }
     </script>
     <style>
-        /* 名片幾何幾何背景風格 */
+        /* 名片幾何背景風格 */
         .bg-pearl-geometric {
             background-color: #fff8f8;
             background-image: 
@@ -48,26 +48,31 @@
 </head>
 <body class="bg-pearl-geometric text-charcoal font-sans min-h-screen flex flex-col">
 
-    <!-- 頁首導覽列 (採用名片配色與品牌商標圖檔) -->
+    <!-- 頁首導覽列 -->
     <header class="bg-white border-b border-pearl-200 shadow-sm sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <!-- LOGO 區塊 -->
             <div class="flex items-center space-x-3">
-                <!-- 商標圖片 (載入根目錄下的 logo.png) -->
                 <img src="logo.png" alt="珍珠聯合會計師事務所 LOGO" class="h-10 w-auto object-contain">
                 <div class="border-l border-pearl-200 pl-3">
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold tracking-tight text-slate-800">珍珠聯合會計師事務所</h1>
-                        <span class="text-xs font-semibold text-pearl-600 bg-pearl-100 px-2 py-0.5 rounded-full">v1.4.0</span>
+                        <span class="text-xs font-semibold text-pearl-600 bg-pearl-100 px-2 py-0.5 rounded-full">v1.5.0</span>
                     </div>
                     <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Pearl Certified Public Accountants Firm</p>
                 </div>
             </div>
 
             <div class="flex items-center space-x-4 text-xs">
-                <span class="bg-pearl-50 text-pearl-700 border border-pearl-200 px-3 py-1 rounded-full font-medium">
-                    <i class="fa-solid fa-user-shield text-pearl-500 me-1"></i> 當前權限：老闆 (Admin)
-                </span>
+                <!-- 角色權限動態切換器 -->
+                <div class="flex items-center gap-1.5 bg-pearl-50 border border-pearl-200 px-3 py-1 rounded-full font-medium">
+                    <i class="fa-solid fa-user-shield text-pearl-500"></i>
+                    <span class="text-slate-600">當前權限：</span>
+                    <select id="role-selector" onchange="switchRole(this.value)" class="bg-transparent font-bold text-pearl-700 focus:outline-none cursor-pointer">
+                        <option value="admin">老闆 (Admin)</option>
+                        <option value="staff">員工 (Staff)</option>
+                    </select>
+                </div>
                 <span class="text-slate-500 hidden sm:inline">系統日期：<span id="current-time" class="font-semibold text-slate-700"></span></span>
             </div>
         </div>
@@ -101,9 +106,7 @@
                         </h3>
                         <span id="count-today" class="text-xs bg-pearl-100 text-pearl-700 font-bold px-2 py-0.5 rounded-full">0 件</span>
                     </div>
-                    <div id="list-today" class="space-y-2 max-h-48 overflow-y-auto text-xs">
-                        <!-- JS 動態生成 -->
-                    </div>
+                    <div id="list-today" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div>
                 </div>
 
                 <!-- 本週必辦 -->
@@ -114,9 +117,7 @@
                         </h3>
                         <span id="count-week" class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">0 件</span>
                     </div>
-                    <div id="list-week" class="space-y-2 max-h-48 overflow-y-auto text-xs">
-                        <!-- JS 動態生成 -->
-                    </div>
+                    <div id="list-week" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div>
                 </div>
             </div>
 
@@ -128,9 +129,7 @@
                         <p class="text-xs text-slate-500">點擊專案卡片，即可展開查看該專案全體客戶的作業進度矩陣。</p>
                     </div>
                 </div>
-                <div id="project-kpi-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <!-- JS 動態渲染 -->
-                </div>
+                <div id="project-kpi-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             </div>
 
             <!-- 【第二層】專案客戶進度矩陣 -->
@@ -152,13 +151,9 @@
                 <div class="pearl-card p-4 rounded-xl shadow-sm overflow-x-auto">
                     <table class="w-full text-left border-collapse min-w-[750px]">
                         <thead>
-                            <tr id="matrix-header" class="bg-slate-50 text-slate-700 text-xs uppercase border-b border-pearl-100">
-                                <!-- JS 動態渲染 -->
-                            </tr>
+                            <tr id="matrix-header" class="bg-slate-50 text-slate-700 text-xs uppercase border-b border-pearl-100"></tr>
                         </thead>
-                        <tbody id="matrix-body" class="divide-y divide-pearl-50 text-sm">
-                            <!-- JS 動態渲染 -->
-                        </tbody>
+                        <tbody id="matrix-body" class="divide-y divide-pearl-50 text-sm"></tbody>
                     </table>
                 </div>
 
@@ -177,10 +172,10 @@
         <div id="content-projects" class="space-y-6 hidden">
             <div class="flex justify-between items-center pearl-card p-4 rounded-xl shadow-sm">
                 <div>
-                    <h2 class="text-base font-bold text-slate-800">專案列表與標準流程 (老闆專屬)</h2>
-                    <p class="text-xs text-slate-500">在此設定事務所各項服務的作業標準流程與步驟。</p>
+                    <h2 class="text-base font-bold text-slate-800">專案列表與標準流程</h2>
+                    <p class="text-xs text-slate-500" id="project-subtitle">在此設定事務所各項服務的作業標準流程與步驟。</p>
                 </div>
-                <button onclick="openProjectModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow-sm">
+                <button id="btn-add-project" onclick="openProjectModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow-sm">
                     <i class="fa-solid fa-plus"></i> 新增專案
                 </button>
             </div>
@@ -194,7 +189,7 @@
                     <h2 class="text-base font-bold text-slate-800">客戶基本資料</h2>
                     <p class="text-xs text-slate-500">管理事務所服務的所有公司客戶檔。</p>
                 </div>
-                <button onclick="openClientModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow-sm">
+                <button id="btn-add-client" onclick="openClientModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow-sm">
                     <i class="fa-solid fa-plus"></i> 新增客戶
                 </button>
             </div>
@@ -206,7 +201,7 @@
                             <th class="p-3">統一編號</th>
                             <th class="p-3">負責人</th>
                             <th class="p-3">聯絡電話</th>
-                            <th class="p-3 text-right">操作</th>
+                            <th class="p-3 text-right action-col">操作</th>
                         </tr>
                     </thead>
                     <tbody id="client-table-body" class="divide-y divide-pearl-50 text-sm"></tbody>
@@ -297,8 +292,13 @@
         </div>
     </div>
 
-    <!-- JavaScript 腳本區 -->
+    <!-- JavaScript 模組區塊 -->
     <script>
+        // ==========================================
+        // 1. STATE & STORAGE MODULE (資料狀態層)
+        // ==========================================
+        let currentRole = localStorage.getItem('pf_role') || 'admin';
+
         let projects = JSON.parse(localStorage.getItem('pf_projects')) || [
             { id: 1, name: '115年7-8月 營業稅', steps: ['提醒繳交憑證', '收到憑證', '缺漏待補', '整理分類鍵入', '自行檢查', '覆核', '上傳申報', '繳稅完成'] },
             { id: 2, name: '114年度 營所稅結算申報', steps: ['蒐集帳冊資料', '調整調帳項目', '編製報告書', '會計師簽章', '國稅局申報'] }
@@ -325,9 +325,36 @@
             'skip': { label: '無此步驟', bg: 'bg-slate-200 text-slate-500 line-through hover:bg-slate-300' }
         };
 
-        document.addEventListener('DOMContentLoaded', () => {
+        // ==========================================
+        // 2. AUTHENTICATION MODULE (權限控制層)
+        // ==========================================
+        function switchRole(role) {
+            currentRole = role;
+            localStorage.setItem('pf_role', role);
+            applyRolePermissions();
+        }
+
+        function applyRolePermissions() {
+            document.getElementById('role-selector').value = currentRole;
+            const isAdmin = (currentRole === 'admin');
+
+            // 按鈕與操作可見度控制
+            document.getElementById('btn-add-project').style.display = isAdmin ? 'inline-flex' : 'none';
+            document.getElementById('btn-add-client').style.display = isAdmin ? 'inline-flex' : 'none';
+            document.getElementById('project-subtitle').innerText = isAdmin ? 
+                '在此設定事務所各項服務的作業標準流程與步驟。' : 
+                '唯讀視角：僅老闆 (Admin) 權限可新增或修改標準作業流程。';
+
+            // 重新渲染視窗帶入權限規則
             renderProjects();
             renderClients();
+        }
+
+        // ==========================================
+        // 3. UI RENDER MODULE (畫面渲染層)
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            applyRolePermissions();
             renderDashboardLevel1();
             renderTaskFocus();
             document.getElementById('current-time').innerText = new Date().toLocaleDateString('zh-TW');
@@ -351,7 +378,6 @@
             }
         }
 
-        // 渲染時效聚焦看板：今天/本週必辦
         function renderTaskFocus() {
             const todayList = document.getElementById('list-today');
             const weekList = document.getElementById('list-week');
@@ -391,7 +417,6 @@
             weekList.innerHTML = weekItems.length ? weekItems.join('') : '<p class="text-slate-400 italic">本週暫無待辦事項</p>';
         }
 
-        // 【第一層】專案總覽卡片
         function renderDashboardLevel1() {
             document.getElementById('dashboard-level-1').classList.remove('hidden');
             document.getElementById('dashboard-level-2').classList.add('hidden');
@@ -436,7 +461,6 @@
             return { needed, completed, rate };
         }
 
-        // 【第二層】專案進度矩陣
         function openProjectDetail(projectId) {
             activeProjectId = projectId;
             const project = projects.find(p => p.id === projectId);
@@ -504,7 +528,9 @@
             }).join('');
         }
 
-        // 打卡與計時 Modal
+        // ==========================================
+        // 4. TIMER & MODAL MODULE (打卡與彈窗邏輯)
+        // ==========================================
         function openTimerModal(key, clientName, stepName) {
             activeKey = key;
             const log = stepLogs[key] || { status: 'none', user: '', elapsed: 0 };
@@ -525,8 +551,9 @@
         function handleTimerAction(action) {
             if (!activeKey) return;
 
-            let log = stepLogs[activeKey] || { status: 'none', elapsed: 0, user: '老闆 (Admin)' };
-            log.user = '老闆 (Admin)';
+            const userLabel = (currentRole === 'admin') ? '老闆 (Admin)' : '事務所員工';
+            let log = stepLogs[activeKey] || { status: 'none', elapsed: 0 };
+            log.user = userLabel;
 
             if (action === 'start') {
                 log.status = 'progress';
@@ -555,14 +582,18 @@
             return `${hrs}:${mins}:${secs}`;
         }
 
-        // CRUD 功能
+        // ==========================================
+        // 5. CRUD MODULE (資料管理模組 - 含權限防呆)
+        // ==========================================
         function renderProjects() {
             const container = document.getElementById('project-list');
+            const isAdmin = (currentRole === 'admin');
+
             container.innerHTML = projects.map(p => `
                 <div class="pearl-card p-5 rounded-xl shadow-sm space-y-3">
                     <div class="flex justify-between items-start">
                         <h3 class="font-bold text-slate-800 text-base">${p.name}</h3>
-                        <button onclick="deleteProject(${p.id})" class="text-xs text-rose-500 hover:underline"><i class="fa-solid fa-trash"></i> 刪除專案</button>
+                        ${isAdmin ? `<button onclick="deleteProject(${p.id})" class="text-xs text-rose-500 hover:underline"><i class="fa-solid fa-trash"></i> 刪除專案</button>` : ''}
                     </div>
                     <div>
                         <span class="text-xs font-semibold text-slate-500 block mb-1">標準作業步驟 (${p.steps.length} 步)：</span>
@@ -577,26 +608,41 @@
 
         function renderClients() {
             const tbody = document.getElementById('client-table-body');
+            const isAdmin = (currentRole === 'admin');
+
+            // 控制表頭操作欄顯示
+            document.querySelectorAll('.action-col').forEach(el => el.style.display = isAdmin ? 'table-cell' : 'none');
+
             tbody.innerHTML = clients.map(c => `
                 <tr class="hover:bg-pearl-50/50 transition">
                     <td class="p-3 font-semibold text-slate-800">${c.name}</td>
                     <td class="p-3 text-slate-600">${c.taxId}</td>
                     <td class="p-3 text-slate-600">${c.owner}</td>
                     <td class="p-3 text-slate-600">${c.phone}</td>
-                    <td class="p-3 text-right">
-                        <button onclick="deleteClient(${c.id})" class="text-xs text-rose-500 hover:underline"><i class="fa-solid fa-trash"></i> 刪除</button>
-                    </td>
+                    ${isAdmin ? `
+                        <td class="p-3 text-right">
+                            <button onclick="deleteClient(${c.id})" class="text-xs text-rose-500 hover:underline"><i class="fa-solid fa-trash"></i> 刪除</button>
+                        </td>
+                    ` : ''}
                 </tr>
             `).join('');
             localStorage.setItem('pf_clients', JSON.stringify(clients));
         }
 
-        function openProjectModal() { document.getElementById('project-modal').classList.remove('hidden'); }
+        function openProjectModal() { 
+            if (currentRole !== 'admin') return alert('僅老闆 (Admin) 具備新增專案權限');
+            document.getElementById('project-modal').classList.remove('hidden'); 
+        }
         function closeProjectModal() { document.getElementById('project-modal').classList.add('hidden'); }
-        function openClientModal() { document.getElementById('client-modal').classList.remove('hidden'); }
+        
+        function openClientModal() { 
+            if (currentRole !== 'admin') return alert('僅老闆 (Admin) 具備新增客戶權限');
+            document.getElementById('client-modal').classList.remove('hidden'); 
+        }
         function closeClientModal() { document.getElementById('client-modal').classList.add('hidden'); }
 
         function saveProject() {
+            if (currentRole !== 'admin') return;
             const name = document.getElementById('input-project-name').value.trim();
             const stepsStr = document.getElementById('input-project-steps').value.trim();
             if (!name) return alert('請輸入專案名稱');
@@ -609,6 +655,7 @@
         }
 
         function saveClient() {
+            if (currentRole !== 'admin') return;
             const name = document.getElementById('input-client-name').value.trim();
             const taxId = document.getElementById('input-client-taxid').value.trim();
             const owner = document.getElementById('input-client-owner').value.trim();
@@ -625,12 +672,14 @@
         }
 
         function deleteProject(id) {
+            if (currentRole !== 'admin') return;
             projects = projects.filter(p => p.id !== id);
             renderProjects();
             renderDashboardLevel1();
         }
 
         function deleteClient(id) {
+            if (currentRole !== 'admin') return;
             clients = clients.filter(c => c.id !== id);
             renderClients();
             renderDashboardLevel1();
