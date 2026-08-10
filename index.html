@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PearlFlow 事務所管理工具</title>
+    <title>PearlFlow 事務所管理工具 v1.1.0</title>
     <!-- Tailwind CSS 樣式庫 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,8 +14,8 @@
     <header class="bg-indigo-900 text-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <i class="fa-solid me-2 fa-layer-group text-2xl text-indigo-300"></i>
-                <h1 class="text-xl font-bold tracking-wide">PearlFlow <span class="text-xs font-normal text-indigo-200 bg-indigo-800 px-2 py-0.5 rounded ml-2">第一階段測試版</span></h1>
+                <i class="fa-solid fa-layer-group text-2xl text-indigo-300"></i>
+                <h1 class="text-xl font-bold tracking-wide">PearlFlow <span class="text-xs font-semibold text-indigo-200 bg-indigo-800/80 px-2.5 py-0.5 rounded-full border border-indigo-700 ml-2">v1.1.0</span></h1>
             </div>
             <div class="flex items-center space-x-4 text-sm">
                 <span class="bg-indigo-800 px-3 py-1 rounded-full text-indigo-200"><i class="fa-solid fa-user-shield me-1"></i> 角色：老闆</span>
@@ -28,7 +28,10 @@
     <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
         <!-- 分頁切換 Tab -->
         <div class="flex border-b border-slate-200 mb-6 space-x-2">
-            <button onclick="switchTab('projects')" id="tab-projects" class="py-2 px-4 font-semibold text-indigo-600 border-b-2 border-indigo-600 flex items-center gap-2">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-2 px-4 font-semibold text-indigo-600 border-b-2 border-indigo-600 flex items-center gap-2">
+                <i class="fa-solid fa-chart-line"></i> Dashboard 進度看板
+            </button>
+            <button onclick="switchTab('projects')" id="tab-projects" class="py-2 px-4 font-semibold text-slate-500 hover:text-indigo-600 border-b-2 border-transparent flex items-center gap-2">
                 <i class="fa-solid fa-list-check"></i> 專案與流程設定
             </button>
             <button onclick="switchTab('clients')" id="tab-clients" class="py-2 px-4 font-semibold text-slate-500 hover:text-indigo-600 border-b-2 border-transparent flex items-center gap-2">
@@ -36,8 +39,58 @@
             </button>
         </div>
 
-        <!-- 分頁 1: 專案與流程設定 -->
-        <div id="content-projects" class="space-y-6">
+        <!-- 分頁 1: Dashboard 進度看板 -->
+        <div id="content-dashboard" class="space-y-6">
+            <!-- 專案總體完成率卡片區 -->
+            <div>
+                <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">各專案總體完成率</h2>
+                <div id="kpi-cards" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- JS 動態渲染 -->
+                </div>
+            </div>
+
+            <!-- 專案進度矩陣區 -->
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">客戶進度矩陣</h2>
+                        <p class="text-xs text-slate-500">點擊矩陣中的格子可直接切換步驟狀態（未開始 $\rightarrow$ 進行中 $\rightarrow$ 已完成 $\rightarrow$ 無此步驟）</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-semibold text-slate-600">選擇專案：</label>
+                        <select id="matrix-project-select" onchange="renderMatrix()" class="border rounded-lg px-3 py-1.5 text-sm bg-slate-50 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <!-- JS 動態渲染 -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 矩陣表格 -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[700px]">
+                        <thead>
+                            <tr id="matrix-header" class="bg-slate-100 text-slate-700 text-xs uppercase border-b border-slate-200">
+                                <!-- JS 動態渲染 -->
+                            </tr>
+                        </thead>
+                        <tbody id="matrix-body" class="divide-y divide-slate-100 text-sm">
+                            <!-- JS 動態渲染 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 圖例 -->
+                <div class="flex flex-wrap items-center gap-4 pt-2 text-xs text-slate-500 border-t border-slate-100">
+                    <span class="font-semibold">狀態說明：</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-200 inline-block"></span> 未開始</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> 進行中</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> 已完成</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-400 inline-block"></span> 無此步驟 (不計入完成率)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分頁 2: 專案與流程設定 -->
+        <div id="content-projects" class="space-y-6 hidden">
             <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                 <div>
                     <h2 class="text-lg font-bold text-slate-800">專案列表與流程</h2>
@@ -47,14 +100,10 @@
                     <i class="fa-solid fa-plus"></i> 新增專案
                 </button>
             </div>
-
-            <!-- 專案列表展示區 -->
-            <div id="project-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- JS 動態渲染 -->
-            </div>
+            <div id="project-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </div>
 
-        <!-- 分頁 2: 客戶基本資料 -->
+        <!-- 分頁 3: 客戶基本資料 -->
         <div id="content-clients" class="space-y-6 hidden">
             <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                 <div>
@@ -65,8 +114,6 @@
                     <i class="fa-solid fa-plus"></i> 新增客戶
                 </button>
             </div>
-
-            <!-- 客戶表格展示區 -->
             <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-slate-100 text-slate-600 text-xs uppercase border-b border-slate-200">
@@ -78,9 +125,7 @@
                             <th class="p-3 text-right">操作</th>
                         </tr>
                     </thead>
-                    <tbody id="client-table-body" class="divide-y divide-slate-100 text-sm">
-                        <!-- JS 動態渲染 -->
-                    </tbody>
+                    <tbody id="client-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
                 </table>
             </div>
         </div>
@@ -97,7 +142,6 @@
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">預設工作步驟（用逗點分割）</label>
                 <textarea id="input-project-steps" rows="3" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">提醒繳交憑證, 收到憑證, 缺漏待補, 整理分類鍵入, 自行檢查, 覆核, 上傳申報, 繳稅完成</textarea>
-                <p class="text-xs text-slate-400 mt-1">步驟會按順序生成於進度矩陣中。</p>
             </div>
             <div class="flex justify-end gap-2 pt-2">
                 <button onclick="closeProjectModal()" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
@@ -135,9 +179,9 @@
         </div>
     </div>
 
-    <!-- 邏輯腳本 -->
+    <!-- 腳本區 -->
     <script>
-        // 預設示範資料
+        // 初始化資料結構
         let projects = JSON.parse(localStorage.getItem('pf_projects')) || [
             { id: 1, name: '115年7-8月 營業稅', steps: ['提醒繳交憑證', '收到憑證', '缺漏待補', '整理分類鍵入', '自行檢查', '覆核', '上傳申報', '繳稅完成'] },
             { id: 2, name: '114年度 營所稅結算申報', steps: ['蒐集帳冊資料', '調整調帳項目', '編製報告書', '會計師簽章', '國稅局申報'] }
@@ -148,28 +192,163 @@
             { id: 102, name: '珍煮丹餐飲有限公司', taxId: '87654321', owner: '林小美', phone: '02-98765432' }
         ];
 
-        // 頁面初始化
+        // 矩陣狀態儲存 Key: `projectId_clientId_stepIndex` -> 'none' | 'progress' | 'done' | 'skip'
+        let matrixData = JSON.parse(localStorage.getItem('pf_matrix')) || {
+            '1_101_0': 'done', '1_101_1': 'done', '1_101_2': 'progress',
+            '1_102_0': 'done', '1_102_1': 'none'
+        };
+
+        const STATUS_MAP = {
+            'none': { label: '未開始', bg: 'bg-slate-100 text-slate-600 hover:bg-slate-200' },
+            'progress': { label: '進行中', bg: 'bg-amber-100 text-amber-800 font-semibold hover:bg-amber-200' },
+            'done': { label: '已完成', bg: 'bg-emerald-100 text-emerald-800 font-semibold hover:bg-emerald-200' },
+            'skip': { label: '無此步驟', bg: 'bg-slate-300 text-slate-600 line-through hover:bg-slate-400' }
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
             renderProjects();
             renderClients();
+            renderDashboard();
             document.getElementById('current-time').innerText = new Date().toLocaleDateString('zh-TW');
         });
 
-        // Tab 切換
         function switchTab(tab) {
+            document.getElementById('content-dashboard').classList.toggle('hidden', tab !== 'dashboard');
             document.getElementById('content-projects').classList.toggle('hidden', tab !== 'projects');
             document.getElementById('content-clients').classList.toggle('hidden', tab !== 'clients');
-            
-            document.getElementById('tab-projects').className = tab === 'projects' ? 
-                'py-2 px-4 font-semibold text-indigo-600 border-b-2 border-indigo-600 flex items-center gap-2' : 
-                'py-2 px-4 font-semibold text-slate-500 hover:text-indigo-600 border-b-2 border-transparent flex items-center gap-2';
-            
-            document.getElementById('tab-clients').className = tab === 'clients' ? 
-                'py-2 px-4 font-semibold text-indigo-600 border-b-2 border-indigo-600 flex items-center gap-2' : 
-                'py-2 px-4 font-semibold text-slate-500 hover:text-indigo-600 border-b-2 border-transparent flex items-center gap-2';
+
+            ['dashboard', 'projects', 'clients'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    btn.className = 'py-2 px-4 font-semibold text-indigo-600 border-b-2 border-indigo-600 flex items-center gap-2';
+                } else {
+                    btn.className = 'py-2 px-4 font-semibold text-slate-500 hover:text-indigo-600 border-b-2 border-transparent flex items-center gap-2';
+                }
+            });
+
+            if (tab === 'dashboard') renderDashboard();
         }
 
-        // 渲染專案列表
+        // 渲染 Dashboard 儀表板
+        function renderDashboard() {
+            renderKpiCards();
+            populateProjectSelect();
+            renderMatrix();
+        }
+
+        // 渲染 KPI 完成率卡片
+        function renderKpiCards() {
+            const container = document.getElementById('kpi-cards');
+            container.innerHTML = projects.map(p => {
+                let totalStepsNeeded = 0;
+                let totalStepsCompleted = 0;
+
+                clients.forEach(c => {
+                    p.steps.forEach((_, stepIdx) => {
+                        const status = matrixData[`${p.id}_${c.id}_${stepIdx}`] || 'none';
+                        if (status !== 'skip') {
+                            totalStepsNeeded++;
+                            if (status === 'done') totalStepsCompleted++;
+                        }
+                    });
+                });
+
+                const rate = totalStepsNeeded > 0 ? Math.round((totalStepsCompleted / totalStepsNeeded) * 100) : 0;
+
+                return `
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-800 text-sm truncate" title="${p.name}">${p.name}</span>
+                            <span class="text-xs text-slate-500">${clients.length} 家客戶</span>
+                        </div>
+                        <div class="flex items-baseline justify-between">
+                            <span class="text-2xl font-black text-indigo-600">${rate}%</span>
+                            <span class="text-xs text-slate-400">${totalStepsCompleted} / ${totalStepsNeeded} 步驟完成</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                            <div class="bg-indigo-600 h-full transition-all duration-300" style="width: ${rate}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function populateProjectSelect() {
+            const select = document.getElementById('matrix-project-select');
+            const currentVal = select.value;
+            select.innerHTML = projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            if (currentVal && projects.some(p => p.id == currentVal)) select.value = currentVal;
+        }
+
+        // 渲染進度矩陣
+        function renderMatrix() {
+            const projectId = document.getElementById('matrix-project-select').value || (projects[0] && projects[0].id);
+            if (!projectId) return;
+
+            const project = projects.find(p => p.id == projectId);
+            const headerRow = document.getElementById('matrix-header');
+            const body = document.getElementById('matrix-body');
+
+            // Header
+            headerRow.innerHTML = `
+                <th class="p-3 w-48 bg-slate-100 sticky left-0 z-10 border-r border-slate-200">公司名稱</th>
+                <th class="p-3 w-28 text-center">整體進度</th>
+                ${project.steps.map((step, idx) => `
+                    <th class="p-3 text-center min-w-[110px]">${idx + 1}. ${step}</th>
+                `).join('')}
+            `;
+
+            // Body
+            body.innerHTML = clients.map(c => {
+                let validSteps = 0;
+                let doneSteps = 0;
+
+                const stepCells = project.steps.map((_, stepIdx) => {
+                    const key = `${project.id}_${c.id}_${stepIdx}`;
+                    const status = matrixData[key] || 'none';
+                    const config = STATUS_MAP[status];
+
+                    if (status !== 'skip') {
+                        validSteps++;
+                        if (status === 'done') doneSteps++;
+                    }
+
+                    return `
+                        <td class="p-2 text-center">
+                            <button onclick="toggleMatrixStatus('${key}')" class="w-full py-1.5 px-2 rounded text-xs transition ${config.bg}">
+                                ${config.label}
+                            </button>
+                        </td>
+                    `;
+                }).join('');
+
+                const clientRate = validSteps > 0 ? Math.round((doneSteps / validSteps) * 100) : 0;
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-3 font-semibold text-slate-800 bg-white sticky left-0 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                            ${c.name}
+                        </td>
+                        <td class="p-3 text-center font-bold text-xs text-indigo-600">
+                            ${clientRate}%
+                        </td>
+                        ${stepCells}
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 狀態切換迴圈: none -> progress -> done -> skip -> none
+        function toggleMatrixStatus(key) {
+            const current = matrixData[key] || 'none';
+            const nextMap = { 'none': 'progress', 'progress': 'done', 'done': 'skip', 'skip': 'none' };
+            matrixData[key] = nextMap[current];
+
+            localStorage.setItem('pf_matrix', JSON.stringify(matrixData));
+            renderDashboard();
+        }
+
+        // 專案與客戶 CRUD
         function renderProjects() {
             const container = document.getElementById('project-list');
             container.innerHTML = projects.map(p => `
@@ -181,9 +360,7 @@
                     <div>
                         <span class="text-xs font-semibold text-slate-500 block mb-1">標準作業步驟 (${p.steps.length} 步)：</span>
                         <div class="flex flex-wrap gap-1">
-                            ${p.steps.map((step, idx) => `
-                                <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded border border-slate-200">${idx + 1}. ${step}</span>
-                            `).join('')}
+                            ${p.steps.map((step, idx) => `<span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded border border-slate-200">${idx + 1}. ${step}</span>`).join('')}
                         </div>
                     </div>
                 </div>
@@ -191,7 +368,6 @@
             localStorage.setItem('pf_projects', JSON.stringify(projects));
         }
 
-        // 渲染客戶列表
         function renderClients() {
             const tbody = document.getElementById('client-table-body');
             tbody.innerHTML = clients.map(c => `
@@ -208,33 +384,29 @@
             localStorage.setItem('pf_clients', JSON.stringify(clients));
         }
 
-        // Modal 操作
         function openProjectModal() { document.getElementById('project-modal').classList.remove('hidden'); }
         function closeProjectModal() { document.getElementById('project-modal').classList.add('hidden'); }
         function openClientModal() { document.getElementById('client-modal').classList.remove('hidden'); }
         function closeClientModal() { document.getElementById('client-modal').classList.add('hidden'); }
 
-        // 新增專案
         function saveProject() {
             const name = document.getElementById('input-project-name').value.trim();
             const stepsStr = document.getElementById('input-project-steps').value.trim();
             if (!name) return alert('請輸入專案名稱');
-            
             const steps = stepsStr.split(/[,，]/).map(s => s.trim()).filter(s => s);
             projects.push({ id: Date.now(), name, steps });
             renderProjects();
             closeProjectModal();
             document.getElementById('input-project-name').value = '';
+            renderDashboard();
         }
 
-        // 新增客戶
         function saveClient() {
             const name = document.getElementById('input-client-name').value.trim();
             const taxId = document.getElementById('input-client-taxid').value.trim();
             const owner = document.getElementById('input-client-owner').value.trim();
             const phone = document.getElementById('input-client-phone').value.trim();
             if (!name) return alert('請輸入公司名稱');
-
             clients.push({ id: Date.now(), name, taxId, owner, phone });
             renderClients();
             closeClientModal();
@@ -242,16 +414,19 @@
             document.getElementById('input-client-taxid').value = '';
             document.getElementById('input-client-owner').value = '';
             document.getElementById('input-client-phone').value = '';
+            renderDashboard();
         }
 
         function deleteProject(id) {
             projects = projects.filter(p => p.id !== id);
             renderProjects();
+            renderDashboard();
         }
 
         function deleteClient(id) {
             clients = clients.filter(c => c.id !== id);
             renderClients();
+            renderDashboard();
         }
     </script>
 </body>
