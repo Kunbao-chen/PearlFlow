@@ -3,769 +3,1034 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PearlFlow - 會計師事務所作業與客戶管理系統</title>
-    <!-- Tailwind CSS CDN -->
+    <title>珍珠聯合會計師事務所 - PearlFlow v1.9.0</title>
+    <!-- Tailwind CSS 樣式庫 -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pearl: {
+                            50: '#fff5f5',
+                            100: '#ffe8e8',
+                            200: '#fbd0d0',
+                            300: '#f7aab0',
+                            400: '#f17985',
+                            500: '#e54d5e',
+                            600: '#d12e43',
+                            700: '#af2133',
+                            800: '#911f2e',
+                            900: '#791f2b',
+                        },
+                        charcoal: '#4a4a4a',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+        .bg-pearl-geometric {
+            background-color: #fff8f8;
+            background-image: 
+                linear-gradient(135deg, rgba(247, 170, 176, 0.25) 0%, transparent 40%),
+                linear-gradient(225deg, rgba(251, 208, 208, 0.3) 0%, transparent 50%),
+                linear-gradient(45deg, rgba(241, 121, 133, 0.15) 0%, transparent 35%);
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+        .pearl-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(251, 208, 208, 0.6);
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+<body class="bg-pearl-geometric text-charcoal font-sans min-h-screen flex flex-col">
 
-    <!-- 頂部導覽列 Header -->
-    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <!-- 頁首導覽列 -->
+    <header class="bg-white border-b border-pearl-200 shadow-sm sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <i class="fa-solid fa-[#00aaaa] fa-layer-group text-teal-400 text-2xl"></i>
-                <div>
-                    <h1 class="font-bold text-lg leading-tight tracking-wide">PearlFlow</h1>
-                    <p class="text-xs text-slate-400">事務所流程與時長管理系統</p>
+                <img src="logo.png" alt="珍珠聯合會計師事務所 LOGO" class="h-10 w-auto object-contain">
+                <div class="border-l border-pearl-200 pl-3">
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg font-bold tracking-tight text-slate-800">珍珠聯合會計師事務所</h1>
+                        <span class="text-xs font-semibold text-pearl-600 bg-pearl-100 px-2 py-0.5 rounded-full">v1.9.0</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Pearl Certified Public Accountants Firm</p>
                 </div>
             </div>
-            
-            <!-- 角色切換與備份按鈕 -->
-            <div class="flex items-center space-x-4">
-                <div class="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
-                    <button id="role-admin" onclick="switchRole('admin')" class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-teal-600 text-white shadow-sm">
-                        <i class="fa-solid fa-user-shield mr-1"></i> 老闆 (Admin)
-                    </button>
-                    <button id="role-staff" onclick="switchRole('staff')" class="px-3 py-1 text-xs font-medium rounded-md text-slate-400 hover:text-white transition-all duration-200">
-                        <i class="fa-solid fa-user mr-1"></i> 員工 (Staff)
-                    </button>
+
+            <div class="flex items-center space-x-4 text-xs">
+                <div class="flex items-center gap-1.5 bg-pearl-50 border border-pearl-200 px-3 py-1 rounded-full font-medium">
+                    <i class="fa-solid fa-user-shield text-pearl-500"></i>
+                    <span class="text-slate-600">當前權限：</span>
+                    <select id="role-selector" onchange="switchRole(this.value)" class="bg-transparent font-bold text-pearl-700 focus:outline-none cursor-pointer">
+                        <option value="admin">老闆 (Admin)</option>
+                        <option value="staff">員工 (Staff)</option>
+                    </select>
                 </div>
+                <span class="text-slate-500 hidden sm:inline">系統日期：<span id="current-time" class="font-semibold text-slate-700"></span></span>
             </div>
         </div>
     </header>
 
-    <!-- 主要內容區塊 Main Layout -->
-    <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6">
-        
-        <!-- 側邊選單 Sidebar Navigation -->
-        <aside class="w-full md:w-64 flex-shrink-0">
-            <nav class="bg-white rounded-xl shadow-sm border border-slate-200/80 p-3 space-y-1">
-                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-150 bg-teal-50 text-teal-700">
-                    <i class="fa-solid fa-chart-pie text-base w-5 text-center"></i>
-                    <span>進度 Dashboard</span>
-                </button>
-                <button onclick="switchTab('clients')" id="nav-clients" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-150">
-                    <i class="fa-solid fa-building text-base w-5 text-center"></i>
-                    <span>客戶管理</span>
-                </button>
-                <button onclick="switchTab('sops')" id="nav-sops" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-150">
-                    <i class="fa-solid fa-list-check text-base w-5 text-center"></i>
-                    <span>專案 SOP 設定</span>
-                </button>
-                <button onclick="switchTab('calendar')" id="nav-calendar" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-150">
-                    <i class="fa-solid fa-calendar-days text-base w-5 text-center"></i>
-                    <span>申報行事曆</span>
-                </button>
-                <div class="pt-2 border-t border-slate-100"></div>
-                <button onclick="switchTab('backup')" id="nav-backup" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-150">
-                    <i class="fa-solid fa-database text-base w-5 text-center"></i>
-                    <span>備份與還原</span>
-                </button>
-            </nav>
-        </aside>
+    <!-- 主內容區 -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+        <!-- 分頁切換 Tab -->
+        <div class="flex border-b border-pearl-200 mb-6 space-x-2 overflow-x-auto">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-2.5 px-4 font-bold text-pearl-600 border-b-2 border-pearl-500 flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-chart-line"></i> Dashboard 進度看板
+            </button>
+            <button onclick="switchTab('calendar')" id="tab-calendar" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-calendar-days"></i> 申報行事曆
+            </button>
+            <button onclick="switchTab('analytics')" id="tab-analytics" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-chart-pie"></i> 管理分析
+            </button>
+            <button onclick="switchTab('projects')" id="tab-projects" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-list-check"></i> 專案與流程
+            </button>
+            <button onclick="switchTab('clients')" id="tab-clients" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-building"></i> 客戶基本資料
+            </button>
+            <button onclick="switchTab('backup')" id="tab-backup" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-database"></i> 備份與還原
+            </button>
+        </div>
 
-        <!-- 主展頁區域 Display Content -->
-        <main class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200/80 p-6 min-h-[600px] flex flex-col">
-            
-            <!-- Tab 1: Dashboard 進度矩陣 -->
-            <section id="tab-dashboard" class="tab-content flex-1 flex flex-col">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-slate-200 gap-4">
+        <!-- 分頁 1: Dashboard 進度看板 -->
+        <div id="content-dashboard" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="pearl-card rounded-xl p-4 shadow-sm border-l-4 border-l-pearl-500">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-day text-pearl-500"></i> 今天必須完成的工作
+                        </h3>
+                        <span id="count-today" class="text-xs bg-pearl-100 text-pearl-700 font-bold px-2 py-0.5 rounded-full">0 件</span>
+                    </div>
+                    <div id="list-today" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div>
+                </div>
+
+                <div class="pearl-card rounded-xl p-4 shadow-sm border-l-4 border-l-amber-400">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-week text-amber-500"></i> 本週必須完成的工作
+                        </h3>
+                        <span id="count-week" class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">0 件</span>
+                    </div>
+                    <div id="list-week" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div>
+                </div>
+            </div>
+
+            <div id="dashboard-level-1" class="space-y-4">
+                <div class="flex justify-between items-center">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-800">專案進度 Dashboard</h2>
-                        <p class="text-xs text-slate-500 mt-1">監控所有客戶之專案流程狀態、雙軌歷時天數與累積工時</p>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                        <label class="text-sm font-medium text-slate-600">選擇專案 SOP：</label>
-                        <select id="dashboard-sop-select" onchange="renderDashboard()" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
-                            <!-- 動態載入 SOP -->
-                        </select>
+                        <h2 class="text-base font-bold text-slate-800">所有專案進行進度</h2>
+                        <p class="text-xs text-slate-500">點擊專案卡片，展開查看該專案全體客戶的作業進度矩陣。</p>
                     </div>
                 </div>
+                <div id="project-kpi-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
 
-                <div class="flex-1 overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-left border-collapse min-w-[700px]">
-                        <thead>
-                            <tr id="dashboard-thead-tr" class="bg-slate-100 border-b border-slate-200 text-slate-700 text-xs font-semibold uppercase tracking-wider">
-                                <th class="p-3 w-48 border-r border-slate-200">客戶名稱</th>
-                                <!-- 動態載入步驟欄位 -->
-                            </tr>
-                        </thead>
-                        <tbody id="dashboard-tbody" class="divide-y divide-slate-200 text-sm">
-                            <!-- 動態載入客戶與步驟矩陣 -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- Tab 2: 客戶管理 -->
-            <section id="tab-clients" class="tab-content hidden flex-1 flex-col">
-                <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-200">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-800">客戶資料管理</h2>
-                        <p class="text-xs text-slate-500 mt-1">建立與維護事務所維繫之客戶清單</p>
-                    </div>
-                    <button onclick="openClientModal()" class="admin-only bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm flex items-center space-x-2">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>新增客戶</span>
-                    </button>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs font-semibold uppercase">
-                                <th class="p-3">統一編號</th>
-                                <th class="p-3">客戶公司名稱</th>
-                                <th class="p-3">聯絡人</th>
-                                <th class="p-3">電話</th>
-                                <th class="p-3 text-right">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="clients-tbody" class="divide-y divide-slate-100 text-sm">
-                            <!-- 動態載入 -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- Tab 3: 專案 SOP 設定 -->
-            <section id="tab-sops" class="tab-content hidden flex-1 flex-col">
-                <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-200">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-800">專案 SOP 與步驟設定</h2>
-                        <p class="text-xs text-slate-500 mt-1">設定營業稅、營所稅等各項服務的標準作業流程步驟</p>
-                    </div>
-                    <button onclick="openSopModal()" class="admin-only bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm flex items-center space-x-2">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>新增 SOP 流程</span>
-                    </button>
-                </div>
-                <div id="sops-list-container" class="space-y-4">
-                    <!-- 動態載入 SOP 列表 -->
-                </div>
-            </section>
-
-            <!-- Tab 4: 申報行事曆 -->
-            <section id="tab-calendar" class="tab-content hidden flex-1 flex-col">
-                <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-200">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-800">申報行事曆</h2>
-                        <p class="text-xs text-slate-500 mt-1">關鍵申報時程與法定截止日提醒</p>
-                    </div>
-                    <button onclick="openCalendarModal()" class="admin-only bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm flex items-center space-x-2">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>新增行事曆項目</span>
-                    </button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="calendar-cards-container">
-                    <!-- 動態載入行事曆 -->
-                </div>
-            </section>
-
-            <!-- Tab 5: 備份與還原 -->
-            <section id="tab-backup" class="tab-content hidden flex-1 flex-col">
-                <div class="pb-4 mb-4 border-b border-slate-200">
-                    <h2 class="text-xl font-bold text-slate-800">資料備份與還原</h2>
-                    <p class="text-xs text-slate-500 mt-1">完全離線與 LocalStorage 機制，您可以隨時匯出 JSON 檔案備份</p>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl">
-                    <div class="p-5 border border-slate-200 rounded-xl bg-slate-50 space-y-3">
-                        <div class="flex items-center space-x-3 text-teal-700">
-                            <i class="fa-solid fa-file-export text-2xl"></i>
-                            <h3 class="font-bold text-base">匯出全站 JSON 備份</h3>
+            <div id="dashboard-level-2" class="space-y-4 hidden">
+                <div class="flex items-center justify-between pearl-card p-4 rounded-xl shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <button onclick="backToLevel1()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1">
+                            <i class="fa-solid fa-arrow-left"></i> 返回總覽
+                        </button>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h2 id="current-project-title" class="text-base font-bold text-slate-800">專案名稱</h2>
+                                <span id="current-project-deadline" class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium"></span>
+                            </div>
+                            <p class="text-xs text-slate-500">點擊矩陣單元格可進行「開始／暫停／結束」實時計時打卡。</p>
                         </div>
-                        <p class="text-xs text-slate-600">將目前所有的客戶資料、SOP 流程與打卡時長紀錄完整備份至本地電腦。</p>
-                        <button onclick="exportData()" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg text-sm font-medium transition-all shadow-sm">
+                    </div>
+                    <span id="current-project-rate" class="text-xl font-black text-pearl-600 bg-pearl-50 px-3 py-1 rounded-lg border border-pearl-200">0%</span>
+                </div>
+
+                <div class="pearl-card p-4 rounded-xl shadow-sm overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[800px]">
+                        <thead>
+                            <tr id="matrix-header" class="bg-slate-50 text-slate-700 text-xs uppercase border-b border-pearl-100"></tr>
+                        </thead>
+                        <tbody id="matrix-body" class="divide-y divide-pearl-50 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分頁 2: 申報行事曆 -->
+        <div id="content-calendar" class="space-y-6 hidden">
+            <div class="flex justify-between items-center pearl-card p-4 rounded-xl shadow-sm">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800">申報行事曆與自動提醒設定</h2>
+                    <p class="text-xs text-slate-500">設定法定申報期限與提前提醒天數，系統會自動在 Dashboard 的「今天／本週必辦」中進行動態提醒。</p>
+                </div>
+                <button id="btn-add-event" onclick="openEventModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> 新增申報日程
+                </button>
+            </div>
+            <div id="calendar-event-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+
+        <!-- 分頁 3: 管理分析看板 -->
+        <div id="content-analytics" class="space-y-6 hidden">
+            <div class="pearl-card p-4 rounded-xl shadow-sm">
+                <h2 class="text-base font-bold text-slate-800 mb-1">工時與效率管理分析</h2>
+                <p class="text-xs text-slate-500">統計全所人員累積操作工時與專案完成率，提供精準的管理決策參考。</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 人員工時統計 -->
+                <div class="pearl-card p-5 rounded-xl shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-users text-pearl-500"></i> 人員累積工時與貢獻度
+                    </h3>
+                    <div id="analytics-staff-list" class="space-y-3 text-xs"></div>
+                </div>
+
+                <!-- 專案完成率與投入工時 -->
+                <div class="pearl-card p-5 rounded-xl shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-chart-column text-pearl-500"></i> 專案累積投入工時與總進度
+                    </h3>
+                    <div id="analytics-project-list" class="space-y-3 text-xs"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分頁 4: 專案與流程設定 -->
+        <div id="content-projects" class="space-y-6 hidden">
+            <div class="flex justify-between items-center pearl-card p-4 rounded-xl shadow-sm">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800">專案列表與標準流程 (SOP)</h2>
+                    <p class="text-xs text-slate-500" id="project-subtitle">在此設定事務所各項服務的作業標準流程與步驟。</p>
+                </div>
+                <button id="btn-add-project" onclick="openProjectModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> 新增專案
+                </button>
+            </div>
+            <div id="project-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+
+        <!-- 分頁 5: 客戶基本資料 -->
+        <div id="content-clients" class="space-y-6 hidden">
+            <div class="flex justify-between items-center pearl-card p-4 rounded-xl shadow-sm">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800">客戶基本資料</h2>
+                    <p class="text-xs text-slate-500">管理事務所服務的所有公司客戶檔。</p>
+                </div>
+                <button id="btn-add-client" onclick="openClientModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> 新增客戶
+                </button>
+            </div>
+            <div class="pearl-card rounded-xl shadow-sm overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50 text-slate-600 text-xs uppercase border-b border-pearl-100">
+                        <tr>
+                            <th class="p-3">公司名稱</th>
+                            <th class="p-3">統一編號</th>
+                            <th class="p-3">負責人</th>
+                            <th class="p-3">聯絡電話</th>
+                            <th class="p-3 text-right action-col">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="client-table-body" class="divide-y divide-pearl-50 text-sm"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 分頁 6: 資料備份與還原 -->
+        <div id="content-backup" class="space-y-6 hidden">
+            <div class="pearl-card p-6 rounded-xl shadow-sm space-y-4 max-w-2xl">
+                <h2 class="text-base font-bold text-slate-800 border-b pb-2">資料安全備份與還原 (JSON)</h2>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    為了防止瀏覽器快取被清空導致資料遺失，建議定期進行資料導出備份。匯出的 JSON 檔包含所有專案、客戶、打卡工時與行事曆提醒設定。
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div class="bg-pearl-50/50 p-4 rounded-xl border border-pearl-100 flex flex-col justify-between space-y-3">
+                        <div>
+                            <h3 class="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1">
+                                <i class="fa-solid fa-download text-pearl-500"></i> 一鍵匯出資料備份
+                            </h3>
+                            <p class="text-[11px] text-slate-400">將目前的全站資料備份為 JSON 檔案下載至本地。</p>
+                        </div>
+                        <button onclick="exportSystemData()" class="w-full py-2 bg-pearl-500 hover:bg-pearl-600 text-white text-xs font-bold rounded-lg transition">
                             下載 JSON 備份檔
                         </button>
                     </div>
-                    <div class="p-5 border border-slate-200 rounded-xl bg-slate-50 space-y-3">
-                        <div class="flex items-center space-x-3 text-indigo-700">
-                            <i class="fa-solid fa-file-import text-2xl"></i>
-                            <h3 class="font-bold text-base">匯入 JSON 資料還原</h3>
+
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                        <div>
+                            <h3 class="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1">
+                                <i class="fa-solid fa-upload text-slate-600"></i> 匯入備份資料覆原
+                            </h3>
+                            <p class="text-[11px] text-slate-400">選擇先前下載的 `.json` 檔案進行資料覆蓋恢復。</p>
                         </div>
-                        <p class="text-xs text-slate-600">選擇先前的 JSON 備份檔案，還原至此瀏覽器（將覆蓋現有資料）。</p>
-                        <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
-                        <button onclick="document.getElementById('import-file').click()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-medium transition-all shadow-sm">
-                            選擇檔案並還原
-                        </button>
+                        <div>
+                            <input type="file" id="import-file" accept=".json" class="hidden" onchange="importSystemData(event)">
+                            <button onclick="document.getElementById('import-file').click()" class="w-full py-2 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition">
+                                選擇檔案並還原
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </section>
+            </div>
+        </div>
+    </main>
 
-        </main>
-    </div>
-
-    <!-- 打卡與時長彈窗 Modal -->
-    <div id="time-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-5">
-            <div class="flex items-center justify-between border-b pb-3">
+    <!-- Modal: 打卡與實時計時器彈窗 -->
+    <div id="timer-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-pearl-100">
+            <div class="border-b border-slate-100 pb-3 flex justify-between items-center">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-800" id="tm-title">作業步驟打卡</h3>
-                    <p class="text-xs text-slate-500 mt-0.5" id="tm-subtitle">客戶：- | 步驟：-</p>
+                    <span id="modal-client-name" class="text-xs font-bold text-pearl-600 block">客戶名稱</span>
+                    <h3 id="modal-step-name" class="text-base font-bold text-slate-800">步驟名稱</h3>
                 </div>
-                <button onclick="closeTimeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <button onclick="closeTimerModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
-            <!-- 時間指標看板 -->
-            <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                <div class="text-center border-r border-slate-200 pr-2">
-                    <p class="text-xs font-semibold text-slate-500 mb-1">跨日歷時天數</p>
-                    <p id="tm-elapsed-days" class="text-base font-bold text-slate-800">未開始</p>
-                </div>
-                <div class="text-center pl-2">
-                    <p class="text-xs font-semibold text-slate-500 mb-1">累積投入工時</p>
-                    <p id="tm-accumulated-time" class="text-base font-bold text-teal-600 font-mono">00:00:00</p>
-                </div>
+            <div class="bg-pearl-50/60 p-4 rounded-xl border border-pearl-100 text-center space-y-1">
+                <span id="timer-status-badge" class="text-xs px-2.5 py-1 rounded-full font-semibold bg-slate-200 text-slate-700">未開始</span>
+                <div id="timer-display" class="text-3xl font-black tracking-wider text-slate-800 font-mono py-2">00:00:00</div>
+                <p id="timer-user-info" class="text-xs text-slate-400">尚無操作紀錄</p>
             </div>
 
-            <!-- 計時控制按鈕組 (狀態完全管控) -->
-            <div class="space-y-2">
-                <p class="text-xs font-medium text-slate-600">即時打卡計時控制：</p>
-                <div class="grid grid-cols-3 gap-2">
-                    <button id="btn-timer-start" onclick="handleTimerStart()" class="py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1">
-                        <i class="fa-solid fa-play"></i>
-                        <span id="btn-timer-start-text">開始計時</span>
-                    </button>
-                    <button id="btn-timer-pause" onclick="handleTimerPause()" class="py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1">
-                        <i class="fa-solid fa-pause"></i>
-                        <span>暫停計時</span>
-                    </button>
-                    <button id="btn-timer-complete" onclick="handleTimerComplete()" class="py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1">
-                        <i class="fa-solid fa-check"></i>
-                        <span>完成步驟</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- 人工微調總工時 -->
-            <div class="pt-3 border-t border-slate-100 space-y-2">
-                <label class="text-xs font-medium text-slate-600 block">手動修正累積工時 (小時)：</label>
-                <div class="flex space-x-2">
-                    <input type="number" id="tm-manual-hours" step="0.1" min="0" placeholder="例如: 2.5" class="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
-                    <button onclick="handleManualHourSave()" class="bg-slate-700 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all">
-                        套用修正
-                    </button>
-                </div>
-                <p class="text-[11px] text-slate-400">適用於專員忘記按暫停，或跨日手動補充工時之狀況。</p>
-            </div>
-
-            <div class="pt-2 flex justify-between items-center border-t border-slate-100">
-                <button id="btn-timer-reset" onclick="handleTimerReset()" class="text-xs text-rose-600 hover:text-rose-800 font-medium">
-                    <i class="fa-solid fa-rotate-left mr-1"></i>重設此步驟
+            <div class="grid grid-cols-2 gap-2 pt-2">
+                <button id="btn-start" onclick="handleTimerAction('start')" class="py-2.5 bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play"></i> 開始執行
                 </button>
-                <button onclick="closeTimeModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-1.5 rounded-lg text-xs font-medium">
-                    關閉窗口
+                <button id="btn-pause" onclick="handleTimerAction('pause')" class="py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-pause"></i> 暫停執行
+                </button>
+                <button id="btn-complete" onclick="handleTimerAction('complete')" class="col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-check"></i> 完成此步驟
+                </button>
+                <button id="btn-skip" onclick="handleTimerAction('skip')" class="col-span-2 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-xs font-medium border border-slate-200">
+                    標記為「無此步驟」
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- 客戶編輯 Modal -->
-    <div id="client-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-4">
-            <h3 class="text-lg font-bold text-slate-800" id="client-modal-title">新增客戶</h3>
-            <form id="client-form" onsubmit="saveClient(event)" class="space-y-3 text-sm">
-                <input type="hidden" id="cm-id">
+    <!-- Modal: 新增申報日程彈窗 -->
+    <div id="event-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-pearl-100">
+            <h3 class="text-base font-bold text-slate-800 border-b pb-2">新增申報日程與提醒</h3>
+            <div class="space-y-3 text-xs">
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">統一編號</label>
-                    <input type="text" id="cm-taxid" required class="w-full border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">公司名稱</label>
-                    <input type="text" id="cm-name" required class="w-full border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <label class="block font-semibold text-slate-600 mb-1">連動專案</label>
+                    <select id="input-event-project" class="w-full border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-pearl-400"></select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">聯絡人</label>
-                    <input type="text" id="cm-contact" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <label class="block font-semibold text-slate-600 mb-1">申報事項名稱</label>
+                    <input type="text" id="input-event-title" placeholder="例如：115年7-8月 營業稅申報截止" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">電話</label>
-                    <input type="text" id="cm-phone" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <label class="block font-semibold text-slate-600 mb-1">法定申報截止日 (DueDate)</label>
+                    <input type="date" id="input-event-date" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
                 </div>
-                <div class="pt-3 flex justify-end space-x-2">
-                    <button type="button" onclick="closeClientModal()" class="px-4 py-1.5 rounded-lg border text-slate-600 hover:bg-slate-50">取消</button>
-                    <button type="submit" class="px-4 py-1.5 rounded-lg bg-teal-600 text-white hover:bg-teal-700">儲存</button>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">提前幾天動態提醒 (RemindDays)</label>
+                    <input type="number" id="input-event-remind" value="7" min="1" max="30" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
                 </div>
-            </form>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeEventModal()" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
+                <button onclick="saveEvent()" class="px-4 py-2 text-xs bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg font-bold">儲存日程</button>
+            </div>
         </div>
     </div>
 
-    <!-- JavaScript 核心邏輯 -->
+    <!-- Modal: 新增專案彈窗 -->
+    <div id="project-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4 border border-pearl-100">
+            <h3 class="text-base font-bold text-slate-800 border-b pb-2">新增專案與標準流程</h3>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">專案名稱</label>
+                <input type="text" id="input-project-name" placeholder="例如：115年7-8月 營業稅" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-pearl-400">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">預設工作步驟（使用逗號分隔）</label>
+                <textarea id="input-project-steps" rows="3" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-pearl-400">提醒繳交憑證, 收到憑證, 缺漏待補, 整理分類鍵入, 自行檢查, 覆核, 上傳申報, 繳稅完成</textarea>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeProjectModal()" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
+                <button onclick="saveProject()" class="px-4 py-2 text-xs bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg font-bold">儲存專案</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: 新增客戶彈窗 -->
+    <div id="client-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4 border border-pearl-100">
+            <h3 class="text-base font-bold text-slate-800 border-b pb-2">新增客戶基本資料</h3>
+            <div class="grid grid-cols-2 gap-3 text-xs">
+                <div class="col-span-2">
+                    <label class="block font-semibold text-slate-600 mb-1">公司名稱</label>
+                    <input type="text" id="input-client-name" placeholder="寶島科技股份有限公司" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">統一編號</label>
+                    <input type="text" id="input-client-taxid" placeholder="88615713" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">負責人</label>
+                    <input type="text" id="input-client-owner" placeholder="陳崑琳" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
+                </div>
+                <div class="col-span-2">
+                    <label class="block font-semibold text-slate-600 mb-1">聯絡電話</label>
+                    <input type="text" id="input-client-phone" placeholder="0937-025-207" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeClientModal()" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
+                <button onclick="saveClient()" class="px-4 py-2 text-xs bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg font-bold">儲存客戶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 模組區塊 -->
     <script>
-        // 預設資料 (Initial Data)
-        const DEFAULT_DATA = {
-            role: 'admin', // admin | staff
-            clients: [
-                { id: 'c1', taxId: '12345678', name: '創峰科技股份有限公司', contact: '張經理', phone: '02-27001234' },
-                { id: 'c2', taxId: '87654321', name: '遠景文創企業社', contact: '林小姐', phone: '02-87654321' }
-            ],
-            sops: [
-                {
-                    id: 's1',
-                    title: '營業稅雙月申報 SOP',
-                    steps: [
-                        { id: 'st1', name: '憑證收集與分類' },
-                        { id: 'st2', name: '銷項發票登錄核對' },
-                        { id: 'st3', name: '進項發票扣抵確認' },
-                        { id: 'st4', name: '401 報表產出與核算' },
-                        { id: 'st5', name: '國稅局網路申報上傳' }
-                    ]
-                }
-            ],
-            calendar: [
-                { id: 'k1', date: '2026-09-15', title: '07-08月 營業稅申報截止日', tag: '營業稅', desc: '需完成所有銷項進項憑證申報上傳' }
-            ],
-            // 步驟狀態記錄: `${clientId}_${sopId}_${stepId}` -> { status, firstStartedAt, completedAt, accumulatedSeconds, isTimerRunning, lastStartTime }
-            progress: {}
+        // ==========================================
+        // 1. STATE & STORAGE MODULE (資料狀態層)
+        // ==========================================
+        let currentRole = localStorage.getItem('pf_role') || 'admin';
+
+        let projects = JSON.parse(localStorage.getItem('pf_projects')) || [
+            { id: 1, name: '115年7-8月 營業稅', steps: ['提醒繳交憑證', '收到憑證', '缺漏待補', '整理分類鍵入', '自行檢查', '覆核', '上傳申報', '繳稅完成'] },
+            { id: 2, name: '114年度 營所稅結算申報', steps: ['蒐集帳冊資料', '調整調帳項目', '編製報告書', '會計師簽章', '國稅局申報'] }
+        ];
+
+        let clients = JSON.parse(localStorage.getItem('pf_clients')) || [
+            { id: 101, name: '珍珠聯合會計師事務所', taxId: '88615713', owner: '陳崑琳', phone: '0937-025-207' },
+            { id: 102, name: '寶島科技股份有限公司', taxId: '12345678', owner: '陳大明', phone: '02-23456789' },
+            { id: 103, name: '台灣創新生技股份有限公司', taxId: '54321678', owner: '林玉蓮', phone: '03-5712345' }
+        ];
+
+        let events = JSON.parse(localStorage.getItem('pf_events')) || [
+            { id: 201, projectId: 1, title: '115年7-8月 營業稅申報截止', dueDate: '2026-09-15', remindDays: 7 },
+            { id: 202, projectId: 2, title: '114年度 營所稅結算申報截止', dueDate: '2026-05-31', remindDays: 14 }
+        ];
+
+        let stepLogs = JSON.parse(localStorage.getItem('pf_step_logs')) || {
+            '1_101_0': { status: 'done', operator: '老闆 (Admin)', elapsed: 300 },
+            '1_101_1': { status: 'done', operator: '老闆 (Admin)', elapsed: 450 },
+            '1_101_2': { status: 'progress', operator: '老闆 (Admin)', elapsed: 120, lastStart: Date.now() },
+            '1_102_0': { status: 'progress', operator: '員工 (Staff)', elapsed: 180, lastStart: Date.now() },
+            '2_101_0': { status: 'done', operator: '員工 (Staff)', elapsed: 1200 }
         };
 
-        let appData = loadData();
-        let currentModalStepInfo = null; // 當前開啟 Modal 的步驟資訊
+        let activeProjectId = null;
+        let activeKey = null;
         let timerInterval = null;
 
-        // 初始化
-        window.addEventListener('DOMContentLoaded', () => {
-            applyRoleUI();
-            renderDashboardSelect();
-            renderDashboard();
-            renderClients();
-            renderSops();
-            renderCalendar();
+        const STATUS_CONFIG = {
+            'none': { label: '未開始', bg: 'bg-slate-100 text-slate-600 hover:bg-slate-200' },
+            'progress': { label: '進行中', bg: 'bg-amber-100 text-amber-800 font-semibold hover:bg-amber-200 border border-amber-300 animate-pulse' },
+            'done': { label: '已完成', bg: 'bg-emerald-100 text-emerald-800 font-semibold hover:bg-emerald-200' },
+            'skip': { label: '無此步驟', bg: 'bg-slate-200 text-slate-500 line-through hover:bg-slate-300' }
+        };
+
+        // ==========================================
+        // 2. AUTHENTICATION MODULE (權限控制層)
+        // ==========================================
+        function switchRole(role) {
+            currentRole = role;
+            localStorage.setItem('pf_role', role);
+            applyRolePermissions();
+        }
+
+        function applyRolePermissions() {
+            document.getElementById('role-selector').value = currentRole;
+            const isAdmin = (currentRole === 'admin');
+
+            document.getElementById('btn-add-project').style.display = isAdmin ? 'inline-flex' : 'none';
+            document.getElementById('btn-add-client').style.display = isAdmin ? 'inline-flex' : 'none';
+            document.getElementById('btn-add-event').style.display = isAdmin ? 'inline-flex' : 'none';
             
-            // 每秒更新計時器介面 (若 Modal 開啟中)
-            setInterval(updateTimerModalDisplay, 1000);
+            document.getElementById('project-subtitle').innerText = isAdmin ? 
+                '在此設定事務所各項服務的作業標準流程與步驟。' : 
+                '唯讀視角：僅老闆 (Admin) 權限可新增或修改標準作業流程。';
+
+            renderProjects();
+            renderClients();
+            renderCalendarEvents();
+        }
+
+        // ==========================================
+        // 3. UI RENDER MODULE (畫面渲染層)
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            applyRolePermissions();
+            renderDashboardLevel1();
+            renderTaskFocus();
+            document.getElementById('current-time').innerText = new Date().toLocaleDateString('zh-TW');
         });
 
-        // 讀取/儲存 LocalStorage
-        function loadData() {
-            const stored = localStorage.getItem('pearlflow_db');
-            if (stored) {
-                try { return JSON.parse(stored); } catch(e) { console.error(e); }
-            }
-            return DEFAULT_DATA;
-        }
-
-        function saveData() {
-            localStorage.setItem('pearlflow_db', JSON.stringify(appData));
-        }
-
-        // 角色切換
-        function switchRole(role) {
-            appData.role = role;
-            saveData();
-            applyRoleUI();
-        }
-
-        function applyRoleUI() {
-            const btnAdmin = document.getElementById('role-admin');
-            const btnStaff = document.getElementById('role-staff');
-            if (appData.role === 'admin') {
-                btnAdmin.className = "px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-teal-600 text-white shadow-sm";
-                btnStaff.className = "px-3 py-1 text-xs font-medium rounded-md text-slate-400 hover:text-white transition-all duration-200";
-                document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
-            } else {
-                btnStaff.className = "px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 bg-teal-600 text-white shadow-sm";
-                btnAdmin.className = "px-3 py-1 text-xs font-medium rounded-md text-slate-400 hover:text-white transition-all duration-200";
-                document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
-            }
-        }
-
-        // Tab 切換
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-btn').forEach(el => {
-                el.classList.remove('bg-teal-50', 'text-teal-700');
-                el.classList.add('text-slate-600');
+        function switchTab(tab) {
+            const tabs = ['dashboard', 'calendar', 'analytics', 'projects', 'clients', 'backup'];
+            tabs.forEach(t => {
+                document.getElementById(`content-${t}`).classList.toggle('hidden', t !== tab);
+                const btn = document.getElementById(`tab-${t}`);
+                btn.className = (t === tab) ? 
+                    'py-2.5 px-4 font-bold text-pearl-600 border-b-2 border-pearl-500 flex items-center gap-2 whitespace-nowrap' : 
+                    'py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap';
             });
 
-            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-            const activeNav = document.getElementById(`nav-${tabName}`);
-            activeNav.classList.add('bg-teal-50', 'text-teal-700');
-            activeNav.classList.remove('text-slate-600');
-        }
-
-        // --- Tab 1: Dashboard 繪製邏輯 ---
-        function renderDashboardSelect() {
-            const select = document.getElementById('dashboard-sop-select');
-            select.innerHTML = appData.sops.map(s => `<option value="${s.id}">${s.title}</option>`).join('');
-        }
-
-        function renderDashboard() {
-            const sopId = document.getElementById('dashboard-sop-select').value;
-            const sop = appData.sops.find(s => s.id === sopId);
-            const theadTr = document.getElementById('dashboard-thead-tr');
-            const tbody = document.getElementById('dashboard-tbody');
-
-            if (!sop) {
-                theadTr.innerHTML = '<th class="p-3">無專案 SOP 資料</th>';
-                tbody.innerHTML = '';
-                return;
+            if (tab === 'dashboard') {
+                renderDashboardLevel1();
+                renderTaskFocus();
+            } else if (tab === 'analytics') {
+                renderAnalytics();
             }
+        }
 
-            // 繪製 表頭 (客戶名稱 + 各步驟)
-            let headHTML = '<th class="p-3 w-48 border-r border-slate-200 bg-slate-100">客戶名稱</th>';
-            sop.steps.forEach(step => {
-                headHTML += `<th class="p-3 border-r border-slate-200 bg-slate-50 font-semibold text-slate-700">${step.name}</th>`;
+        function renderTaskFocus() {
+            const todayList = document.getElementById('list-today');
+            const weekList = document.getElementById('list-week');
+            let todayItems = [], weekItems = [];
+
+            const now = new Date();
+
+            events.forEach(evt => {
+                const dueDate = new Date(evt.dueDate);
+                const diffTime = dueDate - now;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays <= evt.remindDays) {
+                    const project = projects.find(p => p.id === evt.projectId);
+                    if (!project) return;
+
+                    clients.forEach(c => {
+                        project.steps.forEach((step, idx) => {
+                            const key = `${project.id}_${c.id}_${idx}`;
+                            const log = stepLogs[key];
+                            if (!log || (log.status !== 'done' && log.status !== 'skip')) {
+                                const itemHTML = `
+                                    <div class="flex items-center justify-between bg-white/80 p-2 rounded border border-pearl-100 hover:border-pearl-300 transition">
+                                        <div class="truncate mr-2">
+                                            <span class="font-bold text-slate-800">${c.name}</span>
+                                            <span class="text-slate-400 mx-1">·</span>
+                                            <span class="text-pearl-600 font-medium">${project.name}</span>
+                                            <span class="text-slate-500">（${step}）</span>
+                                        </div>
+                                        <button onclick="openProjectDetail(${project.id})" class="text-[10px] bg-pearl-50 text-pearl-600 border border-pearl-200 px-2 py-0.5 rounded flex-shrink-0">查看</button>
+                                    </div>
+                                `;
+                                if (diffDays <= 1 || (log && log.status === 'progress')) {
+                                    todayItems.push(itemHTML);
+                                } else {
+                                    weekItems.push(itemHTML);
+                                }
+                            }
+                        });
+                    });
+                }
             });
-            theadTr.innerHTML = headHTML;
 
-            // 繪製 表身 (各客戶相對於該 SOP 的步驟狀態)
-            let bodyHTML = '';
-            appData.clients.forEach(client => {
-                bodyHTML += `<tr class="hover:bg-slate-50/80 transition-colors">`;
-                bodyHTML += `<td class="p-3 font-semibold text-slate-800 border-r border-slate-200">${client.name}</td>`;
+            document.getElementById('count-today').innerText = `${todayItems.length} 件`;
+            todayList.innerHTML = todayItems.length ? todayItems.join('') : '<p class="text-slate-400 italic">今日無過期或緊急事項</p>';
 
-                sop.steps.forEach(step => {
-                    const key = `${client.id}_${sop.id}_${step.id}`;
-                    const prog = appData.progress[key] || { status: 'pending', accumulatedSeconds: 0 };
-                    
-                    const cellBadge = getCellBadgeHTML(prog);
-                    
-                    bodyHTML += `
-                        <td class="p-2 border-r border-slate-200 text-center">
-                            <button onclick="openTimeModal('${client.id}', '${sop.id}', '${step.id}')" class="w-full h-full py-2 px-1 rounded hover:bg-slate-100/80 transition-all flex flex-col items-center justify-center gap-1">
-                                ${cellBadge}
+            document.getElementById('count-week').innerText = `${weekItems.length} 件`;
+            weekList.innerHTML = weekItems.length ? weekItems.join('') : '<p class="text-slate-400 italic">本週尚無動態提醒事項</p>';
+        }
+
+        // 動態渲染 Dashboard 第一層（專案 SOP 與進度卡片）
+        function renderDashboardLevel1() {
+            document.getElementById('dashboard-level-1').classList.remove('hidden');
+            document.getElementById('dashboard-level-2').classList.add('hidden');
+
+            const container = document.getElementById('project-kpi-grid');
+            container.innerHTML = projects.map(p => {
+                const stats = calculateProjectProgress(p);
+                const evt = events.find(e => e.projectId === p.id);
+                
+                // 渲染動態 SOP 流程預覽
+                const sopPreview = p.steps.map((s, idx) => `
+                    <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 flex-shrink-0">
+                        ${idx + 1}.${s}
+                    </span>
+                `).join('<span class="text-slate-300 text-[10px]">➔</span>');
+
+                return `
+                    <div onclick="openProjectDetail(${p.id})" class="pearl-card p-5 rounded-xl shadow-sm hover:shadow-md border hover:border-pearl-300 cursor-pointer transition group space-y-3 flex flex-col justify-between">
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-bold text-slate-800 text-base group-hover:text-pearl-600 transition">${p.name}</h3>
+                                <span class="text-xs bg-pearl-50 text-pearl-600 border border-pearl-200 px-2 py-0.5 rounded flex-shrink-0">${clients.length} 家客戶</span>
+                            </div>
+                            
+                            ${evt ? `<div class="text-[11px] text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200 inline-block">
+                                <i class="fa-regular fa-clock mr-1"></i>截止日：${evt.dueDate}
+                            </div>` : ''}
+
+                            <!-- 串聯顯示 SOP 流程圖 -->
+                            <div class="pt-1">
+                                <span class="text-[10px] font-semibold text-slate-400 block mb-1">作業 SOP 流程脈絡：</span>
+                                <div class="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
+                                    ${sopPreview}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 pt-2 border-t border-slate-100">
+                            <div class="flex items-baseline justify-between">
+                                <span class="text-3xl font-black text-pearl-600">${stats.rate}%</span>
+                                <span class="text-xs text-slate-400">${stats.completed} / ${stats.needed} 步驟完成</span>
+                            </div>
+                            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                <div class="bg-pearl-500 h-full transition-all duration-500" style="width: ${stats.rate}%"></div>
+                            </div>
+                            <div class="flex justify-end text-xs text-pearl-600 font-bold group-hover:translate-x-1 transition-transform pt-1">
+                                進入客戶進度矩陣 <i class="fa-solid fa-chevron-right ml-1 mt-0.5"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function calculateProjectProgress(p) {
+            let needed = 0, completed = 0;
+            clients.forEach(c => {
+                p.steps.forEach((_, idx) => {
+                    const key = `${p.id}_${c.id}_${idx}`;
+                    const log = stepLogs[key] || { status: 'none' };
+                    if (log.status !== 'skip') {
+                        needed++;
+                        if (log.status === 'done') completed++;
+                    }
+                });
+            });
+            const rate = needed > 0 ? Math.round((completed / needed) * 100) : 0;
+            return { needed, completed, rate };
+        }
+
+        function openProjectDetail(projectId) {
+            activeProjectId = projectId;
+            const project = projects.find(p => p.id === projectId);
+            if (!project) return;
+
+            document.getElementById('dashboard-level-1').classList.add('hidden');
+            document.getElementById('dashboard-level-2').classList.remove('hidden');
+
+            document.getElementById('current-project-title').innerText = project.name;
+            const evt = events.find(e => e.projectId === project.id);
+            document.getElementById('current-project-deadline').innerText = evt ? `法定截止日：${evt.dueDate}` : '未設定截止日';
+
+            const stats = calculateProjectProgress(project);
+            document.getElementById('current-project-rate').innerText = `${stats.rate}%`;
+
+            renderMatrix(project);
+        }
+
+        function backToLevel1() {
+            renderDashboardLevel1();
+            renderTaskFocus();
+        }
+
+        function renderMatrix(project) {
+            const headerRow = document.getElementById('matrix-header');
+            const body = document.getElementById('matrix-body');
+
+            headerRow.innerHTML = `
+                <th class="p-3 w-48 bg-slate-50 sticky left-0 z-10 border-r border-pearl-100 font-bold">公司名稱</th>
+                <th class="p-3 w-20 text-center font-bold">進度</th>
+                ${project.steps.map((step, idx) => `
+                    <th class="p-3 text-center min-w-[120px]">
+                        <span class="block text-slate-400 text-[10px]">STEP ${idx + 1}</span>
+                        <span class="font-bold text-slate-700">${step}</span>
+                    </th>
+                `).join('')}
+            `;
+
+            body.innerHTML = clients.map(c => {
+                let valid = 0, done = 0;
+                const cells = project.steps.map((_, stepIdx) => {
+                    const key = `${project.id}_${c.id}_${stepIdx}`;
+                    const log = stepLogs[key] || { status: 'none' };
+                    const cfg = STATUS_CONFIG[log.status] || STATUS_CONFIG['none'];
+
+                    if (log.status !== 'skip') {
+                        valid++;
+                        if (log.status === 'done') done++;
+                    }
+
+                    return `
+                        <td class="p-2 text-center">
+                            <button onclick="openTimerModal('${key}', '${c.name}', '${project.steps[stepIdx]}')" class="w-full py-1.5 px-2 rounded text-xs transition ${cfg.bg}">
+                                ${cfg.label}
                             </button>
                         </td>
                     `;
-                });
+                }).join('');
 
-                bodyHTML += `</tr>`;
-            });
-            tbody.innerHTML = bodyHTML;
+                const cRate = valid > 0 ? Math.round((done / valid) * 100) : 0;
+
+                return `
+                    <tr class="hover:bg-pearl-50/50 transition">
+                        <td class="p-3 font-semibold text-slate-800 bg-white sticky left-0 z-10 border-r border-pearl-100">
+                            ${c.name}
+                        </td>
+                        <td class="p-3 text-center font-black text-xs text-pearl-600">${cRate}%</td>
+                        ${cells}
+                    </tr>
+                `;
+            }).join('');
         }
 
-        function getCellBadgeHTML(prog) {
-            const hours = (prog.accumulatedSeconds / 3600).toFixed(1);
-            if (prog.status === 'completed') {
-                const days = getElapsedDays(prog.firstStartedAt, prog.completedAt);
-                return `<span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1">
-                            <i class="fa-solid fa-check text-[10px]"></i> 完成 (歷時${days}天/${hours}h)
-                        </span>`;
-            } else if (prog.status === 'in_progress') {
-                const days = getElapsedDays(prog.firstStartedAt, new Date().toISOString());
-                const pulse = prog.isTimerRunning ? '<span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>' : '';
-                return `<span class="bg-amber-100 text-amber-900 text-xs px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1">
-                            ${pulse}進行中 (第${days}天/${hours}h)
-                        </span>`;
-            } else {
-                return `<span class="bg-slate-100 text-slate-400 text-xs px-2.5 py-1 rounded-full font-normal">未開始</span>`;
-            }
-        }
+        // ==========================================
+        // 4. TIMER & LOG MODULE (實時計時與防呆模組)
+        // ==========================================
+        function openTimerModal(key, clientName, stepName) {
+            activeKey = key;
+            const log = stepLogs[key] || { status: 'none', operator: '', elapsed: 0 };
 
-        // 計算跨越天數 (Calendar Days)
-        function getElapsedDays(startDateStr, endDateStr) {
-            if (!startDateStr) return 1;
-            const start = new Date(startDateStr);
-            const end = endDateStr ? new Date(endDateStr) : new Date();
-            const diffTime = Math.abs(end - start);
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            return diffDays;
-        }
+            document.getElementById('modal-client-name').innerText = clientName;
+            document.getElementById('modal-step-name').innerText = stepName;
+            document.getElementById('timer-status-badge').innerText = STATUS_CONFIG[log.status].label;
+            document.getElementById('timer-user-info').innerText = log.operator ? `執行人員：${log.operator}` : '尚無操作紀錄';
 
-        // --- 時長與打卡 Modal 控制 (按鈕狀態重構的核心) ---
-        function openTimeModal(clientId, sopId, stepId) {
-            const client = appData.clients.find(c => c.id === clientId);
-            const sop = appData.sops.find(s => s.id === sopId);
-            const step = sop.steps.find(st => st.id === stepId);
-            const key = `${clientId}_${sopId}_${stepId}`;
+            updateTimerDisplay();
 
-            currentModalStepInfo = { clientId, sopId, stepId, key };
-            
-            document.getElementById('tm-title').innerText = `${step.name}`;
-            document.getElementById('tm-subtitle').innerText = `客戶：${client.name}`;
-            document.getElementById('time-modal').classList.remove('hidden');
-
-            updateTimerModalDisplay();
-        }
-
-        function closeTimeModal() {
-            document.getElementById('time-modal').classList.add('hidden');
-            currentModalStepInfo = null;
-            renderDashboard();
-        }
-
-        function updateTimerModalDisplay() {
-            if (!currentModalStepInfo) return;
-            const key = currentModalStepInfo.key;
-            const prog = appData.progress[key] || { status: 'pending', accumulatedSeconds: 0, isTimerRunning: false };
-
-            // 計算即時累積秒數
-            let currentTotalSeconds = prog.accumulatedSeconds || 0;
-            if (prog.isTimerRunning && prog.lastStartTime) {
-                const now = new Date().getTime();
-                const start = new Date(prog.lastStartTime).getTime();
-                currentTotalSeconds += Math.floor((now - start) / 1000);
+            if (timerInterval) clearInterval(timerInterval);
+            if (log.status === 'progress') {
+                timerInterval = setInterval(() => {
+                    log.elapsed = (log.elapsed || 0) + 1;
+                    updateTimerDisplay();
+                }, 1000);
             }
 
-            // 更新文字標籤
-            document.getElementById('tm-accumulated-time').innerText = formatSeconds(currentTotalSeconds);
-            document.getElementById('tm-manual-hours').value = (currentTotalSeconds / 3600).toFixed(1);
-
-            if (prog.status === 'pending') {
-                document.getElementById('tm-elapsed-days').innerText = '未開始';
-            } else {
-                const days = getElapsedDays(prog.firstStartedAt, prog.completedAt);
-                document.getElementById('tm-elapsed-days').innerText = `第 ${days} 天`;
-            }
-
-            // 按鈕狀態優化（根據當前 status 與 isTimerRunning 完全控管 disabled 與樣式）
-            const btnStart = document.getElementById('btn-timer-start');
-            const btnStartText = document.getElementById('btn-timer-start-text');
-            const btnPause = document.getElementById('btn-timer-pause');
-            const btnComplete = document.getElementById('btn-timer-complete');
-
-            // 先重設標準樣式
-            btnStart.disabled = false;
-            btnPause.disabled = false;
-            btnComplete.disabled = false;
-
-            if (prog.status === 'pending') {
-                // 未開始：亮「開始」，停用「暫停」與「完成」
-                setBtnStyle(btnStart, true, 'bg-teal-600 hover:bg-teal-700 text-white cursor-pointer');
-                btnStartText.innerText = "開始計時";
-                setBtnStyle(btnPause, false, 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50');
-                setBtnStyle(btnComplete, false, 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50');
-            } else if (prog.status === 'in_progress') {
-                if (prog.isTimerRunning) {
-                    // 計時中：停用「開始」，亮「暫停」與「完成」
-                    setBtnStyle(btnStart, false, 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50');
-                    btnStartText.innerText = "計時中...";
-                    setBtnStyle(btnPause, true, 'bg-amber-500 hover:bg-amber-600 text-white cursor-pointer');
-                    setBtnStyle(btnComplete, true, 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer');
-                } else {
-                    // 暫停中：亮「繼續」，停用「暫停」，亮「完成」
-                    setBtnStyle(btnStart, true, 'bg-teal-600 hover:bg-teal-700 text-white cursor-pointer');
-                    btnStartText.innerText = "繼續計時";
-                    setBtnStyle(btnPause, false, 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50');
-                    setBtnStyle(btnComplete, true, 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer');
-                }
-            } else if (prog.status === 'completed') {
-                // 已完成：全部停用
-                setBtnStyle(btnStart, false, 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50');
-                btnStartText.innerText = "已完成";
-                setBtnStyle(btnPause, false, 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50');
-                setBtnStyle(btnComplete, false, 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50');
-            }
+            document.getElementById('timer-modal').classList.remove('hidden');
         }
 
-        function setBtnStyle(btn, enabled, className) {
-            btn.disabled = !enabled;
-            btn.className = `py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1 ${className}`;
+        function updateTimerDisplay() {
+            const log = stepLogs[activeKey] || { elapsed: 0 };
+            document.getElementById('timer-display').innerText = formatSeconds(log.elapsed || 0);
+        }
+
+        function closeTimerModal() {
+            if (timerInterval) clearInterval(timerInterval);
+            document.getElementById('timer-modal').classList.add('hidden');
+        }
+
+        function handleTimerAction(action) {
+            if (!activeKey) return;
+
+            const currentUser = (currentRole === 'admin') ? '老闆 (Admin)' : '員工 (Staff)';
+            let log = stepLogs[activeKey] || { status: 'none', elapsed: 0 };
+
+            if (log.operator && log.operator !== currentUser && (action === 'pause' || action === 'complete')) {
+                alert(`[防呆警告] 此步驟最初由「${log.operator}」開始執行，請由同一操作人員進行暫停或完成！`);
+                return;
+            }
+
+            if (action === 'start') {
+                log.status = 'progress';
+                log.operator = currentUser;
+                log.lastStart = Date.now();
+            } else if (action === 'pause') {
+                log.status = 'none';
+            } else if (action === 'complete') {
+                log.status = 'done';
+            } else if (action === 'skip') {
+                log.status = 'skip';
+            }
+
+            stepLogs[activeKey] = log;
+            localStorage.setItem('pf_step_logs', JSON.stringify(stepLogs));
+
+            closeTimerModal();
+            const project = projects.find(p => p.id === activeProjectId);
+            if (project) openProjectDetail(project.id);
         }
 
         function formatSeconds(sec) {
-            const hrs = Math.floor(sec / 3600);
-            const mins = Math.floor((sec % 3600) / 60);
-            const secs = sec % 60;
-            return `${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+            const hrs = Math.floor(sec / 3600).toString().padStart(2, '0');
+            const mins = Math.floor((sec % 3600) / 60).toString().padStart(2, '0');
+            const secs = (sec % 60).toString().padStart(2, '0');
+            return `${hrs}:${mins}:${secs}`;
         }
 
-        // 動作手勢處理
-        function handleTimerStart() {
-            if (!currentModalStepInfo) return;
-            const key = currentModalStepInfo.key;
-            let prog = appData.progress[key] || { status: 'pending', accumulatedSeconds: 0 };
+        // ==========================================
+        // 5. CALENDAR MODULE (行事曆模組)
+        // ==========================================
+        function renderCalendarEvents() {
+            const container = document.getElementById('calendar-event-list');
+            const isAdmin = (currentRole === 'admin');
 
-            const nowStr = new Date().toISOString();
-            prog.status = 'in_progress';
-            prog.isTimerRunning = true;
-            prog.lastStartTime = nowStr;
-            if (!prog.firstStartedAt) prog.firstStartedAt = nowStr;
-
-            appData.progress[key] = prog;
-            saveData();
-            updateTimerModalDisplay();
-        }
-
-        function handleTimerPause() {
-            if (!currentModalStepInfo) return;
-            const key = currentModalStepInfo.key;
-            let prog = appData.progress[key];
-            if (!prog || !prog.isTimerRunning) return;
-
-            const now = new Date().getTime();
-            const start = new Date(prog.lastStartTime).getTime();
-            prog.accumulatedSeconds += Math.floor((now - start) / 1000);
-            prog.isTimerRunning = false;
-            prog.lastStartTime = null;
-
-            appData.progress[key] = prog;
-            saveData();
-            updateTimerModalDisplay();
-        }
-
-        function handleTimerComplete() {
-            if (!currentModalStepInfo) return;
-            const key = currentModalStepInfo.key;
-            let prog = appData.progress[key] || { status: 'pending', accumulatedSeconds: 0 };
-
-            if (prog.isTimerRunning && prog.lastStartTime) {
-                const now = new Date().getTime();
-                const start = new Date(prog.lastStartTime).getTime();
-                prog.accumulatedSeconds += Math.floor((now - start) / 1000);
-            }
-
-            prog.status = 'completed';
-            prog.isTimerRunning = false;
-            prog.completedAt = new Date().toISOString();
-
-            appData.progress[key] = prog;
-            saveData();
-            updateTimerModalDisplay();
-        }
-
-        function handleManualHourSave() {
-            if (!currentModalStepInfo) return;
-            const key = currentModalStepInfo.key;
-            let prog = appData.progress[key] || { status: 'pending', accumulatedSeconds: 0 };
-            
-            const hoursVal = parseFloat(document.getElementById('tm-manual-hours').value) || 0;
-            prog.accumulatedSeconds = Math.round(hoursVal * 3600);
-            if (prog.isTimerRunning) {
-                prog.lastStartTime = new Date().toISOString();
-            }
-
-            appData.progress[key] = prog;
-            saveData();
-            updateTimerModalDisplay();
-            alert('工時已更正！');
-        }
-
-        function handleTimerReset() {
-            if (!currentModalStepInfo) return;
-            if (!confirm('確定要重設此步驟的進度與時長紀錄嗎？')) return;
-            const key = currentModalStepInfo.key;
-            delete appData.progress[key];
-            saveData();
-            updateTimerModalDisplay();
-        }
-
-        // --- Tab 2: 客戶管理 CRUD ---
-        function renderClients() {
-            const tbody = document.getElementById('clients-tbody');
-            tbody.innerHTML = appData.clients.map(c => `
-                <tr class="hover:bg-slate-50">
-                    <td class="p-3 font-mono font-medium text-slate-700">${c.taxId}</td>
-                    <td class="p-3 font-semibold text-slate-800">${c.name}</td>
-                    <td class="p-3 text-slate-600">${c.contact || '-'}</td>
-                    <td class="p-3 text-slate-600">${c.phone || '-'}</td>
-                    <td class="p-3 text-right space-x-2">
-                        <button onclick="deleteClient('${c.id}')" class="admin-only text-rose-600 hover:text-rose-800 text-xs font-medium">刪除</button>
-                    </td>
-                </tr>
-            `).join('');
-            applyRoleUI();
-        }
-
-        function openClientModal() {
-            document.getElementById('client-form').reset();
-            document.getElementById('client-modal').classList.remove('hidden');
-        }
-        function closeClientModal() {
-            document.getElementById('client-modal').classList.add('hidden');
-        }
-        function saveClient(e) {
-            e.preventDefault();
-            const taxId = document.getElementById('cm-taxid').value;
-            const name = document.getElementById('cm-name').value;
-            const contact = document.getElementById('cm-contact').value;
-            const phone = document.getElementById('cm-phone').value;
-
-            appData.clients.push({ id: 'c_' + Date.now(), taxId, name, contact, phone });
-            saveData();
-            renderClients();
-            renderDashboard();
-            closeClientModal();
-        }
-        function deleteClient(id) {
-            if (!confirm('確定要刪除此客戶嗎？連帶的進度紀錄將不可還原。')) return;
-            appData.clients = appData.clients.filter(c => c.id !== id);
-            saveData();
-            renderClients();
-            renderDashboard();
-        }
-
-        // --- Tab 3: SOP 管理 ---
-        function renderSops() {
-            const container = document.getElementById('sops-list-container');
-            container.innerHTML = appData.sops.map(sop => `
-                <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <h3 class="font-bold text-base text-slate-800">${sop.title}</h3>
-                        <span class="text-xs text-slate-500 font-medium">共 ${sop.steps.length} 個步驟</span>
+            container.innerHTML = events.map(e => {
+                const project = projects.find(p => p.id === e.projectId);
+                return `
+                    <div class="pearl-card p-4 rounded-xl shadow-sm space-y-2 border-l-4 border-l-pearl-500">
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs bg-pearl-50 text-pearl-600 font-bold px-2 py-0.5 rounded border border-pearl-200">${project ? project.name : '全域專案'}</span>
+                            ${isAdmin ? `<button onclick="deleteEvent(${e.id})" class="text-xs text-rose-500 hover:underline"><i class="fa-solid fa-trash"></i></button>` : ''}
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-sm">${e.title}</h3>
+                        <div class="flex justify-between items-center text-xs text-slate-500 pt-1">
+                            <span>截止日：<strong class="text-slate-700">${e.dueDate}</strong></span>
+                            <span class="bg-slate-100 px-2 py-0.5 rounded text-slate-600">提前 ${e.remindDays} 天提醒</span>
+                        </div>
                     </div>
-                    <div class="flex flex-wrap gap-2">
-                        ${sop.steps.map((st, idx) => `
-                            <span class="bg-white border border-slate-200 text-slate-700 text-xs px-3 py-1.5 rounded-lg shadow-sm font-medium flex items-center space-x-1.5">
-                                <span class="bg-teal-100 text-teal-800 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold">${idx + 1}</span>
-                                <span>${st.name}</span>
-                            </span>
-                        `).join('')}
+                `;
+            }).join('');
+            localStorage.setItem('pf_events', JSON.stringify(events));
+        }
+
+        function openEventModal() {
+            if (currentRole !== 'admin') return alert('僅老闆 (Admin) 具備新增日程權限');
+            const selector = document.getElementById('input-event-project');
+            selector.innerHTML = projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            document.getElementById('event-modal').classList.remove('hidden');
+        }
+
+        function closeEventModal() { document.getElementById('event-modal').classList.add('hidden'); }
+
+        function saveEvent() {
+            if (currentRole !== 'admin') return;
+            const projectId = parseInt(document.getElementById('input-event-project').value);
+            const title = document.getElementById('input-event-title').value.trim();
+            const dueDate = document.getElementById('input-event-date').value;
+            const remindDays = parseInt(document.getElementById('input-event-remind').value) || 7;
+
+            if (!title || !dueDate) return alert('請填寫日程名稱與截止日期');
+
+            events.push({ id: Date.now(), projectId, title, dueDate, remindDays });
+            renderCalendarEvents();
+            closeEventModal();
+            renderTaskFocus();
+            renderDashboardLevel1();
+        }
+
+        function deleteEvent(id) {
+            if (currentRole !== 'admin') return;
+            events = events.filter(e => e.id !== id);
+            renderCalendarEvents();
+            renderTaskFocus();
+            renderDashboardLevel1();
+        }
+
+        // ==========================================
+        // 6. ANALYTICS MODULE (管理分析動態串聯模組)
+        // ==========================================
+        function renderAnalytics() {
+            const staffContainer = document.getElementById('analytics-staff-list');
+            const projectContainer = document.getElementById('analytics-project-list');
+
+            let userStats = {};
+
+            // 統計人員工時與完成步驟
+            Object.values(stepLogs).forEach(log => {
+                if (log.operator) {
+                    if (!userStats[log.operator]) userStats[log.operator] = { seconds: 0, doneCount: 0 };
+                    userStats[log.operator].seconds += (log.elapsed || 0);
+                    if (log.status === 'done') userStats[log.operator].doneCount++;
+                }
+            });
+
+            staffContainer.innerHTML = Object.keys(userStats).length ? Object.entries(userStats).map(([user, data]) => `
+                <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <div>
+                        <span class="font-bold text-slate-800 text-sm">${user}</span>
+                        <span class="text-slate-400 text-[11px] block">已累積完成 ${data.doneCount} 個步驟</span>
                     </div>
+                    <span class="font-mono font-bold text-pearl-600 text-base">${formatSeconds(data.seconds)}</span>
                 </div>
-            `).join('');
-        }
+            `).join('') : '<p class="text-slate-400 italic">尚無工時紀錄</p>';
 
-        // --- Tab 4: 行事曆繪製 ---
-        function renderCalendar() {
-            const container = document.getElementById('calendar-cards-container');
-            container.innerHTML = appData.calendar.map(k => `
-                <div class="border border-slate-200 rounded-xl p-4 bg-white shadow-sm space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="bg-teal-100 text-teal-800 text-xs px-2.5 py-0.5 rounded-full font-bold">${k.tag}</span>
-                        <span class="text-xs font-mono font-semibold text-rose-600"><i class="fa-regular fa-clock mr-1"></i>${k.date}</span>
+            // 統計專案投入工時與完成度
+            projectContainer.innerHTML = projects.map(p => {
+                let totalSec = 0;
+                clients.forEach(c => {
+                    p.steps.forEach((_, idx) => {
+                        const key = `${p.id}_${c.id}_${idx}`;
+                        const log = stepLogs[key];
+                        if (log) totalSec += (log.elapsed || 0);
+                    });
+                });
+                const stats = calculateProjectProgress(p);
+
+                return `
+                    <div class="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-800 text-sm">${p.name}</span>
+                            <span class="font-mono font-bold text-pearl-600">${formatSeconds(totalSec)}</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                <div class="bg-pearl-500 h-full transition-all duration-300" style="width: ${stats.rate}%"></div>
+                            </div>
+                            <span class="font-bold text-xs text-slate-700 min-w-[36px] text-right">${stats.rate}%</span>
+                        </div>
                     </div>
-                    <h4 class="font-bold text-slate-800 text-sm">${k.title}</h4>
-                    <p class="text-xs text-slate-500">${k.desc || ''}</p>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
-        // --- Tab 5: 備份與還原 ---
-        function exportData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
-            const dlAnchorElem = document.createElement('a');
-            dlAnchorElem.setAttribute("href", dataStr);
-            dlAnchorElem.setAttribute("download", `PearlFlow_Backup_${new Date().toISOString().slice(0,10)}.json`);
-            dlAnchorElem.click();
+        // ==========================================
+        // 7. BACKUP & RESTORE MODULE (備份與還原模組)
+        // ==========================================
+        function exportSystemData() {
+            const data = {
+                projects,
+                clients,
+                events,
+                stepLogs,
+                exportTime: new Date().toISOString()
+            };
+            const jsonStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `PearlFlow_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
-        function importData(event) {
-            const fileReader = new FileReader();
-            fileReader.onload = function (e) {
+        function importSystemData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
                 try {
-                    const parsed = JSON.parse(e.target.result);
-                    if (parsed.clients && parsed.sops) {
-                        appData = parsed;
-                        saveData();
+                    const data = JSON.parse(e.target.result);
+                    if (data.projects && data.clients) {
+                        projects = data.projects;
+                        clients = data.clients;
+                        events = data.events || [];
+                        stepLogs = data.stepLogs || {};
+
+                        localStorage.setItem('pf_projects', JSON.stringify(projects));
+                        localStorage.setItem('pf_clients', JSON.stringify(clients));
+                        localStorage.setItem('pf_events', JSON.stringify(events));
+                        localStorage.setItem('pf_step_logs', JSON.stringify(stepLogs));
+
+                        alert('資料還原成功！');
                         location.reload();
                     } else {
-                        alert('JSON 格式不符！');
+                        alert('檔案格式不正確，請選擇有效的 PearlFlow 備份檔。');
                     }
                 } catch (err) {
-                    alert('讀取檔案失敗！');
+                    alert('讀取 JSON 檔案失敗！');
                 }
             };
-            fileReader.readAsText(event.target.files[0]);
+            reader.readAsText(file);
+        }
+
+        // ==========================================
+        // 8. CRUD MODULE (專案與客戶資料管理)
+        // ==========================================
+        function renderProjects() {
+            const container = document.getElementById('project-list');
+            const isAdmin = (currentRole === 'admin');
+
+            container.innerHTML = projects.map(p => `
+                <div class="pearl-card p-5 rounded-xl shadow-sm space-y-3 flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-bold text-slate-800 text-base">${p.name}</h3>
+                            ${isAdmin ? `<button onclick="deleteProject(${p.id})" class="text-xs text-rose-500 hover:underline"><i class="fa-solid fa-trash"></i> 刪除專案</button>` : ''}
+                        </div>
+                        <div>
+                            <span class="text-xs font-semibold text-slate-500 block mb-1">標準作業步驟 (${p.steps.length} 步)：</span>
+                            <div class="flex flex-wrap gap-1">
+                                ${p.steps.map((step, idx) => `<span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded border border-slate-200">${idx + 1}. ${step}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-slate-100 flex justify-end">
+                        <button onclick="switchTab('dashboard'); openProjectDetail(${p.id});" class="text-xs font-bold text-pearl-600 hover:text-pearl-700 flex items-center gap-1">
+                            <i class="fa-solid fa-table-cells"></i> 前往 Dashboard 查看進度矩陣
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            localStorage.setItem('pf_projects', JSON.stringify(projects));
+        }
+
+        function renderClients() {
+            const tbody = document.getElementById('client-table-body');
+            const isAdmin = (currentRole === 'admin');
+
+            document.querySelectorAll('.action-col').forEach(el => el.style.display = isAdmin ? 'table-cell' : 'none');
+
+            tbody.innerHTML = clients.map(c => `
+                <tr class="hover:bg-pearl-50/50 transition">
+                    <td class="p-3 font-semibold text-slate-800">${c.name}</td>
+                    <td class="p-3 text-slate-600">${c.taxId}</td>
+                    <td class="p-3 text-slate-600">${c.owner}</td>
+                    <td class="p-3 text-slate-600">${c.phone}</td>
+                    ${isAdmin ? `
+                        <td class="p-3 text-right">
+                            <button onclick="deleteClient(${c.id})" class="text-xs text-rose-500 hover:underline"><i class="fa-solid fa-trash"></i> 刪除</button>
+                        </td>
+                    ` : ''}
+                </tr>
+            `).join('');
+            localStorage.setItem('pf_clients', JSON.stringify(clients));
+        }
+
+        function openProjectModal() { 
+            if (currentRole !== 'admin') return alert('僅老闆 (Admin) 具備新增專案權限');
+            document.getElementById('project-modal').classList.remove('hidden'); 
+        }
+        function closeProjectModal() { document.getElementById('project-modal').classList.add('hidden'); }
+        
+        function openClientModal() { 
+            if (currentRole !== 'admin') return alert('僅老闆 (Admin) 具備新增客戶權限');
+            document.getElementById('client-modal').classList.remove('hidden'); 
+        }
+        function closeClientModal() { document.getElementById('client-modal').classList.add('hidden'); }
+
+        function saveProject() {
+            if (currentRole !== 'admin') return;
+            const name = document.getElementById('input-project-name').value.trim();
+            const stepsStr = document.getElementById('input-project-steps').value.trim();
+            if (!name) return alert('請輸入專案名稱');
+            const steps = stepsStr.split(/[,，]/).map(s => s.trim()).filter(s => s);
+            projects.push({ id: Date.now(), name, steps });
+            renderProjects();
+            closeProjectModal();
+            document.getElementById('input-project-name').value = '';
+            renderDashboardLevel1();
+        }
+
+        function saveClient() {
+            if (currentRole !== 'admin') return;
+            const name = document.getElementById('input-client-name').value.trim();
+            const taxId = document.getElementById('input-client-taxid').value.trim();
+            const owner = document.getElementById('input-client-owner').value.trim();
+            const phone = document.getElementById('input-client-phone').value.trim();
+            if (!name) return alert('請輸入公司名稱');
+            clients.push({ id: Date.now(), name, taxId, owner, phone });
+            renderClients();
+            closeClientModal();
+            document.getElementById('input-client-name').value = '';
+            document.getElementById('input-client-taxid').value = '';
+            document.getElementById('input-client-owner').value = '';
+            document.getElementById('input-client-phone').value = '';
+            renderDashboardLevel1();
+        }
+
+        function deleteProject(id) {
+            if (currentRole !== 'admin') return;
+            projects = projects.filter(p => p.id !== id);
+            renderProjects();
+            renderDashboardLevel1();
+        }
+
+        function deleteClient(id) {
+            if (currentRole !== 'admin') return;
+            clients = clients.filter(c => c.id !== id);
+            renderClients();
+            renderDashboardLevel1();
         }
     </script>
 </body>
