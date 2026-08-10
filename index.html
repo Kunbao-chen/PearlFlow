@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>珍珠聯合會計師事務所 - PearlFlow v1.9.0</title>
+    <title>珍珠聯合會計師事務所 - PearlFlow v1.10.0</title>
     <!-- Tailwind CSS 樣式庫 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -55,7 +55,7 @@
                 <div class="border-l border-pearl-200 pl-3">
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold tracking-tight text-slate-800">珍珠聯合會計師事務所</h1>
-                        <span class="text-xs font-semibold text-pearl-600 bg-pearl-100 px-2 py-0.5 rounded-full">v1.9.0</span>
+                        <span class="text-xs font-semibold text-pearl-600 bg-pearl-100 px-2 py-0.5 rounded-full">v1.10.0</span>
                     </div>
                     <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Pearl Certified Public Accountants Firm</p>
                 </div>
@@ -296,18 +296,33 @@
             <div class="bg-pearl-50/60 p-4 rounded-xl border border-pearl-100 text-center space-y-1">
                 <span id="timer-status-badge" class="text-xs px-2.5 py-1 rounded-full font-semibold bg-slate-200 text-slate-700">未開始</span>
                 <div id="timer-display" class="text-3xl font-black tracking-wider text-slate-800 font-mono py-2">00:00:00</div>
+                <div id="modal-days-elapsed" class="text-xs text-slate-500 font-medium"></div>
                 <p id="timer-user-info" class="text-xs text-slate-400">尚無操作紀錄</p>
+            </div>
+
+            <!-- 手動微調工時欄位 -->
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-600">手動微調累積工時 (分鐘)</label>
+                <div class="flex gap-2">
+                    <input type="number" id="input-manual-minutes" min="0" placeholder="輸入要增減或校正的分鐘數" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-pearl-400">
+                    <button onclick="adjustManualTime()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-lg flex-shrink-0 transition">
+                        校正工時
+                    </button>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2 pt-2">
                 <button id="btn-start" onclick="handleTimerAction('start')" class="py-2.5 bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-play"></i> 開始執行
+                    <i class="fa-solid fa-play"></i> <span id="btn-start-label">開始執行</span>
                 </button>
                 <button id="btn-pause" onclick="handleTimerAction('pause')" class="py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
                     <i class="fa-solid fa-pause"></i> 暫停執行
                 </button>
                 <button id="btn-complete" onclick="handleTimerAction('complete')" class="col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
                     <i class="fa-solid fa-check"></i> 完成此步驟
+                </button>
+                <button id="btn-reset" onclick="handleTimerAction('reset')" class="col-span-2 py-2.5 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-left"></i> 重設／重新開啟
                 </button>
                 <button id="btn-skip" onclick="handleTimerAction('skip')" class="col-span-2 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-xs font-medium border border-slate-200">
                     標記為「無此步驟」
@@ -417,11 +432,11 @@
         ];
 
         let stepLogs = JSON.parse(localStorage.getItem('pf_step_logs')) || {
-            '1_101_0': { status: 'done', operator: '老闆 (Admin)', elapsed: 300 },
-            '1_101_1': { status: 'done', operator: '老闆 (Admin)', elapsed: 450 },
-            '1_101_2': { status: 'progress', operator: '老闆 (Admin)', elapsed: 120, lastStart: Date.now() },
-            '1_102_0': { status: 'progress', operator: '員工 (Staff)', elapsed: 180, lastStart: Date.now() },
-            '2_101_0': { status: 'done', operator: '員工 (Staff)', elapsed: 1200 }
+            '1_101_0': { status: 'done', operator: '老闆 (Admin)', elapsed: 300, accumulatedSeconds: 300, firstStartedAt: Date.now() - 86400000 * 3, completedAt: Date.now() - 86400000 * 2, isTimerRunning: false },
+            '1_101_1': { status: 'done', operator: '老闆 (Admin)', elapsed: 450, accumulatedSeconds: 450, firstStartedAt: Date.now() - 86400000 * 2, completedAt: Date.now() - 86400000 * 1, isTimerRunning: false },
+            '1_101_2': { status: 'progress', operator: '老闆 (Admin)', elapsed: 120, accumulatedSeconds: 120, firstStartedAt: Date.now() - 86400000 * 1, lastStartTime: Date.now(), isTimerRunning: true },
+            '1_102_0': { status: 'progress', operator: '員工 (Staff)', elapsed: 180, accumulatedSeconds: 180, firstStartedAt: Date.now() - 86400000 * 2, lastStartTime: Date.now(), isTimerRunning: true },
+            '2_101_0': { status: 'done', operator: '員工 (Staff)', elapsed: 1200, accumulatedSeconds: 1200, firstStartedAt: Date.now() - 86400000 * 5, completedAt: Date.now() - 86400000 * 4, isTimerRunning: false }
         };
 
         let activeProjectId = null;
@@ -434,6 +449,39 @@
             'done': { label: '已完成', bg: 'bg-emerald-100 text-emerald-800 font-semibold hover:bg-emerald-200' },
             'skip': { label: '無此步驟', bg: 'bg-slate-200 text-slate-500 line-through hover:bg-slate-300' }
         };
+
+        // 幫舊資料無縫補齊升級欄位
+        function normalizeLog(log) {
+            if (!log) return { status: 'none', operator: '', elapsed: 0, accumulatedSeconds: 0, firstStartedAt: null, completedAt: null, lastStartTime: null, isTimerRunning: false };
+            const accumulatedSeconds = (log.accumulatedSeconds !== undefined) ? log.accumulatedSeconds : (log.elapsed || 0);
+            const isTimerRunning = (log.isTimerRunning !== undefined) ? log.isTimerRunning : (log.status === 'progress');
+            return {
+                status: log.status || 'none',
+                operator: log.operator || '',
+                elapsed: accumulatedSeconds,
+                accumulatedSeconds: accumulatedSeconds,
+                firstStartedAt: log.firstStartedAt || (log.status !== 'none' ? Date.now() : null),
+                completedAt: log.completedAt || (log.status === 'done' ? Date.now() : null),
+                lastStartTime: log.lastStartTime || (isTimerRunning ? (log.lastStart || Date.now()) : null),
+                isTimerRunning: isTimerRunning
+            };
+        }
+
+        function calculateElapsedDays(log) {
+            if (!log || !log.firstStartedAt) return 0;
+            const endTime = log.completedAt ? log.completedAt : Date.now();
+            const diffMs = endTime - log.firstStartedAt;
+            return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        }
+
+        function getLiveAccumulatedSeconds(log) {
+            if (!log) return 0;
+            let current = log.accumulatedSeconds || 0;
+            if (log.isTimerRunning && log.lastStartTime) {
+                current += Math.floor((Date.now() - log.lastStartTime) / 1000);
+            }
+            return current;
+        }
 
         // ==========================================
         // 2. AUTHENTICATION MODULE (權限控制層)
@@ -508,7 +556,8 @@
                     clients.forEach(c => {
                         project.steps.forEach((step, idx) => {
                             const key = `${project.id}_${c.id}_${idx}`;
-                            const log = stepLogs[key];
+                            const rawLog = stepLogs[key];
+                            const log = rawLog ? normalizeLog(rawLog) : null;
                             if (!log || (log.status !== 'done' && log.status !== 'skip')) {
                                 const itemHTML = `
                                     <div class="flex items-center justify-between bg-white/80 p-2 rounded border border-pearl-100 hover:border-pearl-300 transition">
@@ -599,7 +648,8 @@
             clients.forEach(c => {
                 p.steps.forEach((_, idx) => {
                     const key = `${p.id}_${c.id}_${idx}`;
-                    const log = stepLogs[key] || { status: 'none' };
+                    const rawLog = stepLogs[key];
+                    const log = rawLog ? normalizeLog(rawLog) : { status: 'none' };
                     if (log.status !== 'skip') {
                         needed++;
                         if (log.status === 'done') completed++;
@@ -652,7 +702,8 @@
                 let valid = 0, done = 0;
                 const cells = project.steps.map((_, stepIdx) => {
                     const key = `${project.id}_${c.id}_${stepIdx}`;
-                    const log = stepLogs[key] || { status: 'none' };
+                    const rawLog = stepLogs[key];
+                    const log = normalizeLog(rawLog);
                     const cfg = STATUS_CONFIG[log.status] || STATUS_CONFIG['none'];
 
                     if (log.status !== 'skip') {
@@ -660,10 +711,29 @@
                         if (log.status === 'done') done++;
                     }
 
+                    // 雙軌制單元格文字標籤與副資訊
+                    let labelStr = cfg.label;
+                    let subTextStr = '';
+
+                    const liveSec = getLiveAccumulatedSeconds(log);
+                    const days = calculateElapsedDays(log);
+
+                    if (log.status === 'progress') {
+                        labelStr = `進行中 (第 ${days} 天)`;
+                        subTextStr = `<span class="block text-[10px] opacity-80 mt-0.5">${formatSeconds(liveSec)}</span>`;
+                    } else if (log.status === 'done') {
+                        labelStr = `已完成 (${days} 天)`;
+                        subTextStr = `<span class="block text-[10px] opacity-80 mt-0.5">共 ${formatSeconds(liveSec)}</span>`;
+                    } else if (log.status === 'none' && liveSec > 0) {
+                        labelStr = `已暫停`;
+                        subTextStr = `<span class="block text-[10px] opacity-80 mt-0.5">${formatSeconds(liveSec)}</span>`;
+                    }
+
                     return `
                         <td class="p-2 text-center">
                             <button onclick="openTimerModal('${key}', '${c.name}', '${project.steps[stepIdx]}')" class="w-full py-1.5 px-2 rounded text-xs transition ${cfg.bg}">
-                                ${cfg.label}
+                                <span>${labelStr}</span>
+                                ${subTextStr}
                             </button>
                         </td>
                     `;
@@ -688,19 +758,21 @@
         // ==========================================
         function openTimerModal(key, clientName, stepName) {
             activeKey = key;
-            const log = stepLogs[key] || { status: 'none', operator: '', elapsed: 0 };
+            const rawLog = stepLogs[key];
+            const log = normalizeLog(rawLog);
 
             document.getElementById('modal-client-name').innerText = clientName;
             document.getElementById('modal-step-name').innerText = stepName;
             document.getElementById('timer-status-badge').innerText = STATUS_CONFIG[log.status].label;
             document.getElementById('timer-user-info').innerText = log.operator ? `執行人員：${log.operator}` : '尚無操作紀錄';
+            document.getElementById('input-manual-minutes').value = '';
 
             updateTimerDisplay();
+            updateModalUIByStatus(log);
 
             if (timerInterval) clearInterval(timerInterval);
-            if (log.status === 'progress') {
+            if (log.isTimerRunning) {
                 timerInterval = setInterval(() => {
-                    log.elapsed = (log.elapsed || 0) + 1;
                     updateTimerDisplay();
                 }, 1000);
             }
@@ -708,9 +780,77 @@
             document.getElementById('timer-modal').classList.remove('hidden');
         }
 
+        function updateModalUIByStatus(log) {
+            const btnStart = document.getElementById('btn-start');
+            const btnStartLabel = document.getElementById('btn-start-label');
+            const btnPause = document.getElementById('btn-pause');
+            const btnComplete = document.getElementById('btn-complete');
+            const btnReset = document.getElementById('btn-reset');
+            const btnSkip = document.getElementById('btn-skip');
+            const daysDisplay = document.getElementById('modal-days-elapsed');
+
+            const days = calculateElapsedDays(log);
+            if (log.status !== 'none' || log.accumulatedSeconds > 0) {
+                daysDisplay.innerText = `歷時天數：第 ${days} 天`;
+            } else {
+                daysDisplay.innerText = '';
+            }
+
+            // 禁用狀態輔助函式
+            const setDisabled = (btn, disabled) => {
+                btn.disabled = disabled;
+                if (disabled) {
+                    btn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-gray-200', 'text-gray-400');
+                    btn.classList.remove('hover:bg-pearl-600', 'hover:bg-amber-600', 'hover:bg-emerald-700', 'hover:bg-slate-700');
+                } else {
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-gray-200', 'text-gray-400');
+                }
+            };
+
+            // 按鈕與狀態邏輯開關
+            if (log.status === 'none') {
+                const isPaused = (log.accumulatedSeconds > 0);
+                btnStartLabel.innerText = isPaused ? '繼續執行' : '開始執行';
+                btnStart.style.display = 'flex';
+                setDisabled(btnStart, false);
+
+                btnPause.style.display = 'flex';
+                setDisabled(btnPause, true);
+
+                btnComplete.style.display = 'flex';
+                setDisabled(btnComplete, !isPaused);
+
+                btnReset.style.display = 'none';
+                btnSkip.style.display = 'block';
+            } else if (log.status === 'progress') {
+                btnStartLabel.innerText = '開始執行';
+                btnStart.style.display = 'flex';
+                setDisabled(btnStart, true);
+
+                btnPause.style.display = 'flex';
+                setDisabled(btnPause, false);
+
+                btnComplete.style.display = 'flex';
+                setDisabled(btnComplete, false);
+
+                btnReset.style.display = 'none';
+                btnSkip.style.display = 'block';
+            } else if (log.status === 'done' || log.status === 'skip') {
+                btnStart.style.display = 'none';
+                btnPause.style.display = 'none';
+                btnComplete.style.display = 'none';
+
+                btnReset.style.display = 'flex';
+                setDisabled(btnReset, false);
+                btnSkip.style.display = 'none';
+            }
+        }
+
         function updateTimerDisplay() {
-            const log = stepLogs[activeKey] || { elapsed: 0 };
-            document.getElementById('timer-display').innerText = formatSeconds(log.elapsed || 0);
+            const rawLog = stepLogs[activeKey];
+            const log = normalizeLog(rawLog);
+            const liveSec = getLiveAccumulatedSeconds(log);
+            document.getElementById('timer-display').innerText = formatSeconds(liveSec);
         }
 
         function closeTimerModal() {
@@ -722,23 +862,48 @@
             if (!activeKey) return;
 
             const currentUser = (currentRole === 'admin') ? '老闆 (Admin)' : '員工 (Staff)';
-            let log = stepLogs[activeKey] || { status: 'none', elapsed: 0 };
+            let rawLog = stepLogs[activeKey];
+            let log = normalizeLog(rawLog);
 
             if (log.operator && log.operator !== currentUser && (action === 'pause' || action === 'complete')) {
                 alert(`[防呆警告] 此步驟最初由「${log.operator}」開始執行，請由同一操作人員進行暫停或完成！`);
                 return;
             }
 
+            const now = Date.now();
+
             if (action === 'start') {
                 log.status = 'progress';
                 log.operator = currentUser;
-                log.lastStart = Date.now();
+                log.isTimerRunning = true;
+                log.lastStartTime = now;
+                if (!log.firstStartedAt) {
+                    log.firstStartedAt = now;
+                }
             } else if (action === 'pause') {
+                if (log.isTimerRunning && log.lastStartTime) {
+                    log.accumulatedSeconds += Math.floor((now - log.lastStartTime) / 1000);
+                }
                 log.status = 'none';
+                log.isTimerRunning = false;
+                log.lastStartTime = null;
+                log.elapsed = log.accumulatedSeconds;
             } else if (action === 'complete') {
+                if (log.isTimerRunning && log.lastStartTime) {
+                    log.accumulatedSeconds += Math.floor((now - log.lastStartTime) / 1000);
+                }
                 log.status = 'done';
+                log.isTimerRunning = false;
+                log.lastStartTime = null;
+                log.completedAt = now;
+                log.elapsed = log.accumulatedSeconds;
             } else if (action === 'skip') {
                 log.status = 'skip';
+                log.isTimerRunning = false;
+            } else if (action === 'reset') {
+                log.status = 'none';
+                log.isTimerRunning = false;
+                log.completedAt = null;
             }
 
             stepLogs[activeKey] = log;
@@ -747,6 +912,26 @@
             closeTimerModal();
             const project = projects.find(p => p.id === activeProjectId);
             if (project) openProjectDetail(project.id);
+        }
+
+        function adjustManualTime() {
+            if (!activeKey) return;
+            const inputVal = parseInt(document.getElementById('input-manual-minutes').value);
+            if (isNaN(inputVal)) return alert('請輸入有效的數字分鐘數');
+
+            let rawLog = stepLogs[activeKey];
+            let log = normalizeLog(rawLog);
+
+            log.accumulatedSeconds = Math.max(0, inputVal * 60);
+            log.elapsed = log.accumulatedSeconds;
+            log.lastStartTime = log.isTimerRunning ? Date.now() : null;
+
+            stepLogs[activeKey] = log;
+            localStorage.setItem('pf_step_logs', JSON.stringify(stepLogs));
+
+            updateTimerDisplay();
+            document.getElementById('input-manual-minutes').value = '';
+            alert(`已更新累積工時為 ${inputVal} 分鐘 (${log.accumulatedSeconds} 秒)`);
         }
 
         function formatSeconds(sec) {
@@ -825,10 +1010,11 @@
             let userStats = {};
 
             // 統計人員工時與完成步驟
-            Object.values(stepLogs).forEach(log => {
+            Object.values(stepLogs).forEach(rawLog => {
+                const log = normalizeLog(rawLog);
                 if (log.operator) {
                     if (!userStats[log.operator]) userStats[log.operator] = { seconds: 0, doneCount: 0 };
-                    userStats[log.operator].seconds += (log.elapsed || 0);
+                    userStats[log.operator].seconds += getLiveAccumulatedSeconds(log);
                     if (log.status === 'done') userStats[log.operator].doneCount++;
                 }
             });
@@ -849,8 +1035,11 @@
                 clients.forEach(c => {
                     p.steps.forEach((_, idx) => {
                         const key = `${p.id}_${c.id}_${idx}`;
-                        const log = stepLogs[key];
-                        if (log) totalSec += (log.elapsed || 0);
+                        const rawLog = stepLogs[key];
+                        if (rawLog) {
+                            const log = normalizeLog(rawLog);
+                            totalSec += getLiveAccumulatedSeconds(log);
+                        }
                     });
                 });
                 const stats = calculateProjectProgress(p);
