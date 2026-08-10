@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PearlFlow 事務所管理工具</title>
+    <!-- Tailwind CSS 樣式庫 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- 頁首導覽列 -->
+    <header class="bg-indigo-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid me-2 fa-layer-group text-2xl text-indigo-300"></i>
+                <h1 class="text-xl font-bold tracking-wide">PearlFlow <span class="text-xs font-normal text-indigo-200 bg-indigo-800 px-2 py-0.5 rounded ml-2">第一階段測試版</span></h1>
+            </div>
+            <div class="flex items-center space-x-4 text-sm">
+                <span class="bg-indigo-800 px-3 py-1 rounded-full text-indigo-200"><i class="fa-solid fa-user-shield me-1"></i> 角色：老闆</span>
+                <span class="text-indigo-200">系統時間：<span id="current-time"></span></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主內容區 -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+        <!-- 分頁切換 Tab -->
+        <div class="flex border-b border-slate-200 mb-6 space-x-2">
+            <button onclick="switchTab('projects')" id="tab-projects" class="py-2 px-4 font-semibold text-indigo-600 border-b-2 border-indigo-600 flex items-center gap-2">
+                <i class="fa-solid fa-list-check"></i> 專案與流程設定
+            </button>
+            <button onclick="switchTab('clients')" id="tab-clients" class="py-2 px-4 font-semibold text-slate-500 hover:text-indigo-600 border-b-2 border-transparent flex items-center gap-2">
+                <i class="fa-solid fa-building"></i> 客戶基本資料
+            </button>
+        </div>
+
+        <!-- 分頁 1: 專案與流程設定 -->
+        <div id="content-projects" class="space-y-6">
+            <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">專案列表與流程</h2>
+                    <p class="text-xs text-slate-500">設定事務所的服務項目（如營業稅、營所稅）及其標準作業步驟。</p>
+                </div>
+                <button onclick="openProjectModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition shadow-sm">
+                    <i class="fa-solid fa-plus"></i> 新增專案
+                </button>
+            </div>
+
+            <!-- 專案列表展示區 -->
+            <div id="project-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- JS 動態渲染 -->
+            </div>
+        </div>
+
+        <!-- 分頁 2: 客戶基本資料 -->
+        <div id="content-clients" class="space-y-6 hidden">
+            <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">客戶基本資料</h2>
+                    <p class="text-xs text-slate-500">管理事務所服務的公司客戶資訊。</p>
+                </div>
+                <button onclick="openClientModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition shadow-sm">
+                    <i class="fa-solid fa-plus"></i> 新增客戶
+                </button>
+            </div>
+
+            <!-- 客戶表格展示區 -->
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-100 text-slate-600 text-xs uppercase border-b border-slate-200">
+                        <tr>
+                            <th class="p-3">公司名稱</th>
+                            <th class="p-3">統一編號</th>
+                            <th class="p-3">負責人</th>
+                            <th class="p-3">聯絡電話</th>
+                            <th class="p-3 text-right">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="client-table-body" class="divide-y divide-slate-100 text-sm">
+                        <!-- JS 動態渲染 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: 新增專案彈窗 -->
+    <div id="project-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4">
+            <h3 class="text-lg font-bold text-slate-800 border-b pb-2">新增專案與標準流程</h3>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">專案名稱</label>
+                <input type="text" id="input-project-name" placeholder="例如：115年7-8月 營業稅" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">預設工作步驟（用逗點分割）</label>
+                <textarea id="input-project-steps" rows="3" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">提醒繳交憑證, 收到憑證, 缺漏待補, 整理分類鍵入, 自行檢查, 覆核, 上傳申報, 繳稅完成</textarea>
+                <p class="text-xs text-slate-400 mt-1">步驟會按順序生成於進度矩陣中。</p>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeProjectModal()" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
+                <button onclick="saveProject()" class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium">儲存專案</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: 新增客戶彈窗 -->
+    <div id="client-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4">
+            <h3 class="text-lg font-bold text-slate-800 border-b pb-2">新增客戶</h3>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="col-span-2">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">公司名稱</label>
+                    <input type="text" id="input-client-name" placeholder="寶島科技股份有限公司" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">統一編號</label>
+                    <input type="text" id="input-client-taxid" placeholder="12345678" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">負責人</label>
+                    <input type="text" id="input-client-owner" placeholder="陳大明" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">聯絡電話</label>
+                    <input type="text" id="input-client-phone" placeholder="02-23456789" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeClientModal()" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
+                <button onclick="saveClient()" class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium">儲存客戶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 邏輯腳本 -->
+    <script>
+        // 預設示範資料
+        let projects = JSON.parse(localStorage.getItem('pf_projects')) || [
+            { id: 1, name: '115年7-8月 營業稅', steps: ['提醒繳交憑證', '收到憑證', '缺漏待補', '整理分類鍵入', '自行檢查', '覆核', '上傳申報', '繳稅完成'] },
+            { id: 2, name: '114年度 營所稅結算申報', steps: ['蒐集帳冊資料', '調整調帳項目', '編製報告書', '會計師簽章', '國稅局申報'] }
+        ];
+
+        let clients = JSON.parse(localStorage.getItem('pf_clients')) || [
+            { id: 101, name: '寶島科技股份有限公司', taxId: '12345678', owner: '陳大明', phone: '02-23456789' },
+            { id: 102, name: '珍煮丹餐飲有限公司', taxId: '87654321', owner: '林小美', phone: '02-98765432' }
+        ];
+
+        // 頁面初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProjects();
+            renderClients();
+            document.getElementById('current-time').innerText = new Date().toLocaleDateString('zh-TW');
+        });
+
+        // Tab 切換
+        function switchTab(tab) {
+            document.getElementById('content-projects').classList.toggle('hidden', tab !== 'projects');
+            document.getElementById('content-clients').classList.toggle('hidden', tab !== 'clients');
+            
+            document.getElementById('tab-projects').className = tab === 'projects' ? 
+                'py-2 px-4 font-semibold text-indigo-600 border-b-2 border-indigo-600 flex items-center gap-2' : 
+                'py-2 px-4 font-semibold text-slate-500 hover:text-indigo-600 border-b-2 border-transparent flex items-center gap-2';
+            
+            document.getElementById('tab-clients').className = tab === 'clients' ? 
+                'py-2 px-4 font-semibold text-indigo-600 border-b-2 border-indigo-600 flex items-center gap-2' : 
+                'py-2 px-4 font-semibold text-slate-500 hover:text-indigo-600 border-b-2 border-transparent flex items-center gap-2';
+        }
+
+        // 渲染專案列表
+        function renderProjects() {
+            const container = document.getElementById('project-list');
+            container.innerHTML = projects.map(p => `
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-bold text-slate-800 text-base">${p.name}</h3>
+                        <button onclick="deleteProject(${p.id})" class="text-xs text-rose-500 hover:underline"><i class="fa-solid fa-trash"></i> 刪除</button>
+                    </div>
+                    <div>
+                        <span class="text-xs font-semibold text-slate-500 block mb-1">標準作業步驟 (${p.steps.length} 步)：</span>
+                        <div class="flex flex-wrap gap-1">
+                            ${p.steps.map((step, idx) => `
+                                <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded border border-slate-200">${idx + 1}. ${step}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            localStorage.setItem('pf_projects', JSON.stringify(projects));
+        }
+
+        // 渲染客戶列表
+        function renderClients() {
+            const tbody = document.getElementById('client-table-body');
+            tbody.innerHTML = clients.map(c => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-3 font-semibold text-slate-800">${c.name}</td>
+                    <td class="p-3 text-slate-600">${c.taxId}</td>
+                    <td class="p-3 text-slate-600">${c.owner}</td>
+                    <td class="p-3 text-slate-600">${c.phone}</td>
+                    <td class="p-3 text-right">
+                        <button onclick="deleteClient(${c.id})" class="text-xs text-rose-500 hover:underline"><i class="fa-solid fa-trash"></i> 刪除</button>
+                    </td>
+                </tr>
+            `).join('');
+            localStorage.setItem('pf_clients', JSON.stringify(clients));
+        }
+
+        // Modal 操作
+        function openProjectModal() { document.getElementById('project-modal').classList.remove('hidden'); }
+        function closeProjectModal() { document.getElementById('project-modal').classList.add('hidden'); }
+        function openClientModal() { document.getElementById('client-modal').classList.remove('hidden'); }
+        function closeClientModal() { document.getElementById('client-modal').classList.add('hidden'); }
+
+        // 新增專案
+        function saveProject() {
+            const name = document.getElementById('input-project-name').value.trim();
+            const stepsStr = document.getElementById('input-project-steps').value.trim();
+            if (!name) return alert('請輸入專案名稱');
+            
+            const steps = stepsStr.split(/[,，]/).map(s => s.trim()).filter(s => s);
+            projects.push({ id: Date.now(), name, steps });
+            renderProjects();
+            closeProjectModal();
+            document.getElementById('input-project-name').value = '';
+        }
+
+        // 新增客戶
+        function saveClient() {
+            const name = document.getElementById('input-client-name').value.trim();
+            const taxId = document.getElementById('input-client-taxid').value.trim();
+            const owner = document.getElementById('input-client-owner').value.trim();
+            const phone = document.getElementById('input-client-phone').value.trim();
+            if (!name) return alert('請輸入公司名稱');
+
+            clients.push({ id: Date.now(), name, taxId, owner, phone });
+            renderClients();
+            closeClientModal();
+            document.getElementById('input-client-name').value = '';
+            document.getElementById('input-client-taxid').value = '';
+            document.getElementById('input-client-owner').value = '';
+            document.getElementById('input-client-phone').value = '';
+        }
+
+        function deleteProject(id) {
+            projects = projects.filter(p => p.id !== id);
+            renderProjects();
+        }
+
+        function deleteClient(id) {
+            clients = clients.filter(c => c.id !== id);
+            renderClients();
+        }
+    </script>
+</body>
+</html>
