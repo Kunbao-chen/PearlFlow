@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>珍珠聯合會計師事務所 - PearlFlow v1.10.0</title>
+    <title>珍珠聯合會計師事務所 - PearlFlow v2.0.0</title>
     <!-- Tailwind CSS 樣式庫 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -55,13 +55,24 @@
                 <div class="border-l border-pearl-200 pl-3">
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold tracking-tight text-slate-800">珍珠聯合會計師事務所</h1>
-                        <span class="text-xs font-semibold text-pearl-600 bg-pearl-100 px-2 py-0.5 rounded-full">v1.10.0</span>
+                        <span class="text-xs font-semibold text-pearl-600 bg-pearl-100 px-2 py-0.5 rounded-full">v2.0.0</span>
                     </div>
                     <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Pearl Certified Public Accountants Firm</p>
                 </div>
             </div>
 
             <div class="flex items-center space-x-4 text-xs">
+                <!-- DataService 存取模式選擇器 -->
+                <div class="flex items-center gap-1.5 bg-slate-100 border border-slate-300 px-3 py-1 rounded-full font-medium">
+                    <i class="fa-solid fa-database text-slate-600"></i>
+                    <span class="text-slate-600">存取模式：</span>
+                    <select id="storage-mode-selector" onchange="switchStorageMode(this.value)" class="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer">
+                        <option value="LOCAL">單機 (LOCAL)</option>
+                        <option value="CLOUD">雲端 (CLOUD)</option>
+                    </select>
+                </div>
+
+                <!-- 權限切換選單 -->
                 <div class="flex items-center gap-1.5 bg-pearl-50 border border-pearl-200 px-3 py-1 rounded-full font-medium">
                     <i class="fa-solid fa-user-shield text-pearl-500"></i>
                     <span class="text-slate-600">當前權限：</span>
@@ -245,37 +256,49 @@
         <!-- 分頁 6: 資料備份與還原 -->
         <div id="content-backup" class="space-y-6 hidden">
             <div class="pearl-card p-6 rounded-xl shadow-sm space-y-4 max-w-2xl">
-                <h2 class="text-base font-bold text-slate-800 border-b pb-2">資料安全備份與還原 (JSON)</h2>
+                <h2 class="text-base font-bold text-slate-800 border-b pb-2">資料安全備份與還原 (JSON / DataService Sync)</h2>
                 <p class="text-xs text-slate-500 leading-relaxed">
-                    為了防止瀏覽器快取被清空導致資料遺失，建議定期進行資料導出備份。匯出的 JSON 檔包含所有專案、客戶、打卡工時與行事曆提醒設定。
+                    提供單機資料備份導出，或利用 DataService 一鍵將單機 (LOCAL) 資料同步上傳至雲端 API (CLOUD) 結構。
                 </p>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                     <div class="bg-pearl-50/50 p-4 rounded-xl border border-pearl-100 flex flex-col justify-between space-y-3">
                         <div>
                             <h3 class="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1">
-                                <i class="fa-solid fa-download text-pearl-500"></i> 一鍵匯出資料備份
+                                <i class="fa-solid fa-download text-pearl-500"></i> 匯出 JSON 備份
                             </h3>
-                            <p class="text-[11px] text-slate-400">將目前的全站資料備份為 JSON 檔案下載至本地。</p>
+                            <p class="text-[11px] text-slate-400">下載備份檔至本地。</p>
                         </div>
                         <button onclick="exportSystemData()" class="w-full py-2 bg-pearl-500 hover:bg-pearl-600 text-white text-xs font-bold rounded-lg transition">
-                            下載 JSON 備份檔
+                            下載 JSON
                         </button>
                     </div>
 
                     <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
                         <div>
                             <h3 class="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1">
-                                <i class="fa-solid fa-upload text-slate-600"></i> 匯入備份資料覆原
+                                <i class="fa-solid fa-upload text-slate-600"></i> 匯入 JSON 還原
                             </h3>
-                            <p class="text-[11px] text-slate-400">選擇先前下載的 `.json` 檔案進行資料覆蓋恢復。</p>
+                            <p class="text-[11px] text-slate-400">上傳 `.json` 備份檔覆蓋。</p>
                         </div>
                         <div>
                             <input type="file" id="import-file" accept=".json" class="hidden" onchange="importSystemData(event)">
                             <button onclick="document.getElementById('import-file').click()" class="w-full py-2 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition">
-                                選擇檔案並還原
+                                選擇檔案
                             </button>
                         </div>
+                    </div>
+
+                    <div class="bg-emerald-50/60 p-4 rounded-xl border border-emerald-200 flex flex-col justify-between space-y-3">
+                        <div>
+                            <h3 class="font-bold text-xs text-emerald-900 flex items-center gap-1.5 mb-1">
+                                <i class="fa-solid fa-cloud-arrow-up text-emerald-600"></i> 一鍵同步至雲端
+                            </h3>
+                            <p class="text-[11px] text-emerald-700">把 Local 單機資料上傳 Cloud。</p>
+                        </div>
+                        <button onclick="handleCloudSync()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition">
+                            開始同步
+                        </button>
                     </div>
                 </div>
             </div>
@@ -296,33 +319,18 @@
             <div class="bg-pearl-50/60 p-4 rounded-xl border border-pearl-100 text-center space-y-1">
                 <span id="timer-status-badge" class="text-xs px-2.5 py-1 rounded-full font-semibold bg-slate-200 text-slate-700">未開始</span>
                 <div id="timer-display" class="text-3xl font-black tracking-wider text-slate-800 font-mono py-2">00:00:00</div>
-                <div id="modal-days-elapsed" class="text-xs text-slate-500 font-medium"></div>
                 <p id="timer-user-info" class="text-xs text-slate-400">尚無操作紀錄</p>
-            </div>
-
-            <!-- 手動微調工時欄位 -->
-            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
-                <label class="block text-xs font-semibold text-slate-600">手動微調累積工時 (分鐘)</label>
-                <div class="flex gap-2">
-                    <input type="number" id="input-manual-minutes" min="0" placeholder="輸入要增減或校正的分鐘數" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-pearl-400">
-                    <button onclick="adjustManualTime()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-lg flex-shrink-0 transition">
-                        校正工時
-                    </button>
-                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2 pt-2">
                 <button id="btn-start" onclick="handleTimerAction('start')" class="py-2.5 bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-play"></i> <span id="btn-start-label">開始執行</span>
+                    <i class="fa-solid fa-play"></i> 開始執行
                 </button>
                 <button id="btn-pause" onclick="handleTimerAction('pause')" class="py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
                     <i class="fa-solid fa-pause"></i> 暫停執行
                 </button>
                 <button id="btn-complete" onclick="handleTimerAction('complete')" class="col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
                     <i class="fa-solid fa-check"></i> 完成此步驟
-                </button>
-                <button id="btn-reset" onclick="handleTimerAction('reset')" class="col-span-2 py-2.5 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-rotate-left"></i> 重設／重新開啟
                 </button>
                 <button id="btn-skip" onclick="handleTimerAction('skip')" class="col-span-2 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-xs font-medium border border-slate-200">
                     標記為「無此步驟」
@@ -408,36 +416,113 @@
         </div>
     </div>
 
-    <!-- JavaScript 模組區塊 -->
+    <!-- JavaScript 模組區塊 (DataService 集成) -->
     <script>
         // ==========================================
-        // 1. STATE & STORAGE MODULE (資料狀態層)
+        // 1. DATA SERVICE LAYER (DataService 抽象服務層)
+        // ==========================================
+        const STORAGE_MODE = { LOCAL: 'LOCAL', CLOUD: 'CLOUD' };
+        const STORAGE_KEYS = {
+            MODE: 'pf_storage_mode',
+            PROJECTS: 'pf_projects',
+            CLIENTS: 'pf_clients',
+            EVENTS: 'pf_events',
+            LOGS: 'pf_step_logs'
+        };
+
+        let currentMode = localStorage.getItem(STORAGE_KEYS.MODE) || STORAGE_MODE.LOCAL;
+
+        const LocalAdapter = {
+            async get(key) {
+                await new Promise(r => setTimeout(r, 30));
+                const d = localStorage.getItem(key);
+                return d ? JSON.parse(d) : null;
+            },
+            async set(key, val) {
+                await new Promise(r => setTimeout(r, 30));
+                localStorage.setItem(key, JSON.stringify(val));
+                return true;
+            }
+        };
+
+        const ApiAdapter = {
+            baseUrl: 'https://api.pearlflow.com/v1',
+            async get(key) {
+                await new Promise(r => setTimeout(r, 150));
+                const d = localStorage.getItem(`cloud_${key}`);
+                return d ? JSON.parse(d) : null;
+            },
+            async set(key, val) {
+                await new Promise(r => setTimeout(r, 150));
+                localStorage.setItem(`cloud_${key}`, JSON.stringify(val));
+                return true;
+            }
+        };
+
+        const DataService = {
+            getMode() { return currentMode; },
+            setMode(mode) {
+                currentMode = mode;
+                localStorage.setItem(STORAGE_KEYS.MODE, mode);
+            },
+            _getAdapter() { return currentMode === STORAGE_MODE.CLOUD ? ApiAdapter : LocalAdapter; },
+            async _wrap(fn) {
+                try { return { success: true, data: await fn() }; }
+                catch (e) { return { success: false, error: e.message }; }
+            },
+            async getProjects() {
+                return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.PROJECTS)) || [
+                    { id: 1, name: '115年7-8月 營業稅', steps: ['提醒繳交憑證', '收到憑證', '缺漏待補', '整理分類鍵入', '自行檢查', '覆核', '上傳申報', '繳稅完成'] },
+                    { id: 2, name: '114年度 營所稅結算申報', steps: ['蒐集帳冊資料', '調整調帳項目', '編製報告書', '會計師簽章', '國稅局申報'] }
+                ]);
+            },
+            async saveProjects(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.PROJECTS, data)); },
+            async getClients() {
+                return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.CLIENTS)) || [
+                    { id: 101, name: '珍珠聯合會計師事務所', taxId: '88615713', owner: '陳崑琳', phone: '0937-025-207' },
+                    { id: 102, name: '寶島科技股份有限公司', taxId: '12345678', owner: '陳大明', phone: '02-23456789' },
+                    { id: 103, name: '台灣創新生技股份有限公司', taxId: '54321678', owner: '林玉蓮', phone: '03-5712345' }
+                ]);
+            },
+            async saveClients(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.CLIENTS, data)); },
+            async getEvents() {
+                return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.EVENTS)) || [
+                    { id: 201, projectId: 1, title: '115年7-8月 營業稅申報截止', dueDate: '2026-09-15', remindDays: 7 },
+                    { id: 202, projectId: 2, title: '114年度 營所稅結算申報截止', dueDate: '2026-05-31', remindDays: 14 }
+                ]);
+            },
+            async saveEvents(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.EVENTS, data)); },
+            async getStepLogs() {
+                return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.LOGS)) || {
+                    '1_101_0': { status: 'done', operator: '老闆 (Admin)', elapsed: 300 },
+                    '1_101_1': { status: 'done', operator: '老闆 (Admin)', elapsed: 450 },
+                    '1_101_2': { status: 'progress', operator: '老闆 (Admin)', elapsed: 120, lastStart: Date.now() },
+                    '1_102_0': { status: 'progress', operator: '員工 (Staff)', elapsed: 180, lastStart: Date.now() },
+                    '2_101_0': { status: 'done', operator: '員工 (Staff)', elapsed: 1200 }
+                });
+            },
+            async saveStepLogs(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.LOGS, data)); },
+            async migrateLocalToCloud() {
+                const p = await LocalAdapter.get(STORAGE_KEYS.PROJECTS) || [];
+                const c = await LocalAdapter.get(STORAGE_KEYS.CLIENTS) || [];
+                const e = await LocalAdapter.get(STORAGE_KEYS.EVENTS) || [];
+                const l = await LocalAdapter.get(STORAGE_KEYS.LOGS) || {};
+                await ApiAdapter.set(STORAGE_KEYS.PROJECTS, p);
+                await ApiAdapter.set(STORAGE_KEYS.CLIENTS, c);
+                await ApiAdapter.set(STORAGE_KEYS.EVENTS, e);
+                await ApiAdapter.set(STORAGE_KEYS.LOGS, l);
+                return { success: true };
+            }
+        };
+
+        // ==========================================
+        // 2. GLOBAL STATE & INIT (全局狀態與非同步載入)
         // ==========================================
         let currentRole = localStorage.getItem('pf_role') || 'admin';
-
-        let projects = JSON.parse(localStorage.getItem('pf_projects')) || [
-            { id: 1, name: '115年7-8月 營業稅', steps: ['提醒繳交憑證', '收到憑證', '缺漏待補', '整理分類鍵入', '自行檢查', '覆核', '上傳申報', '繳稅完成'] },
-            { id: 2, name: '114年度 營所稅結算申報', steps: ['蒐集帳冊資料', '調整調帳項目', '編製報告書', '會計師簽章', '國稅局申報'] }
-        ];
-
-        let clients = JSON.parse(localStorage.getItem('pf_clients')) || [
-            { id: 101, name: '珍珠聯合會計師事務所', taxId: '88615713', owner: '陳崑琳', phone: '0937-025-207' },
-            { id: 102, name: '寶島科技股份有限公司', taxId: '12345678', owner: '陳大明', phone: '02-23456789' },
-            { id: 103, name: '台灣創新生技股份有限公司', taxId: '54321678', owner: '林玉蓮', phone: '03-5712345' }
-        ];
-
-        let events = JSON.parse(localStorage.getItem('pf_events')) || [
-            { id: 201, projectId: 1, title: '115年7-8月 營業稅申報截止', dueDate: '2026-09-15', remindDays: 7 },
-            { id: 202, projectId: 2, title: '114年度 營所稅結算申報截止', dueDate: '2026-05-31', remindDays: 14 }
-        ];
-
-        let stepLogs = JSON.parse(localStorage.getItem('pf_step_logs')) || {
-            '1_101_0': { status: 'done', operator: '老闆 (Admin)', elapsed: 300, accumulatedSeconds: 300, firstStartedAt: Date.now() - 86400000 * 3, completedAt: Date.now() - 86400000 * 2, isTimerRunning: false },
-            '1_101_1': { status: 'done', operator: '老闆 (Admin)', elapsed: 450, accumulatedSeconds: 450, firstStartedAt: Date.now() - 86400000 * 2, completedAt: Date.now() - 86400000 * 1, isTimerRunning: false },
-            '1_101_2': { status: 'progress', operator: '老闆 (Admin)', elapsed: 120, accumulatedSeconds: 120, firstStartedAt: Date.now() - 86400000 * 1, lastStartTime: Date.now(), isTimerRunning: true },
-            '1_102_0': { status: 'progress', operator: '員工 (Staff)', elapsed: 180, accumulatedSeconds: 180, firstStartedAt: Date.now() - 86400000 * 2, lastStartTime: Date.now(), isTimerRunning: true },
-            '2_101_0': { status: 'done', operator: '員工 (Staff)', elapsed: 1200, accumulatedSeconds: 1200, firstStartedAt: Date.now() - 86400000 * 5, completedAt: Date.now() - 86400000 * 4, isTimerRunning: false }
-        };
+        let projects = [];
+        let clients = [];
+        let events = [];
+        let stepLogs = {};
 
         let activeProjectId = null;
         let activeKey = null;
@@ -450,41 +535,40 @@
             'skip': { label: '無此步驟', bg: 'bg-slate-200 text-slate-500 line-through hover:bg-slate-300' }
         };
 
-        // 幫舊資料無縫補齊升級欄位
-        function normalizeLog(log) {
-            if (!log) return { status: 'none', operator: '', elapsed: 0, accumulatedSeconds: 0, firstStartedAt: null, completedAt: null, lastStartTime: null, isTimerRunning: false };
-            const accumulatedSeconds = (log.accumulatedSeconds !== undefined) ? log.accumulatedSeconds : (log.elapsed || 0);
-            const isTimerRunning = (log.isTimerRunning !== undefined) ? log.isTimerRunning : (log.status === 'progress');
-            return {
-                status: log.status || 'none',
-                operator: log.operator || '',
-                elapsed: accumulatedSeconds,
-                accumulatedSeconds: accumulatedSeconds,
-                firstStartedAt: log.firstStartedAt || (log.status !== 'none' ? Date.now() : null),
-                completedAt: log.completedAt || (log.status === 'done' ? Date.now() : null),
-                lastStartTime: log.lastStartTime || (isTimerRunning ? (log.lastStart || Date.now()) : null),
-                isTimerRunning: isTimerRunning
-            };
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.getElementById('current-time').innerText = new Date().toLocaleDateString('zh-TW');
+            await initData();
+        });
+
+        async function initData() {
+            document.getElementById('storage-mode-selector').value = DataService.getMode();
+            const resP = await DataService.getProjects(); if (resP.success) projects = resP.data;
+            const resC = await DataService.getClients(); if (resC.success) clients = resC.data;
+            const resE = await DataService.getEvents(); if (resE.success) events = resE.data;
+            const resL = await DataService.getStepLogs(); if (resL.success) stepLogs = resL.data;
+
+            applyRolePermissions();
+            renderDashboardLevel1();
+            renderTaskFocus();
         }
 
-        function calculateElapsedDays(log) {
-            if (!log || !log.firstStartedAt) return 0;
-            const endTime = log.completedAt ? log.completedAt : Date.now();
-            const diffMs = endTime - log.firstStartedAt;
-            return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        async function switchStorageMode(mode) {
+            DataService.setMode(mode);
+            await initData();
+            alert(`已成功切換至 [${mode}] 存取模式！`);
         }
 
-        function getLiveAccumulatedSeconds(log) {
-            if (!log) return 0;
-            let current = log.accumulatedSeconds || 0;
-            if (log.isTimerRunning && log.lastStartTime) {
-                current += Math.floor((Date.now() - log.lastStartTime) / 1000);
+        async function handleCloudSync() {
+            const res = await DataService.migrateLocalToCloud();
+            if (res.success) {
+                alert('單機資料已成功一鍵同步備份至雲端結構！');
+            } else {
+                alert('同步失敗：' + res.error);
             }
-            return current;
         }
 
         // ==========================================
-        // 2. AUTHENTICATION MODULE (權限控制層)
+        // 3. AUTHENTICATION MODULE (權限控制層)
         // ==========================================
         function switchRole(role) {
             currentRole = role;
@@ -510,15 +594,8 @@
         }
 
         // ==========================================
-        // 3. UI RENDER MODULE (畫面渲染層)
+        // 4. UI RENDER MODULE (畫面渲染層)
         // ==========================================
-        document.addEventListener('DOMContentLoaded', () => {
-            applyRolePermissions();
-            renderDashboardLevel1();
-            renderTaskFocus();
-            document.getElementById('current-time').innerText = new Date().toLocaleDateString('zh-TW');
-        });
-
         function switchTab(tab) {
             const tabs = ['dashboard', 'calendar', 'analytics', 'projects', 'clients', 'backup'];
             tabs.forEach(t => {
@@ -556,8 +633,7 @@
                     clients.forEach(c => {
                         project.steps.forEach((step, idx) => {
                             const key = `${project.id}_${c.id}_${idx}`;
-                            const rawLog = stepLogs[key];
-                            const log = rawLog ? normalizeLog(rawLog) : null;
+                            const log = stepLogs[key];
                             if (!log || (log.status !== 'done' && log.status !== 'skip')) {
                                 const itemHTML = `
                                     <div class="flex items-center justify-between bg-white/80 p-2 rounded border border-pearl-100 hover:border-pearl-300 transition">
@@ -588,7 +664,6 @@
             weekList.innerHTML = weekItems.length ? weekItems.join('') : '<p class="text-slate-400 italic">本週尚無動態提醒事項</p>';
         }
 
-        // 動態渲染 Dashboard 第一層（專案 SOP 與進度卡片）
         function renderDashboardLevel1() {
             document.getElementById('dashboard-level-1').classList.remove('hidden');
             document.getElementById('dashboard-level-2').classList.add('hidden');
@@ -598,7 +673,6 @@
                 const stats = calculateProjectProgress(p);
                 const evt = events.find(e => e.projectId === p.id);
                 
-                // 渲染動態 SOP 流程預覽
                 const sopPreview = p.steps.map((s, idx) => `
                     <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 flex-shrink-0">
                         ${idx + 1}.${s}
@@ -617,7 +691,6 @@
                                 <i class="fa-regular fa-clock mr-1"></i>截止日：${evt.dueDate}
                             </div>` : ''}
 
-                            <!-- 串聯顯示 SOP 流程圖 -->
                             <div class="pt-1">
                                 <span class="text-[10px] font-semibold text-slate-400 block mb-1">作業 SOP 流程脈絡：</span>
                                 <div class="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
@@ -648,8 +721,7 @@
             clients.forEach(c => {
                 p.steps.forEach((_, idx) => {
                     const key = `${p.id}_${c.id}_${idx}`;
-                    const rawLog = stepLogs[key];
-                    const log = rawLog ? normalizeLog(rawLog) : { status: 'none' };
+                    const log = stepLogs[key] || { status: 'none' };
                     if (log.status !== 'skip') {
                         needed++;
                         if (log.status === 'done') completed++;
@@ -702,8 +774,7 @@
                 let valid = 0, done = 0;
                 const cells = project.steps.map((_, stepIdx) => {
                     const key = `${project.id}_${c.id}_${stepIdx}`;
-                    const rawLog = stepLogs[key];
-                    const log = normalizeLog(rawLog);
+                    const log = stepLogs[key] || { status: 'none' };
                     const cfg = STATUS_CONFIG[log.status] || STATUS_CONFIG['none'];
 
                     if (log.status !== 'skip') {
@@ -711,29 +782,10 @@
                         if (log.status === 'done') done++;
                     }
 
-                    // 雙軌制單元格文字標籤與副資訊
-                    let labelStr = cfg.label;
-                    let subTextStr = '';
-
-                    const liveSec = getLiveAccumulatedSeconds(log);
-                    const days = calculateElapsedDays(log);
-
-                    if (log.status === 'progress') {
-                        labelStr = `進行中 (第 ${days} 天)`;
-                        subTextStr = `<span class="block text-[10px] opacity-80 mt-0.5">${formatSeconds(liveSec)}</span>`;
-                    } else if (log.status === 'done') {
-                        labelStr = `已完成 (${days} 天)`;
-                        subTextStr = `<span class="block text-[10px] opacity-80 mt-0.5">共 ${formatSeconds(liveSec)}</span>`;
-                    } else if (log.status === 'none' && liveSec > 0) {
-                        labelStr = `已暫停`;
-                        subTextStr = `<span class="block text-[10px] opacity-80 mt-0.5">${formatSeconds(liveSec)}</span>`;
-                    }
-
                     return `
                         <td class="p-2 text-center">
                             <button onclick="openTimerModal('${key}', '${c.name}', '${project.steps[stepIdx]}')" class="w-full py-1.5 px-2 rounded text-xs transition ${cfg.bg}">
-                                <span>${labelStr}</span>
-                                ${subTextStr}
+                                ${cfg.label}
                             </button>
                         </td>
                     `;
@@ -754,25 +806,23 @@
         }
 
         // ==========================================
-        // 4. TIMER & LOG MODULE (實時計時與防呆模組)
+        // 5. TIMER & LOG MODULE (計時器與 DataService 非同步寫入)
         // ==========================================
         function openTimerModal(key, clientName, stepName) {
             activeKey = key;
-            const rawLog = stepLogs[key];
-            const log = normalizeLog(rawLog);
+            const log = stepLogs[key] || { status: 'none', operator: '', elapsed: 0 };
 
             document.getElementById('modal-client-name').innerText = clientName;
             document.getElementById('modal-step-name').innerText = stepName;
             document.getElementById('timer-status-badge').innerText = STATUS_CONFIG[log.status].label;
             document.getElementById('timer-user-info').innerText = log.operator ? `執行人員：${log.operator}` : '尚無操作紀錄';
-            document.getElementById('input-manual-minutes').value = '';
 
             updateTimerDisplay();
-            updateModalUIByStatus(log);
 
             if (timerInterval) clearInterval(timerInterval);
-            if (log.isTimerRunning) {
+            if (log.status === 'progress') {
                 timerInterval = setInterval(() => {
+                    log.elapsed = (log.elapsed || 0) + 1;
                     updateTimerDisplay();
                 }, 1000);
             }
@@ -780,77 +830,9 @@
             document.getElementById('timer-modal').classList.remove('hidden');
         }
 
-        function updateModalUIByStatus(log) {
-            const btnStart = document.getElementById('btn-start');
-            const btnStartLabel = document.getElementById('btn-start-label');
-            const btnPause = document.getElementById('btn-pause');
-            const btnComplete = document.getElementById('btn-complete');
-            const btnReset = document.getElementById('btn-reset');
-            const btnSkip = document.getElementById('btn-skip');
-            const daysDisplay = document.getElementById('modal-days-elapsed');
-
-            const days = calculateElapsedDays(log);
-            if (log.status !== 'none' || log.accumulatedSeconds > 0) {
-                daysDisplay.innerText = `歷時天數：第 ${days} 天`;
-            } else {
-                daysDisplay.innerText = '';
-            }
-
-            // 禁用狀態輔助函式
-            const setDisabled = (btn, disabled) => {
-                btn.disabled = disabled;
-                if (disabled) {
-                    btn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-gray-200', 'text-gray-400');
-                    btn.classList.remove('hover:bg-pearl-600', 'hover:bg-amber-600', 'hover:bg-emerald-700', 'hover:bg-slate-700');
-                } else {
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-gray-200', 'text-gray-400');
-                }
-            };
-
-            // 按鈕與狀態邏輯開關
-            if (log.status === 'none') {
-                const isPaused = (log.accumulatedSeconds > 0);
-                btnStartLabel.innerText = isPaused ? '繼續執行' : '開始執行';
-                btnStart.style.display = 'flex';
-                setDisabled(btnStart, false);
-
-                btnPause.style.display = 'flex';
-                setDisabled(btnPause, true);
-
-                btnComplete.style.display = 'flex';
-                setDisabled(btnComplete, !isPaused);
-
-                btnReset.style.display = 'none';
-                btnSkip.style.display = 'block';
-            } else if (log.status === 'progress') {
-                btnStartLabel.innerText = '開始執行';
-                btnStart.style.display = 'flex';
-                setDisabled(btnStart, true);
-
-                btnPause.style.display = 'flex';
-                setDisabled(btnPause, false);
-
-                btnComplete.style.display = 'flex';
-                setDisabled(btnComplete, false);
-
-                btnReset.style.display = 'none';
-                btnSkip.style.display = 'block';
-            } else if (log.status === 'done' || log.status === 'skip') {
-                btnStart.style.display = 'none';
-                btnPause.style.display = 'none';
-                btnComplete.style.display = 'none';
-
-                btnReset.style.display = 'flex';
-                setDisabled(btnReset, false);
-                btnSkip.style.display = 'none';
-            }
-        }
-
         function updateTimerDisplay() {
-            const rawLog = stepLogs[activeKey];
-            const log = normalizeLog(rawLog);
-            const liveSec = getLiveAccumulatedSeconds(log);
-            document.getElementById('timer-display').innerText = formatSeconds(liveSec);
+            const log = stepLogs[activeKey] || { elapsed: 0 };
+            document.getElementById('timer-display').innerText = formatSeconds(log.elapsed || 0);
         }
 
         function closeTimerModal() {
@@ -858,80 +840,35 @@
             document.getElementById('timer-modal').classList.add('hidden');
         }
 
-        function handleTimerAction(action) {
+        async function handleTimerAction(action) {
             if (!activeKey) return;
 
             const currentUser = (currentRole === 'admin') ? '老闆 (Admin)' : '員工 (Staff)';
-            let rawLog = stepLogs[activeKey];
-            let log = normalizeLog(rawLog);
+            let log = stepLogs[activeKey] || { status: 'none', elapsed: 0 };
 
             if (log.operator && log.operator !== currentUser && (action === 'pause' || action === 'complete')) {
                 alert(`[防呆警告] 此步驟最初由「${log.operator}」開始執行，請由同一操作人員進行暫停或完成！`);
                 return;
             }
 
-            const now = Date.now();
-
             if (action === 'start') {
                 log.status = 'progress';
                 log.operator = currentUser;
-                log.isTimerRunning = true;
-                log.lastStartTime = now;
-                if (!log.firstStartedAt) {
-                    log.firstStartedAt = now;
-                }
+                log.lastStart = Date.now();
             } else if (action === 'pause') {
-                if (log.isTimerRunning && log.lastStartTime) {
-                    log.accumulatedSeconds += Math.floor((now - log.lastStartTime) / 1000);
-                }
                 log.status = 'none';
-                log.isTimerRunning = false;
-                log.lastStartTime = null;
-                log.elapsed = log.accumulatedSeconds;
             } else if (action === 'complete') {
-                if (log.isTimerRunning && log.lastStartTime) {
-                    log.accumulatedSeconds += Math.floor((now - log.lastStartTime) / 1000);
-                }
                 log.status = 'done';
-                log.isTimerRunning = false;
-                log.lastStartTime = null;
-                log.completedAt = now;
-                log.elapsed = log.accumulatedSeconds;
             } else if (action === 'skip') {
                 log.status = 'skip';
-                log.isTimerRunning = false;
-            } else if (action === 'reset') {
-                log.status = 'none';
-                log.isTimerRunning = false;
-                log.completedAt = null;
             }
 
             stepLogs[activeKey] = log;
-            localStorage.setItem('pf_step_logs', JSON.stringify(stepLogs));
+            await DataService.saveStepLogs(stepLogs);
 
             closeTimerModal();
             const project = projects.find(p => p.id === activeProjectId);
             if (project) openProjectDetail(project.id);
-        }
-
-        function adjustManualTime() {
-            if (!activeKey) return;
-            const inputVal = parseInt(document.getElementById('input-manual-minutes').value);
-            if (isNaN(inputVal)) return alert('請輸入有效的數字分鐘數');
-
-            let rawLog = stepLogs[activeKey];
-            let log = normalizeLog(rawLog);
-
-            log.accumulatedSeconds = Math.max(0, inputVal * 60);
-            log.elapsed = log.accumulatedSeconds;
-            log.lastStartTime = log.isTimerRunning ? Date.now() : null;
-
-            stepLogs[activeKey] = log;
-            localStorage.setItem('pf_step_logs', JSON.stringify(stepLogs));
-
-            updateTimerDisplay();
-            document.getElementById('input-manual-minutes').value = '';
-            alert(`已更新累積工時為 ${inputVal} 分鐘 (${log.accumulatedSeconds} 秒)`);
         }
 
         function formatSeconds(sec) {
@@ -942,7 +879,7 @@
         }
 
         // ==========================================
-        // 5. CALENDAR MODULE (行事曆模組)
+        // 6. CALENDAR MODULE (申報行事曆與非同步寫入)
         // ==========================================
         function renderCalendarEvents() {
             const container = document.getElementById('calendar-event-list');
@@ -964,7 +901,6 @@
                     </div>
                 `;
             }).join('');
-            localStorage.setItem('pf_events', JSON.stringify(events));
         }
 
         function openEventModal() {
@@ -976,7 +912,7 @@
 
         function closeEventModal() { document.getElementById('event-modal').classList.add('hidden'); }
 
-        function saveEvent() {
+        async function saveEvent() {
             if (currentRole !== 'admin') return;
             const projectId = parseInt(document.getElementById('input-event-project').value);
             const title = document.getElementById('input-event-title').value.trim();
@@ -986,22 +922,24 @@
             if (!title || !dueDate) return alert('請填寫日程名稱與截止日期');
 
             events.push({ id: Date.now(), projectId, title, dueDate, remindDays });
+            await DataService.saveEvents(events);
             renderCalendarEvents();
             closeEventModal();
             renderTaskFocus();
             renderDashboardLevel1();
         }
 
-        function deleteEvent(id) {
+        async function deleteEvent(id) {
             if (currentRole !== 'admin') return;
             events = events.filter(e => e.id !== id);
+            await DataService.saveEvents(events);
             renderCalendarEvents();
             renderTaskFocus();
             renderDashboardLevel1();
         }
 
         // ==========================================
-        // 6. ANALYTICS MODULE (管理分析動態串聯模組)
+        // 7. ANALYTICS MODULE (管理分析)
         // ==========================================
         function renderAnalytics() {
             const staffContainer = document.getElementById('analytics-staff-list');
@@ -1009,12 +947,10 @@
 
             let userStats = {};
 
-            // 統計人員工時與完成步驟
-            Object.values(stepLogs).forEach(rawLog => {
-                const log = normalizeLog(rawLog);
+            Object.values(stepLogs).forEach(log => {
                 if (log.operator) {
                     if (!userStats[log.operator]) userStats[log.operator] = { seconds: 0, doneCount: 0 };
-                    userStats[log.operator].seconds += getLiveAccumulatedSeconds(log);
+                    userStats[log.operator].seconds += (log.elapsed || 0);
                     if (log.status === 'done') userStats[log.operator].doneCount++;
                 }
             });
@@ -1029,17 +965,13 @@
                 </div>
             `).join('') : '<p class="text-slate-400 italic">尚無工時紀錄</p>';
 
-            // 統計專案投入工時與完成度
             projectContainer.innerHTML = projects.map(p => {
                 let totalSec = 0;
                 clients.forEach(c => {
                     p.steps.forEach((_, idx) => {
                         const key = `${p.id}_${c.id}_${idx}`;
-                        const rawLog = stepLogs[key];
-                        if (rawLog) {
-                            const log = normalizeLog(rawLog);
-                            totalSec += getLiveAccumulatedSeconds(log);
-                        }
+                        const log = stepLogs[key];
+                        if (log) totalSec += (log.elapsed || 0);
                     });
                 });
                 const stats = calculateProjectProgress(p);
@@ -1062,7 +994,7 @@
         }
 
         // ==========================================
-        // 7. BACKUP & RESTORE MODULE (備份與還原模組)
+        // 8. BACKUP & RESTORE MODULE (備份與還原)
         // ==========================================
         function exportSystemData() {
             const data = {
@@ -1087,7 +1019,7 @@
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
                     if (data.projects && data.clients) {
@@ -1096,13 +1028,13 @@
                         events = data.events || [];
                         stepLogs = data.stepLogs || {};
 
-                        localStorage.setItem('pf_projects', JSON.stringify(projects));
-                        localStorage.setItem('pf_clients', JSON.stringify(clients));
-                        localStorage.setItem('pf_events', JSON.stringify(events));
-                        localStorage.setItem('pf_step_logs', JSON.stringify(stepLogs));
+                        await DataService.saveProjects(projects);
+                        await DataService.saveClients(clients);
+                        await DataService.saveEvents(events);
+                        await DataService.saveStepLogs(stepLogs);
 
                         alert('資料還原成功！');
-                        location.reload();
+                        await initData();
                     } else {
                         alert('檔案格式不正確，請選擇有效的 PearlFlow 備份檔。');
                     }
@@ -1114,7 +1046,7 @@
         }
 
         // ==========================================
-        // 8. CRUD MODULE (專案與客戶資料管理)
+        // 9. CRUD MODULE (專案與客戶資料管理)
         // ==========================================
         function renderProjects() {
             const container = document.getElementById('project-list');
@@ -1141,7 +1073,6 @@
                     </div>
                 </div>
             `).join('');
-            localStorage.setItem('pf_projects', JSON.stringify(projects));
         }
 
         function renderClients() {
@@ -1163,7 +1094,6 @@
                     ` : ''}
                 </tr>
             `).join('');
-            localStorage.setItem('pf_clients', JSON.stringify(clients));
         }
 
         function openProjectModal() { 
@@ -1178,27 +1108,33 @@
         }
         function closeClientModal() { document.getElementById('client-modal').classList.add('hidden'); }
 
-        function saveProject() {
+        async function saveProject() {
             if (currentRole !== 'admin') return;
             const name = document.getElementById('input-project-name').value.trim();
             const stepsStr = document.getElementById('input-project-steps').value.trim();
             if (!name) return alert('請輸入專案名稱');
             const steps = stepsStr.split(/[,，]/).map(s => s.trim()).filter(s => s);
+            
             projects.push({ id: Date.now(), name, steps });
+            await DataService.saveProjects(projects);
+
             renderProjects();
             closeProjectModal();
             document.getElementById('input-project-name').value = '';
             renderDashboardLevel1();
         }
 
-        function saveClient() {
+        async function saveClient() {
             if (currentRole !== 'admin') return;
             const name = document.getElementById('input-client-name').value.trim();
             const taxId = document.getElementById('input-client-taxid').value.trim();
             const owner = document.getElementById('input-client-owner').value.trim();
             const phone = document.getElementById('input-client-phone').value.trim();
             if (!name) return alert('請輸入公司名稱');
+            
             clients.push({ id: Date.now(), name, taxId, owner, phone });
+            await DataService.saveClients(clients);
+
             renderClients();
             closeClientModal();
             document.getElementById('input-client-name').value = '';
@@ -1208,16 +1144,18 @@
             renderDashboardLevel1();
         }
 
-        function deleteProject(id) {
+        async function deleteProject(id) {
             if (currentRole !== 'admin') return;
             projects = projects.filter(p => p.id !== id);
+            await DataService.saveProjects(projects);
             renderProjects();
             renderDashboardLevel1();
         }
 
-        function deleteClient(id) {
+        async function deleteClient(id) {
             if (currentRole !== 'admin') return;
             clients = clients.filter(c => c.id !== id);
+            await DataService.saveClients(clients);
             renderClients();
             renderDashboardLevel1();
         }
