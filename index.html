@@ -26,6 +26,22 @@
             }
         }
     </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
 
@@ -66,41 +82,229 @@
     <!-- Main Content Area -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
-        <!-- Quick Action / Status Bar -->
+        <!-- Tab Navigation & Action Bar -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center space-x-2">
-                <i data-lucide="shield-check" class="w-5 h-5 text-emerald-600"></i>
-                <span class="font-semibold text-slate-700">資料庫安全等級：</span>
-                <span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md border border-slate-200">Supabase Auth (JWT) + Database RLS 防護已生效</span>
+            <div class="flex items-center space-x-2 border-b border-slate-200 sm:border-b-0 pb-2 sm:pb-0 w-full sm:w-auto">
+                <button id="tab-btn-matrix" onclick="switchTab('matrix')" class="px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center space-x-2 bg-brand-50 text-brand-600">
+                    <i data-lucide="grid" class="w-4 h-4"></i>
+                    <span>客戶進度矩陣</span>
+                </button>
+                <button id="tab-btn-analytics" onclick="switchTab('analytics')" class="px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center space-x-2 text-slate-600 hover:bg-slate-100">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                    <span>管理分析 (老闆視角)</span>
+                </button>
             </div>
-            
-            <div class="flex items-center space-x-3">
-                <button onclick="refreshData()" class="flex items-center space-x-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors">
-                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                    <span>重新整理</span>
+
+            <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
+                <button id="btn-add-client" onclick="openAddClientModal()" class="flex items-center space-x-1.5 bg-brand-600 hover:bg-brand-500 text-white px-3.5 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    <span>新增客戶</span>
+                </button>
+                <button onclick="manualSync()" class="flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors">
+                    <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+                    <span>一鍵同步雲端</span>
                 </button>
             </div>
         </div>
 
-        <!-- Matrix Dashboard Container -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h2 class="text-xl font-bold text-slate-800">客戶案件進度控制矩陣</h2>
-                    <p class="text-xs text-slate-500 mt-1">即時監控打卡與進度同步（限 Admin 權限寫入與修正）</p>
+        <!-- View 1: Progress Matrix View -->
+        <div id="view-matrix" class="space-y-4">
+            <!-- Filter & Search Toolbar -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2"></i>
+                        <input type="text" id="search-input" oninput="renderMatrix()" placeholder="搜尋客戶名稱或統編..." 
+                               class="pl-9 pr-4 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent w-64">
+                    </div>
+                    <select id="filter-type" onchange="renderMatrix()" class="px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-600">
+                        <option value="ALL">全部服務類型</option>
+                        <option value="記帳">記帳客戶</option>
+                        <option value="審計">審計客戶</option>
+                        <option value="專案">專案客戶</option>
+                    </select>
+                </div>
+                <div class="text-xs text-slate-500 flex items-center space-x-4">
+                    <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-slate-200 mr-1.5"></span>未開始</span>
+                    <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 mr-1.5"></span>進行中</span>
+                    <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1.5"></span>已完成</span>
                 </div>
             </div>
 
-            <!-- Content Placeholder -->
-            <div class="min-h-[300px] flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-lg p-8 text-center bg-slate-50">
-                <i data-lucide="database-lock" class="w-12 h-12 text-brand-500 mb-3"></i>
-                <h3 class="text-base font-semibold text-slate-700">系統權限防護中</h3>
-                <p class="text-sm text-slate-500 max-w-md mt-1">所有 API 請求將攜帶專屬的 Auth Token 進行 RLS 權限比對。點擊右上角進行帳號登入即可啟用操作。</p>
+            <!-- Matrix Table Container -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse min-w-[900px]">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                <th class="p-4 w-48 sticky left-0 bg-slate-50 z-10 border-r border-slate-200">客戶名稱</th>
+                                <th class="p-4 text-center">憑證整理</th>
+                                <th class="p-4 text-center">帳務登錄</th>
+                                <th class="p-4 text-center">營業稅申報</th>
+                                <th class="p-4 text-center">調節表編製</th>
+                                <th class="p-4 text-center">財報出具</th>
+                                <th class="p-4 text-center">客戶確認</th>
+                            </tr>
+                        </thead>
+                        <tbody id="matrix-tbody" class="divide-y divide-slate-200 text-sm">
+                            <!-- Matrix rows dynamically rendered via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- View 2: Management Analytics View (Owner View) -->
+        <div id="view-analytics" class="hidden space-y-6">
+            <!-- Analytics Summary Cards -->
+            <div class="grid grid-[#17] grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-2">
+                    <div class="flex items-center justify-between text-slate-500">
+                        <span class="text-xs font-semibold uppercase tracking-wider">總工時累計</span>
+                        <i data-lucide="clock" class="w-5 h-5 text-brand-500"></i>
+                    </div>
+                    <div id="analytics-total-hours" class="text-2xl font-bold text-slate-800">0.0 小時</div>
+                    <p class="text-xs text-slate-400">當前統計區間累計投入</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-2">
+                    <div class="flex items-center justify-between text-slate-500">
+                        <span class="text-xs font-semibold uppercase tracking-wider">活躍案件數</span>
+                        <i data-lucide="briefcase" class="w-5 h-5 text-amber-500"></i>
+                    </div>
+                    <div id="analytics-active-projects" class="text-2xl font-bold text-slate-800">0 件</div>
+                    <p class="text-xs text-slate-400">進行中或有計時紀錄之專案</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-2">
+                    <div class="flex items-center justify-between text-slate-500">
+                        <span class="text-xs font-semibold uppercase tracking-wider">預估完成率</span>
+                        <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-500"></i>
+                    </div>
+                    <div id="analytics-completion-rate" class="text-2xl font-bold text-slate-800">0%</div>
+                    <p class="text-xs text-slate-400">所有步驟卡片完成比例</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-2">
+                    <div class="flex items-center justify-between text-slate-500">
+                        <span class="text-xs font-semibold uppercase tracking-wider">客戶覆蓋數</span>
+                        <i data-lucide="users" class="w-5 h-5 text-indigo-500"></i>
+                    </div>
+                    <div id="analytics-total-clients" class="text-2xl font-bold text-slate-800">0 家</div>
+                    <p class="text-xs text-slate-400">系統中維護的總客戶數</p>
+                </div>
+            </div>
+
+            <!-- Client Time Allocation List -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+                <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2">
+                    <i data-lucide="pie-chart" class="w-5 h-5 text-brand-600"></i>
+                    <span>各客戶工時投入分析 (高至低)</span>
+                </h3>
+                <div id="analytics-client-time-list" class="space-y-3">
+                    <!-- Client time bars rendered via JS -->
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- Modal: Supabase Auth 登入彈窗 -->
+    <!-- Modal: Timer & Cell Progress Modal -->
+    <div id="timer-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full p-6 space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                    <span id="modal-client-name" class="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded">客戶名稱</span>
+                    <h3 id="modal-step-title" class="font-bold text-slate-800 text-lg mt-1">步驟名稱</h3>
+                </div>
+                <button onclick="closeTimerModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="bg-slate-50 rounded-xl p-5 text-center space-y-3 border border-slate-100">
+                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">步驟累計投入工時</div>
+                <div id="modal-timer-display" class="text-4xl font-mono font-bold text-slate-800 tracking-tight">00:00:00</div>
+                
+                <div class="pt-2 flex justify-center space-x-3">
+                    <button id="btn-timer-toggle" onclick="toggleTimer()" class="flex items-center space-x-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 transition-colors shadow-sm">
+                        <i data-lucide="play" class="w-4 h-4"></i>
+                        <span id="btn-timer-text">開始計時</span>
+                    </button>
+                    <button id="btn-timer-reset" onclick="resetTimer()" class="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 bg-slate-200 hover:bg-slate-300 transition-colors">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        <span>歸零</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <label class="block text-xs font-semibold text-slate-700">更新卡片狀態</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="setCellStatus('PENDING')" class="px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center justify-center space-x-1">
+                        <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                        <span>未開始</span>
+                    </button>
+                    <button onclick="setCellStatus('IN_PROGRESS')" class="px-3 py-2 text-xs font-medium rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 flex items-center justify-center space-x-1">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span>進行中</span>
+                    </button>
+                    <button onclick="setCellStatus('COMPLETED')" class="px-3 py-2 text-xs font-medium rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 flex items-center justify-center space-x-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>已完成</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 flex justify-end">
+                <button onclick="closeTimerModal()" class="px-4 py-2 text-sm font-medium bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors">
+                    關閉並儲存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add New Client -->
+    <div id="add-client-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-lg">新增服務客戶</h3>
+                <button onclick="closeAddClientModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="add-client-form" onsubmit="handleAddClient(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">客戶名稱 *</label>
+                    <input type="text" id="new-client-name" required placeholder="例：珍珠科技股份有限公司" 
+                           class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">統一編號</label>
+                    <input type="text" id="new-client-taxid" placeholder="例：88888888" 
+                           class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">服務類型</label>
+                    <select id="new-client-type" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-700">
+                        <option value="記帳">記帳客戶</option>
+                        <option value="審計">審計客戶</option>
+                        <option value="專案">專案客戶</option>
+                    </select>
+                </div>
+
+                <div class="pt-2 flex justify-end space-x-3">
+                    <button type="button" onclick="closeAddClientModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                        取消
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium bg-brand-600 hover:bg-brand-500 text-white rounded-lg transition-colors">
+                        確認新增
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Supabase Auth 登入彈窗 (New Added via Scalpel Protocol) -->
     <div id="login-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full p-6 space-y-5">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -120,7 +324,7 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">電子郵件 (Email)</label>
-                    <input type="email" id="login-email" required placeholder="example@pearlflow.com" 
+                    <input type="email" id="login-email" required placeholder="example@gmail.com" 
                            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
                 </div>
 
@@ -145,11 +349,29 @@
 
     <!-- Application Script -->
     <script>
-        // Supabase Endpoint Configuration
+        // System Steps Constant
+        const STEPS = [
+            { id: 'step_1', name: '憑證整理' },
+            { id: 'step_2', name: '帳務登錄' },
+            { id: 'step_3', name: '營業稅申報' },
+            { id: 'step_4', name: '調節表編製' },
+            { id: 'step_5', name: '財報出具' },
+            { id: 'step_6', name: '客戶確認' }
+        ];
+
+        // Initial Seed Data
+        const INITIAL_CLIENTS = [
+            { id: 'c_101', name: '珍珠科技股份有限公司', taxId: '88881234', type: '記帳' },
+            { id: 'c_102', name: '極光生醫國際有限公司', taxId: '77775678', type: '審計' },
+            { id: 'c_103', name: '藍海文創餐飲集團', taxId: '66669012', type: '記帳' },
+            { id: 'c_104', name: '鼎茂律師事務所', taxId: '55553456', type: '專案' }
+        ];
+
+        // Supabase REST Service Configuration
         const SUPABASE_URL = 'https://foiczezuudovzufofsyc.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvaWN6ZXp1dWRvdnp1Zm9mc3ljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA1NjA3MzQsImV4cCI6MjA1NjEzNjzczNH0.f3-1rWInFh3dCg2yRllgX_B5_4R8R22Q2J7Y1T65dQE';
 
-        // DataService: Managed Supabase REST + Auth Layer
+        // DataService: Dual-Engine Data Storage & Auth Layer
         const DataService = {
             sessionToken: localStorage.getItem('pf_session_token') || null,
             currentUser: JSON.parse(localStorage.getItem('pf_user') || 'null'),
@@ -188,37 +410,86 @@
                 localStorage.removeItem('pf_user');
             },
 
-            async request(endpoint, options = {}) {
-                const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
-                const headers = {
-                    'apikey': SUPABASE_KEY,
-                    'Content-Type': 'application/json',
-                    'Prefer': options.prefer || 'return=representation'
-                };
+            async getStore() {
+                try {
+                    const headers = { 'apikey': SUPABASE_KEY };
+                    if (this.sessionToken) {
+                        headers['Authorization'] = `Bearer ${this.sessionToken}`;
+                    }
 
-                if (this.sessionToken) {
-                    headers['Authorization'] = `Bearer ${this.sessionToken}`;
+                    const res = await fetch(`${SUPABASE_URL}/rest/v1/system_store?key=eq.global_state&select=*`, {
+                        headers: headers
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.length > 0 && data[0].value) {
+                            return data[0].value;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[DataService] Cloud fetch failed, fallback to local:', e);
                 }
+                const local = localStorage.getItem('pf_global_state');
+                if (local) return JSON.parse(local);
+                
+                return { clients: INITIAL_CLIENTS, matrix: {} };
+            },
 
-                const config = {
-                    method: options.method || 'GET',
-                    headers: headers
-                };
+            async saveStore(state) {
+                localStorage.setItem('pf_global_state', JSON.stringify(state));
+                
+                try {
+                    const headers = {
+                        'apikey': SUPABASE_KEY,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'resolution=merge-duplicates'
+                    };
+                    if (this.sessionToken) {
+                        headers['Authorization'] = `Bearer ${this.sessionToken}`;
+                    }
 
-                if (options.body) {
-                    config.body = JSON.stringify(options.body);
+                    await fetch(`${SUPABASE_URL}/rest/v1/system_store`, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({
+                            key: 'global_state',
+                            value: state,
+                            updated_at: new Date().toISOString()
+                        })
+                    });
+                } catch (e) {
+                    console.warn('[DataService] Cloud save failed:', e);
                 }
-
-                const res = await fetch(url, config);
-                if (!res.ok) {
-                    const errData = await res.json().catch(() => ({}));
-                    throw new Error(errData.message || `API Error: ${res.status}`);
-                }
-                return await res.json();
             }
         };
 
-        // UI & Event Handlers
+        // Application State
+        let appState = {
+            clients: [],
+            matrix: {}
+        };
+
+        let currentTab = 'matrix';
+        let activeCellKey = null; // format: ${clientId}_${stepId}
+        let timerInterval = null;
+
+        // Active Timer Context
+        let activeTimerContext = {
+            key: null,
+            startTime: null,
+            elapsedSeconds: 0,
+            isRunning: false
+        };
+
+        // Initialize App
+        async function initApp() {
+            lucide.createIcons();
+            renderUserHeader();
+            appState = await DataService.getStore();
+            renderMatrix();
+        }
+
+        // Render User Header Status
         function renderUserHeader() {
             const container = document.getElementById('user-info-container');
             if (DataService.currentUser) {
@@ -269,7 +540,10 @@
                 await DataService.login(email, password);
                 closeLoginModal();
                 renderUserHeader();
-                refreshData();
+                
+                // Refresh App state on login
+                appState = await DataService.getStore();
+                renderMatrix();
             } catch (err) {
                 errorMsgEl.innerText = err.message || '登入失敗，請檢查帳號密碼';
                 errorMsgEl.classList.remove('hidden');
@@ -283,24 +557,328 @@
         function handleLogout() {
             DataService.logout();
             renderUserHeader();
-            refreshData();
+            initApp();
         }
 
-        async function refreshData() {
-            try {
-                // 測試帶入 Token 讀取 system_store
-                const data = await DataService.request('system_store?select=*');
-                console.log('[Auth Verification] Sync Data Loaded Successfully:', data);
-            } catch (err) {
-                console.warn('[Auth Verification] Failed to sync data:', err.message);
+        // Tab Switching Logic
+        function switchTab(tab) {
+            currentTab = tab;
+            const matrixView = document.getElementById('view-matrix');
+            const analyticsView = document.getElementById('view-analytics');
+            const btnMatrix = document.getElementById('tab-btn-matrix');
+            const btnAnalytics = document.getElementById('tab-btn-analytics');
+
+            if (tab === 'matrix') {
+                matrixView.classList.remove('hidden');
+                analyticsView.classList.add('hidden');
+                btnMatrix.className = "px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center space-x-2 bg-brand-50 text-brand-600";
+                btnAnalytics.className = "px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center space-x-2 text-slate-600 hover:bg-slate-100";
+            } else {
+                matrixView.classList.add('hidden');
+                analyticsView.classList.remove('hidden');
+                btnAnalytics.className = "px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center space-x-2 bg-brand-50 text-brand-600";
+                btnMatrix.className = "px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center space-x-2 text-slate-600 hover:bg-slate-100";
+                renderAnalytics();
             }
         }
 
-        // Initialize App
-        document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
-            renderUserHeader();
-        });
+        // Render Matrix Table
+        function renderMatrix() {
+            const tbody = document.getElementById('matrix-tbody');
+            const searchKeyword = document.getElementById('search-input').value.trim().toLowerCase();
+            const filterType = document.getElementById('filter-type').value;
+
+            const filteredClients = appState.clients.filter(client => {
+                const matchesSearch = client.name.toLowerCase().includes(searchKeyword) || (client.taxId && client.taxId.includes(searchKeyword));
+                const matchesType = filterType === 'ALL' || client.type === filterType;
+                return matchesSearch && matchesType;
+            });
+
+            if (filteredClients.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-slate-400 text-sm">
+                            無符合條件的客戶資料
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            filteredClients.forEach(client => {
+                html += `<tr class="hover:bg-slate-50/80 transition-colors">`;
+                
+                // Client Name Cell (Sticky)
+                html += `
+                    <td class="p-4 sticky left-0 bg-white z-10 border-r border-slate-200">
+                        <div class="font-bold text-slate-800">${client.name}</div>
+                        <div class="flex items-center space-x-2 mt-1">
+                            <span class="text-xs font-mono text-slate-400">${client.taxId || '無統編'}</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">${client.type}</span>
+                        </div>
+                    </td>
+                `;
+
+                // Render 6 Process Step Cards
+                STEPS.forEach(step => {
+                    const key = `${client.id}_${step.id}`;
+                    const cellData = appState.matrix[key] || { status: 'PENDING', timeSeconds: 0 };
+                    
+                    let statusBadgeClass = 'bg-slate-100 text-slate-500 border-slate-200';
+                    let statusText = '未開始';
+                    let statusDot = 'bg-slate-300';
+
+                    if (cellData.status === 'IN_PROGRESS') {
+                        statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                        statusText = '進行中';
+                        statusDot = 'bg-amber-400';
+                    } else if (cellData.status === 'COMPLETED') {
+                        statusBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                        statusText = '已完成';
+                        statusDot = 'bg-emerald-500';
+                    }
+
+                    const isTiming = activeTimerContext.isRunning && activeTimerContext.key === key;
+                    const displaySeconds = isTiming ? activeTimerContext.elapsedSeconds : (cellData.timeSeconds || 0);
+
+                    html += `
+                        <td class="p-3 text-center">
+                            <div onclick="openTimerModal('${client.id}', '${client.name}', '${step.id}', '${step.name}')" 
+                                 class="cursor-pointer p-2.5 rounded-xl border ${statusBadgeClass} hover:shadow-md transition-all space-y-1.5">
+                                <div class="flex items-center justify-between text-[11px] font-medium">
+                                    <span class="flex items-center">
+                                        <span class="w-1.5 h-1.5 rounded-full ${statusDot} mr-1"></span>
+                                        ${statusText}
+                                    </span>
+                                    ${isTiming ? '<span class="text-[10px] text-amber-600 animate-pulse font-bold">● 計時中</span>' : ''}
+                                </div>
+                                <div class="text-xs font-mono font-bold">
+                                    ${formatTime(displaySeconds)}
+                                </div>
+                            </div>
+                        </td>
+                    `;
+                });
+
+                html += `</tr>`;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        // Render Analytics View
+        function renderAnalytics() {
+            let totalSeconds = 0;
+            let totalCells = 0;
+            let completedCells = 0;
+            let clientTimeMap = {};
+
+            appState.clients.forEach(c => { clientTimeMap[c.name] = 0; });
+
+            Object.keys(appState.matrix).forEach(key => {
+                const cell = appState.matrix[key];
+                const sec = cell.timeSeconds || 0;
+                totalSeconds += sec;
+                totalCells++;
+
+                if (cell.status === 'COMPLETED') completedCells++;
+
+                const clientId = key.split('_')[0] + '_' + key.split('_')[1];
+                const client = appState.clients.find(c => c.id === clientId);
+                if (client) {
+                    clientTimeMap[client.name] = (clientTimeMap[client.name] || 0) + sec;
+                }
+            });
+
+            document.getElementById('analytics-total-hours').innerText = (totalSeconds / 3600).toFixed(1) + ' 小時';
+            document.getElementById('analytics-active-projects').innerText = Object.keys(appState.matrix).length + ' 件';
+            document.getElementById('analytics-completion-rate').innerText = totalCells > 0 ? Math.round((completedCells / totalCells) * 100) + '%' : '0%';
+            document.getElementById('analytics-total-clients').innerText = appState.clients.length + ' 家';
+
+            // Render Client Time Bar Ranking
+            const sortedClients = Object.keys(clientTimeMap).map(name => ({
+                name,
+                seconds: clientTimeMap[name]
+            })).sort((a, b) => b.seconds - a.seconds);
+
+            const maxSec = sortedClients[0]?.seconds || 1;
+            const container = document.getElementById('analytics-client-time-list');
+            
+            let html = '';
+            sortedClients.forEach(item => {
+                const percentage = Math.max(5, Math.round((item.seconds / maxSec) * 100));
+                const hours = (item.seconds / 3600).toFixed(1);
+
+                html += `
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs font-medium text-slate-700">
+                            <span>${item.name}</span>
+                            <span class="font-mono text-brand-600 font-bold">${hours} 小時</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                            <div class="bg-brand-500 h-2.5 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Timer Modal Controller
+        function openTimerModal(clientId, clientName, stepId, stepName) {
+            activeCellKey = `${clientId}_${stepId}`;
+            const cellData = appState.matrix[activeCellKey] || { status: 'PENDING', timeSeconds: 0 };
+
+            document.getElementById('modal-client-name').innerText = clientName;
+            document.getElementById('modal-step-title').innerText = stepName;
+
+            if (activeTimerContext.key === activeCellKey && activeTimerContext.isRunning) {
+                updateTimerModalUI(true, activeTimerContext.elapsedSeconds);
+            } else {
+                updateTimerModalUI(false, cellData.timeSeconds || 0);
+            }
+
+            document.getElementById('timer-modal').classList.remove('hidden');
+        }
+
+        function closeTimerModal() {
+            document.getElementById('timer-modal').classList.add('hidden');
+            renderMatrix();
+        }
+
+        function updateTimerModalUI(isRunning, seconds) {
+            document.getElementById('modal-timer-display').innerText = formatTime(seconds);
+            const btnText = document.getElementById('btn-timer-text');
+            const btnToggle = document.getElementById('btn-timer-toggle');
+
+            if (isRunning) {
+                btnText.innerText = '暫停計時';
+                btnToggle.className = "flex items-center space-x-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-amber-600 hover:bg-amber-500 transition-colors shadow-sm";
+            } else {
+                btnText.innerText = '開始計時';
+                btnToggle.className = "flex items-center space-x-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 transition-colors shadow-sm";
+            }
+        }
+
+        function toggleTimer() {
+            if (!activeCellKey) return;
+
+            if (activeTimerContext.isRunning && activeTimerContext.key === activeCellKey) {
+                // Pause Timer
+                clearInterval(timerInterval);
+                activeTimerContext.isRunning = false;
+
+                if (!appState.matrix[activeCellKey]) {
+                    appState.matrix[activeCellKey] = { status: 'IN_PROGRESS', timeSeconds: 0 };
+                }
+                appState.matrix[activeCellKey].timeSeconds = activeTimerContext.elapsedSeconds;
+                DataService.saveStore(appState);
+
+                updateTimerModalUI(false, activeTimerContext.elapsedSeconds);
+            } else {
+                // Start Timer
+                const cellData = appState.matrix[activeCellKey] || { status: 'IN_PROGRESS', timeSeconds: 0 };
+                
+                activeTimerContext = {
+                    key: activeCellKey,
+                    elapsedSeconds: cellData.timeSeconds || 0,
+                    isRunning: true
+                };
+
+                if (!appState.matrix[activeCellKey]) {
+                    appState.matrix[activeCellKey] = { status: 'IN_PROGRESS', timeSeconds: 0 };
+                } else if (appState.matrix[activeCellKey].status === 'PENDING') {
+                    appState.matrix[activeCellKey].status = 'IN_PROGRESS';
+                }
+
+                timerInterval = setInterval(() => {
+                    activeTimerContext.elapsedSeconds++;
+                    document.getElementById('modal-timer-display').innerText = formatTime(activeTimerContext.elapsedSeconds);
+                }, 1000);
+
+                updateTimerModalUI(true, activeTimerContext.elapsedSeconds);
+            }
+        }
+
+        function resetTimer() {
+            if (!activeCellKey) return;
+            if (activeTimerContext.key === activeCellKey && activeTimerContext.isRunning) {
+                clearInterval(timerInterval);
+                activeTimerContext.isRunning = false;
+            }
+
+            if (!appState.matrix[activeCellKey]) {
+                appState.matrix[activeCellKey] = { status: 'PENDING', timeSeconds: 0 };
+            } else {
+                appState.matrix[activeCellKey].timeSeconds = 0;
+            }
+
+            DataService.saveStore(appState);
+            updateTimerModalUI(false, 0);
+        }
+
+        function setCellStatus(status) {
+            if (!activeCellKey) return;
+            if (!appState.matrix[activeCellKey]) {
+                appState.matrix[activeCellKey] = { status: status, timeSeconds: 0 };
+            } else {
+                appState.matrix[activeCellKey].status = status;
+            }
+
+            DataService.saveStore(appState);
+            closeTimerModal();
+        }
+
+        // Add Client Modal Logic
+        function openAddClientModal() {
+            document.getElementById('add-client-modal').classList.remove('hidden');
+        }
+
+        function closeAddClientModal() {
+            document.getElementById('add-client-modal').classList.add('hidden');
+            document.getElementById('add-client-form').reset();
+        }
+
+        async function handleAddClient(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-client-name').value.trim();
+            const taxId = document.getElementById('new-client-taxid').value.trim();
+            const type = document.getElementById('new-client-type').value;
+
+            if (!name) return;
+
+            const newClient = {
+                id: 'c_' + Date.now(),
+                name,
+                taxId,
+                type
+            };
+
+            appState.clients.push(newClient);
+            await DataService.saveStore(appState);
+            closeAddClientModal();
+            renderMatrix();
+        }
+
+        async function manualSync() {
+            await DataService.saveStore(appState);
+            appState = await DataService.getStore();
+            renderMatrix();
+            alert('已成功與 Supabase 雲端資料庫完成同步！');
+        }
+
+        // Helper: Format Seconds into HH:MM:SS
+        function formatTime(totalSeconds) {
+            const hrs = Math.floor(totalSeconds / 3600);
+            const mins = Math.floor((totalSeconds % 3600) / 60);
+            const secs = totalSeconds % 60;
+            return [hrs, mins, secs].map(v => v < 10 ? "0" + v : v).join(":");
+        }
+
+        // Run Application
+        document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
