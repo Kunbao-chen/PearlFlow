@@ -3,1274 +3,930 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>珍珠聯合會計師事務所 - PearlFlow v2.1.2</title>
-    <!-- Tailwind CSS 樣式庫 -->
+    <title>珍珠聯合會計師事務所 - 內部管理系統</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Supabase JS SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        pearl: {
-                            50: '#fff5f5',
-                            100: '#ffe8e8',
-                            200: '#fbd0d0',
-                            300: '#f7aab0',
-                            400: '#f17985',
-                            500: '#e54d5e',
-                            600: '#d12e43',
-                            700: '#af2133',
-                            800: '#911f2e',
-                            900: '#791f2b',
-                        },
-                        charcoal: '#4a4a4a',
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
-        .bg-pearl-geometric {
-            background-color: #fff8f8;
-            background-image: 
-                linear-gradient(135deg, rgba(247, 170, 176, 0.25) 0%, transparent 40%),
-                linear-gradient(225deg, rgba(251, 208, 208, 0.3) 0%, transparent 50%),
-                linear-gradient(45deg, rgba(241, 121, 133, 0.15) 0%, transparent 35%);
+        [v-cloak] { display: none; }
+        .tab-active {
+            border-bottom: 2px solid #e11d48;
+            color: #e11d48;
+            font-weight: 600;
         }
-        .pearl-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(251, 208, 208, 0.6);
+        /* 自訂捲軸樣式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
     </style>
 </head>
-<body class="bg-pearl-geometric text-charcoal font-sans min-h-screen flex flex-col">
-
-    <!-- 頁首導覽列 -->
-    <header class="bg-white border-b border-pearl-200 shadow-sm sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <img src="logo.png" alt="珍珠聯合會計師事務所 LOGO" class="h-10 w-auto object-contain">
-                <div class="border-l border-pearl-200 pl-3">
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-lg font-bold tracking-tight text-slate-800">珍珠聯合會計師事務所</h1>
-                        <span class="text-xs font-semibold text-pearl-600 bg-pearl-100 px-2 py-0.5 rounded-full">v2.1.2</span>
-                    </div>
-                    <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Pearl Certified Public Accountants Firm</p>
-                </div>
-            </div>
-
-            <div class="flex items-center space-x-4 text-xs">
-                <!-- DataService 存取模式選擇器 -->
-                <div class="flex items-center gap-1.5 bg-slate-100 border border-slate-300 px-3 py-1 rounded-full font-medium">
-                    <i class="fa-solid fa-database text-slate-600"></i>
-                    <span class="text-slate-600">存取模式：</span>
-                    <select id="storage-mode-selector" onchange="switchStorageMode(this.value)" class="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer">
-                        <option value="LOCAL">單機 (LOCAL)</option>
-                        <option value="CLOUD">雲端 (CLOUD)</option>
-                    </select>
-                </div>
-
-                <!-- Supabase 身份驗證狀態與帳號資訊 -->
-                <div id="auth-status-container" class="flex items-center gap-2 bg-pearl-50 border border-pearl-200 px-3 py-1 rounded-full font-medium">
-                    <i class="fa-solid fa-user-shield text-pearl-500"></i>
-                    <div id="user-info-display" class="flex items-center gap-2">
-                        <span id="user-email-text" class="text-slate-600 font-semibold">未登入 (訪客)</span>
-                        <span id="user-role-badge" class="text-[10px] bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded">Guest</span>
-                    </div>
-                    <button id="btn-auth-action" onclick="toggleAuthModal()" class="ml-1 text-xs font-bold text-pearl-600 hover:text-pearl-800 underline focus:outline-none">
-                        登入
-                    </button>
-                </div>
-                <span class="text-slate-500 hidden sm:inline">系統日期：<span id="current-time" class="font-semibold text-slate-700"></span></span>
-            </div>
-        </div>
-    </header>
-
-    <!-- 主內容區 -->
-    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
-        <!-- 分頁切換 Tab -->
-        <div class="flex border-b border-pearl-200 mb-6 space-x-2 overflow-x-auto">
-            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-2.5 px-4 font-bold text-pearl-600 border-b-2 border-pearl-500 flex items-center gap-2 whitespace-nowrap">
-                <i class="fa-solid fa-chart-line"></i> Dashboard 進度看板
-            </button>
-            <button onclick="switchTab('calendar')" id="tab-calendar" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
-                <i class="fa-solid fa-calendar-days"></i> 申報行事曆
-            </button>
-            <button onclick="switchTab('analytics')" id="tab-analytics" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
-                <i class="fa-solid fa-chart-pie"></i> 管理分析
-            </button>
-            <button onclick="switchTab('projects')" id="tab-projects" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
-                <i class="fa-solid fa-list-check"></i> 專案與流程
-            </button>
-            <button onclick="switchTab('clients')" id="tab-clients" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
-                <i class="fa-solid fa-building"></i> 客戶基本資料
-            </button>
-            <button onclick="switchTab('backup')" id="tab-backup" class="py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
-                <i class="fa-solid fa-database"></i> 備份與還原
-            </button>
-        </div>
-
-        <!-- 分頁 1: Dashboard 進度看板 -->
-        <div id="content-dashboard" class="space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="pearl-card rounded-xl p-4 shadow-sm border-l-4 border-l-pearl-500">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-calendar-day text-pearl-500"></i> 今天必須完成的工作
-                        </h3>
-                        <span id="count-today" class="text-xs bg-pearl-100 text-pearl-700 font-bold px-2 py-0.5 rounded-full">0 件</span>
-                    </div>
-                    <div id="list-today" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div>
-                </div>
-
-                <div class="pearl-card rounded-xl p-4 shadow-sm border-l-4 border-l-amber-400">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-calendar-week text-amber-500"></i> 本週必須完成的工作
-                        </h3>
-                        <span id="count-week" class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">0 件</span>
-                    </div>
-                    <div id="list-week" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div>
-                </div>
-            </div>
-
-            <div id="dashboard-level-1" class="space-y-4">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h2 class="text-base font-bold text-slate-800">所有專案進行進度</h2>
-                        <p class="text-xs text-slate-500">點擊專案卡片，展開查看該專案全體客戶的作業進度矩陣。</p>
-                    </div>
-                </div>
-                <div id="project-kpi-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-            </div>
-
-            <div id="dashboard-level-2" class="space-y-4 hidden">
-                <div class="flex items-center justify-between pearl-card p-4 rounded-xl shadow-sm">
-                    <div class="flex items-center gap-3">
-                        <button onclick="backToLevel1()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1">
-                            <i class="fa-solid fa-arrow-left"></i> 返回總覽
-                        </button>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+    <div id="app" v-cloak class="flex-1 flex flex-col min-h-screen">
+        
+        <!-- Top Navigation Bar -->
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16 items-center">
+                    
+                    <!-- Firm Logo & Title -->
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-rose-500 text-white p-2 rounded-lg shadow-sm flex items-center justify-center">
+                            <i data-lucide="building-2" class="w-6 h-6"></i>
+                        </div>
                         <div>
-                            <div class="flex items-center gap-2">
-                                <h2 id="current-project-title" class="text-base font-bold text-slate-800">專案名稱</h2>
-                                <span id="current-project-deadline" class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium"></span>
+                            <div class="flex items-center space-x-2">
+                                <h1 class="text-lg font-bold text-slate-900 tracking-tight">珍珠聯合會計師事務所</h1>
+                                <span class="px-2 py-0.5 text-xs bg-rose-100 text-rose-600 rounded-full font-mono font-bold border border-rose-200">v2.1.3</span>
                             </div>
-                            <p class="text-xs text-slate-500">點擊矩陣單元格可進行「開始／暫停／結束」實時計時打卡。</p>
+                            <p class="text-xs text-slate-500 font-medium tracking-wider uppercase">Pearl Certified Public Accountants Firm</p>
                         </div>
                     </div>
-                    <span id="current-project-rate" class="text-xl font-black text-pearl-600 bg-pearl-50 px-3 py-1 rounded-lg border border-pearl-200">0%</span>
-                </div>
 
-                <div class="pearl-card p-4 rounded-xl shadow-sm overflow-x-auto">
-                    <table class="w-full text-left border-collapse min-w-[800px]">
-                        <thead>
-                            <tr id="matrix-header" class="bg-slate-50 text-slate-700 text-xs uppercase border-b border-pearl-100"></tr>
-                        </thead>
-                        <tbody id="matrix-body" class="divide-y divide-pearl-50 text-sm"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- 分頁 2: 申報行事曆 -->
-        <div id="content-calendar" class="space-y-6 hidden">
-            <div class="flex justify-between items-center pearl-card p-4 rounded-xl shadow-sm">
-                <div>
-                    <h2 class="text-base font-bold text-slate-800">申報行事曆與自動提醒設定</h2>
-                    <p class="text-xs text-slate-500">設定法定申報期限與提前提醒天數，系統會自動在 Dashboard 的「今天／本週必辦」中進行動態提醒。</p>
-                </div>
-                <button id="btn-add-event" onclick="openEventModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i> 新增申報日程
-                </button>
-            </div>
-            <div id="calendar-event-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-        </div>
-
-        <!-- 分頁 3: 管理分析看板 -->
-        <div id="content-analytics" class="space-y-6 hidden">
-            <div class="pearl-card p-4 rounded-xl shadow-sm">
-                <h2 class="text-base font-bold text-slate-800 mb-1">工時與效率管理分析</h2>
-                <p class="text-xs text-slate-500">統計全所人員累積操作工時與專案完成率，提供精準的管理決策參考。</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- 人員工時統計 -->
-                <div class="pearl-card p-5 rounded-xl shadow-sm space-y-4">
-                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-users text-pearl-500"></i> 人員累積工時與貢獻度
-                    </h3>
-                    <div id="analytics-staff-list" class="space-y-3 text-xs"></div>
-                </div>
-
-                <!-- 專案完成率與投入工時 -->
-                <div class="pearl-card p-5 rounded-xl shadow-sm space-y-4">
-                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-chart-column text-pearl-500"></i> 專案累積投入工時與總進度
-                    </h3>
-                    <div id="analytics-project-list" class="space-y-3 text-xs"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 分頁 4: 專案與流程設定 -->
-        <div id="content-projects" class="space-y-6 hidden">
-            <div class="flex justify-between items-center pearl-card p-4 rounded-xl shadow-sm">
-                <div>
-                    <h2 class="text-base font-bold text-slate-800">專案列表與標準流程 (SOP)</h2>
-                    <p class="text-xs text-slate-500" id="project-subtitle">在此設定事務所各項服務的作業標準流程與步驟。</p>
-                </div>
-                <button id="btn-add-project" onclick="openProjectModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i> 新增專案
-                </button>
-            </div>
-            <div id="project-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-        </div>
-
-        <!-- 分頁 5: 客戶基本資料 -->
-        <div id="content-clients" class="space-y-6 hidden">
-            <div class="flex justify-between items-center pearl-card p-4 rounded-xl shadow-sm">
-                <div>
-                    <h2 class="text-base font-bold text-slate-800">客戶基本資料</h2>
-                    <p class="text-xs text-slate-500">管理事務所服務的所有公司客戶檔。</p>
-                </div>
-                <button id="btn-add-client" onclick="openClientModal()" class="bg-pearl-500 hover:bg-pearl-600 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i> 新增客戶
-                </button>
-            </div>
-            <div class="pearl-card rounded-xl shadow-sm overflow-hidden">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-slate-50 text-slate-600 text-xs uppercase border-b border-pearl-100">
-                        <tr>
-                            <th class="p-3">公司名稱</th>
-                            <th class="p-3">統一編號</th>
-                            <th class="p-3">負責人</th>
-                            <th class="p-3">聯絡電話</th>
-                            <th class="p-3 text-right action-col">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="client-table-body" class="divide-y divide-pearl-50 text-sm"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 分頁 6: 資料備份與還原 -->
-        <div id="content-backup" class="space-y-6 hidden">
-            <div class="pearl-card p-6 rounded-xl shadow-sm space-y-4 max-w-2xl">
-                <h2 class="text-base font-bold text-slate-800 border-b pb-2">資料安全備份與還原 (JSON / DataService Sync)</h2>
-                <p class="text-xs text-slate-500 leading-relaxed">
-                    提供單機資料備份導出，或利用 DataService 一鍵將單機 (LOCAL) 資料同步上傳至雲端 API (CLOUD) 結構。
-                </p>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                    <div class="bg-pearl-50/50 p-4 rounded-xl border border-pearl-100 flex flex-col justify-between space-y-3">
-                        <div>
-                            <h3 class="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1">
-                                <i class="fa-solid fa-download text-pearl-500"></i> 匯出 JSON 備份
-                            </h3>
-                            <p class="text-[11px] text-slate-400">下載備份檔至本地。</p>
-                        </div>
-                        <button onclick="exportSystemData()" class="w-full py-2 bg-pearl-500 hover:bg-pearl-600 text-white text-xs font-bold rounded-lg transition">
-                            下載 JSON
-                        </button>
-                    </div>
-
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
-                        <div>
-                            <h3 class="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1">
-                                <i class="fa-solid fa-upload text-slate-600"></i> 匯入 JSON 還原
-                            </h3>
-                            <p class="text-[11px] text-slate-400">上傳 `.json` 備份檔覆蓋。</p>
-                        </div>
-                        <div>
-                            <input type="file" id="import-file" accept=".json" class="hidden" onchange="importSystemData(event)">
-                            <button onclick="document.getElementById('import-file').click()" class="w-full py-2 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition">
-                                選擇檔案
+                    <!-- Right Controls (Mode Switch & User) -->
+                    <div class="flex items-center space-x-4 text-xs">
+                        <!-- Mode Switcher -->
+                        <div class="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200">
+                            <span class="text-slate-500 px-2 font-medium flex items-center gap-1">
+                                <i data-lucide="database" class="w-3.5 h-3.5"></i> 存取模式：
+                            </span>
+                            <button 
+                                @click="switchMode('local')"
+                                :class="['px-2.5 py-1 rounded-md transition-all duration-150 font-medium', storageMode === 'local' ? 'bg-white text-slate-800 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-800']">
+                                本地 (Local)
+                            </button>
+                            <button 
+                                @click="switchMode('cloud')"
+                                :class="['px-2.5 py-1 rounded-md transition-all duration-150 font-medium', storageMode === 'cloud' ? 'bg-white text-rose-600 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-800']">
+                                雲端 (CLOUD)
                             </button>
                         </div>
-                    </div>
 
-                    <div class="bg-emerald-50/60 p-4 rounded-xl border border-emerald-200 flex flex-col justify-between space-y-3">
-                        <div>
-                            <h3 class="font-bold text-xs text-emerald-900 flex items-center gap-1.5 mb-1">
-                                <i class="fa-solid fa-cloud-arrow-up text-emerald-600"></i> 一鍵同步至雲端
-                            </h3>
-                            <p class="text-[11px] text-emerald-700">把 Local 單機資料上傳 Cloud。</p>
+                        <!-- User Info / Role -->
+                        <div class="flex items-center space-x-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg">
+                            <i data-lucide="user" class="w-4 h-4 text-slate-400"></i>
+                            <span class="font-medium text-slate-700">{{ currentUserEmail }}</span>
+                            <span :class="['px-1.5 py-0.5 rounded text-[10px] font-bold uppercase', currentRole === 'admin' ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700']">
+                                {{ currentRole === 'admin' ? 'Admin' : 'Staff' }}
+                            </span>
+                            <button @click="handleLogout" class="text-slate-400 hover:text-rose-600 ml-1 underline transition-colors">
+                                登出
+                            </button>
                         </div>
-                        <button onclick="handleCloudSync()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition">
-                            開始同步
-                        </button>
+
+                        <!-- Date Display -->
+                        <div class="text-slate-400 font-mono hidden md:block">
+                            系統日期：{{ todayString }}
+                        </div>
                     </div>
+
                 </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="flex space-x-8 -mb-px border-t border-slate-100">
+                    <button 
+                        @click="currentTab = 'dashboard'"
+                        :class="['py-3 px-1 text-sm font-medium flex items-center space-x-2 transition-colors', currentTab === 'dashboard' ? 'tab-active' : 'text-slate-500 hover:text-slate-700']">
+                        <i data-lucide="line-chart" class="w-4 h-4"></i>
+                        <span>Dashboard 進度看板</span>
+                    </button>
+                    <button 
+                        @click="currentTab = 'calendar'"
+                        :class="['py-3 px-1 text-sm font-medium flex items-center space-x-2 transition-colors', currentTab === 'calendar' ? 'tab-active' : 'text-slate-500 hover:text-slate-700']">
+                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                        <span>申報行事曆</span>
+                    </button>
+                    <button 
+                        @click="currentTab = 'analytics'"
+                        :class="['py-3 px-1 text-sm font-medium flex items-center space-x-2 transition-colors', currentTab === 'analytics' ? 'tab-active' : 'text-slate-500 hover:text-slate-700']">
+                        <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                        <span>管理分析</span>
+                    </button>
+                    <button 
+                        @click="currentTab = 'projects'"
+                        :class="['py-3 px-1 text-sm font-medium flex items-center space-x-2 transition-colors', currentTab === 'projects' ? 'tab-active' : 'text-slate-500 hover:text-slate-700']">
+                        <i data-lucide="list-checks" class="w-4 h-4"></i>
+                        <span>專案與流程</span>
+                    </button>
+                    <button 
+                        @click="currentTab = 'clients'"
+                        :class="['py-3 px-1 text-sm font-medium flex items-center space-x-2 transition-colors', currentTab === 'clients' ? 'tab-active' : 'text-slate-500 hover:text-slate-700']">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>客戶基本資料</span>
+                    </button>
+                    <button 
+                        @click="currentTab = 'backup'"
+                        :class="['py-3 px-1 text-sm font-medium flex items-center space-x-2 transition-colors', currentTab === 'backup' ? 'tab-active' : 'text-slate-500 hover:text-slate-700']">
+                        <i data-lucide="database" class="w-4 h-4"></i>
+                        <span>備份與還原</span>
+                    </button>
+                </nav>
             </div>
-        </div>
-    </main>
+        </header>
 
-    <!-- Modal: Supabase Auth 登入對話框 -->
-    <div id="auth-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4 border border-pearl-100">
-            <div class="border-b border-slate-100 pb-2 flex justify-between items-center">
-                <h3 class="text-base font-bold text-slate-800">Supabase 帳號登入</h3>
-                <button onclick="closeAuthModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-semibold text-slate-600 mb-1">電子郵件 (Email)</label>
-                    <input type="email" id="auth-email" placeholder="admin@pearl.com" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-600 mb-1">密碼 (Password)</label>
-                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
-                </div>
-            </div>
-            <div id="auth-error-msg" class="text-xs text-rose-500 font-semibold hidden"></div>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="closeAuthModal()" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
-                <button onclick="handleAuthLogin()" class="px-4 py-2 text-xs bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg font-bold">登入帳號</button>
-            </div>
-        </div>
-    </div>
+        <!-- Main Content Area -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-    <!-- Modal: 打卡與實時計時器彈窗 -->
-    <div id="timer-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-pearl-100">
-            <div class="border-b border-slate-100 pb-3 flex justify-between items-center">
-                <div>
-                    <span id="modal-client-name" class="text-xs font-bold text-pearl-600 block">客戶名稱</span>
-                    <h3 id="modal-step-name" class="text-base font-bold text-slate-800">步驟名稱</h3>
-                </div>
-                <button onclick="closeTimerModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <!-- Loading Spinner -->
+            <div v-if="isLoading" class="flex justify-center items-center py-24">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-rose-500"></div>
+                <span class="ml-3 text-slate-500 text-sm font-medium">資料載入中...</span>
             </div>
 
-            <div class="bg-pearl-50/60 p-4 rounded-xl border border-pearl-100 text-center space-y-1">
-                <span id="timer-status-badge" class="text-xs px-2.5 py-1 rounded-full font-semibold bg-slate-200 text-slate-700">未開始</span>
-                <div id="timer-display" class="text-3xl font-black tracking-wider text-slate-800 font-mono py-2">00:00:00</div>
-                <p id="timer-user-info" class="text-xs text-slate-400">尚無操作紀錄</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 pt-2">
-                <button id="btn-start" onclick="handleTimerAction('start')" class="py-2.5 bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-play"></i> 開始執行
-                </button>
-                <button id="btn-pause" onclick="handleTimerAction('pause')" class="py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-pause"></i> 暫停執行
-                </button>
-                <button id="btn-complete" onclick="handleTimerAction('complete')" class="col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-check"></i> 完成此步驟
-                </button>
-                <button id="btn-skip" onclick="handleTimerAction('skip')" class="col-span-2 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-xs font-medium border border-slate-200">
-                    標記為「無此步驟」
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: 新增申報日程彈窗 -->
-    <div id="event-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-pearl-100">
-            <h3 class="text-base font-bold text-slate-800 border-b pb-2">新增申報日程與提醒</h3>
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-semibold text-slate-600 mb-1">連動專案</label>
-                    <select id="input-event-project" class="w-full border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-pearl-400"></select>
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-600 mb-1">申報事項名稱</label>
-                    <input type="text" id="input-event-title" placeholder="例如：115年7-8月 營業稅申報截止" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-600 mb-1">法定申報截止日 (DueDate)</label>
-                    <input type="date" id="input-event-date" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-600 mb-1">提前幾天動態提醒 (RemindDays)</label>
-                    <input type="number" id="input-event-remind" value="7" min="1" max="30" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
-                </div>
-            </div>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="closeEventModal()" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
-                <button onclick="saveEvent()" class="px-4 py-2 text-xs bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg font-bold">儲存日程</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: 新增專案彈窗 -->
-    <div id="project-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4 border border-pearl-100">
-            <h3 class="text-base font-bold text-slate-800 border-b pb-2">新增專案與標準流程</h3>
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">專案名稱</label>
-                <input type="text" id="input-project-name" placeholder="例如：115年7-8月 營業稅" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-pearl-400">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">預設工作步驟（使用逗號分隔）</label>
-                <textarea id="input-project-steps" rows="3" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-pearl-400">提醒繳交憑證, 收到憑證, 缺漏待補, 整理分類鍵入, 自行檢查, 覆核, 上傳申報, 繳稅完成</textarea>
-            </div>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="closeProjectModal()" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
-                <button onclick="saveProject()" class="px-4 py-2 text-xs bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg font-bold">儲存專案</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: 新增客戶彈窗 -->
-    <div id="client-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4 border border-pearl-100">
-            <h3 class="text-base font-bold text-slate-800 border-b pb-2">新增客戶基本資料</h3>
-            <div class="grid grid-cols-2 gap-3 text-xs">
-                <div class="col-span-2">
-                    <label class="block font-semibold text-slate-600 mb-1">公司名稱</label>
-                    <input type="text" id="input-client-name" placeholder="寶島科技股份有限公司" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-600 mb-1">統一編號</label>
-                    <input type="text" id="input-client-taxid" placeholder="88615713" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-600 mb-1">負責人</label>
-                    <input type="text" id="input-client-owner" placeholder="陳崑琳" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
-                </div>
-                <div class="col-span-2">
-                    <label class="block font-semibold text-slate-600 mb-1">聯絡電話</label>
-                    <input type="text" id="input-client-phone" placeholder="0937-025-207" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
-                </div>
-            </div>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="closeClientModal()" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
-                <button onclick="saveClient()" class="px-4 py-2 text-xs bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg font-bold">儲存客戶</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- JavaScript 模組區塊 (DataService & Supabase Auth 集成) -->
-    <script>
-        // ==========================================
-        // 1. DATA SERVICE & SUPABASE AUTH LAYER
-        // ==========================================
-        const STORAGE_MODE = { LOCAL: 'LOCAL', CLOUD: 'CLOUD' };
-        const STORAGE_KEYS = {
-            MODE: 'pf_storage_mode',
-            PROJECTS: 'pf_projects',
-            CLIENTS: 'pf_clients',
-            EVENTS: 'pf_events',
-            LOGS: 'pf_step_logs'
-        };
-
-        const SUPABASE_URL = 'https://foiczezuudovzufofsyc.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_IJ2CGw3kS5hC8JgVlD-h5g_ktEpPMK3';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        let currentMode = localStorage.getItem(STORAGE_KEYS.MODE) || STORAGE_MODE.LOCAL;
-
-        const LocalAdapter = {
-            async get(key) {
-                await new Promise(r => setTimeout(r, 30));
-                const d = localStorage.getItem(key);
-                return d ? JSON.parse(d) : null;
-            },
-            async set(key, val) {
-                await new Promise(r => setTimeout(r, 30));
-                localStorage.setItem(key, JSON.stringify(val));
-                return true;
-            }
-        };
-
-        const ApiAdapter = {
-            async get(key) {
-                try {
-                    const { data, error } = await supabaseClient
-                        .from('system_store')
-                        .select('value')
-                        .eq('key', key);
-                    if (error) throw error;
-                    return data && data.length > 0 ? data[0].value : null;
-                } catch (err) {
-                    console.error(`[ApiAdapter] Read error for key "${key}":`, err);
-                    throw err;
-                }
-            },
-
-            async set(key, val) {
-                try {
-                    const { error } = await supabaseClient
-                        .from('system_store')
-                        .upsert({ key: key, value: val, updated_at: new Date().toISOString() }, { onConflict: 'key' });
-                    if (error) throw error;
-                    return true;
-                } catch (err) {
-                    console.error(`[ApiAdapter] Write error for key "${key}":`, err);
-                    throw err;
-                }
-            }
-        };
-
-        const DataService = {
-            getMode() { return currentMode; },
-            setMode(mode) {
-                currentMode = mode;
-                localStorage.setItem(STORAGE_KEYS.MODE, mode);
-            },
-            _getAdapter() { return currentMode === STORAGE_MODE.CLOUD ? ApiAdapter : LocalAdapter; },
-            async _wrap(fn) {
-                try { return { success: true, data: await fn() }; }
-                catch (e) { return { success: false, error: e.message }; }
-            },
-            async getProjects() {
-                return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.PROJECTS)) || [
-                    { id: 1, name: '115年7-8月 營業稅', steps: ['提醒繳交憑證', '收到憑證', '缺漏待補', '整理分類鍵入', '自行檢查', '覆核', '上傳申報', '繳稅完成'] },
-                    { id: 2, name: '114年度 營所稅結算申報', steps: ['蒐集帳冊資料', '調整調帳項目', '編製報告書', '會計師簽章', '國稅局申報'] }
-                ]);
-            },
-            async saveProjects(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.PROJECTS, data)); },
-            async getClients() {
-                return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.CLIENTS)) || [
-                    { id: 101, name: '珍珠聯合會計師事務所', taxId: '88615713', owner: '陳崑琳', phone: '0937-025-207' },
-                    { id: 102, name: '寶島科技股份有限公司', taxId: '12345678', owner: '陳大明', phone: '02-23456789' },
-                    { id: 103, name: '台灣創新生技股份有限公司', taxId: '54321678', owner: '林玉蓮', phone: '03-5712345' }
-                ]);
-            },
-            async saveClients(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.CLIENTS, data)); },
-            async getEvents() {
-                return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.EVENTS)) || [
-                    { id: 201, projectId: 1, title: '115年7-8月 營業稅申報截止', dueDate: '2026-09-15', remindDays: 7 },
-                    { id: 202, projectId: 2, title: '114年度 營所稅結算申報截止', dueDate: '2026-05-31', remindDays: 14 }
-                ]);
-            },
-            async saveEvents(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.EVENTS, data)); },
-            async getStepLogs() {
-                return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.LOGS)) || {
-                    '1_101_0': { status: 'done', operator: '老闆 (Admin)', elapsed: 300 },
-                    '1_101_1': { status: 'done', operator: '老闆 (Admin)', elapsed: 450 },
-                    '1_101_2': { status: 'progress', operator: '老闆 (Admin)', elapsed: 120, lastStart: Date.now() },
-                    '1_102_0': { status: 'progress', operator: '員工 (Staff)', elapsed: 180, lastStart: Date.now() },
-                    '2_101_0': { status: 'done', operator: '員工 (Staff)', elapsed: 1200 }
-                });
-            },
-            async saveStepLogs(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.LOGS, data)); },
-            async migrateLocalToCloud() {
-                const p = await LocalAdapter.get(STORAGE_KEYS.PROJECTS) || [];
-                const c = await LocalAdapter.get(STORAGE_KEYS.CLIENTS) || [];
-                const e = await LocalAdapter.get(STORAGE_KEYS.EVENTS) || [];
-                const l = await LocalAdapter.get(STORAGE_KEYS.LOGS) || {};
-                await ApiAdapter.set(STORAGE_KEYS.PROJECTS, p);
-                await ApiAdapter.set(STORAGE_KEYS.CLIENTS, c);
-                await ApiAdapter.set(STORAGE_KEYS.EVENTS, e);
-                await ApiAdapter.set(STORAGE_KEYS.LOGS, l);
-                return { success: true };
-            }
-        };
-
-        // ==========================================
-        // 2. GLOBAL STATE & AUTH MONITORING
-        // ==========================================
-        let currentRole = 'admin';
-        let currentUserSession = null;
-
-        let projects = [];
-        let clients = [];
-        let events = [];
-        let stepLogs = {};
-
-        let activeProjectId = null;
-        let activeKey = null;
-        let timerInterval = null;
-
-        const STATUS_CONFIG = {
-            'none': { label: '未開始', bg: 'bg-slate-100 text-slate-600 hover:bg-slate-200' },
-            'progress': { label: '進行中', bg: 'bg-amber-100 text-amber-800 font-semibold hover:bg-amber-200 border border-amber-300 animate-pulse' },
-            'done': { label: '已完成', bg: 'bg-emerald-100 text-emerald-800 font-semibold hover:bg-emerald-200' },
-            'skip': { label: '無此步驟', bg: 'bg-slate-200 text-slate-500 line-through hover:bg-slate-300' }
-        };
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            document.getElementById('current-time').innerText = new Date().toLocaleDateString('zh-TW');
-            initAuthListener();
-            await initData();
-        });
-
-        function initAuthListener() {
-            supabaseClient.auth.onAuthStateChange((event, session) => {
-                currentUserSession = session;
-                updateAuthUI(session);
-            });
-        }
-
-        function updateAuthUI(session) {
-            const emailText = document.getElementById('user-email-text');
-            const roleBadge = document.getElementById('user-role-badge');
-            const authBtn = document.getElementById('btn-auth-action');
-
-            if (session && session.user) {
-                const email = session.user.email;
-                const role = session.user.user_metadata?.role || (email.includes('admin') ? 'admin' : 'staff');
-                currentRole = role;
-
-                emailText.innerText = email;
-                roleBadge.innerText = role === 'admin' ? 'Admin' : 'Staff';
-                roleBadge.className = role === 'admin' ? 
-                    'text-[10px] bg-pearl-100 text-pearl-700 font-bold px-1.5 py-0.5 rounded' : 
-                    'text-[10px] bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded';
-                authBtn.innerText = '登出';
-                authBtn.onclick = handleAuthLogout;
-            } else {
-                currentRole = 'admin'; // 訪客模式預設為 Admin 測試權限
-                emailText.innerText = '未登入 (訪客)';
-                roleBadge.innerText = 'Guest';
-                roleBadge.className = 'text-[10px] bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded';
-                authBtn.innerText = '登入';
-                authBtn.onclick = toggleAuthModal;
-            }
-            applyRolePermissions();
-        }
-
-        function toggleAuthModal() {
-            document.getElementById('auth-modal').classList.remove('hidden');
-        }
-
-        function closeAuthModal() {
-            document.getElementById('auth-modal').classList.add('hidden');
-            document.getElementById('auth-error-msg').classList.add('hidden');
-        }
-
-        async function handleAuthLogin() {
-            const email = document.getElementById('auth-email').value.trim();
-            const password = document.getElementById('auth-password').value.trim();
-            const errorMsg = document.getElementById('auth-error-msg');
-
-            if (!email || !password) {
-                errorMsg.innerText = '請輸入 Email 與密碼';
-                errorMsg.classList.remove('hidden');
-                return;
-            }
-
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) {
-                errorMsg.innerText = '登入失敗：' + error.message;
-                errorMsg.classList.remove('hidden');
-            } else {
-                closeAuthModal();
-            }
-        }
-
-        async function handleAuthLogout() {
-            await supabaseClient.auth.signOut();
-        }
-
-        async function initData() {
-            document.getElementById('storage-mode-selector').value = DataService.getMode();
-            const resP = await DataService.getProjects(); if (resP.success) projects = resP.data;
-            const resC = await DataService.getClients(); if (resC.success) clients = resC.data;
-            const resE = await DataService.getEvents(); if (resE.success) events = resE.data;
-            const resL = await DataService.getStepLogs(); if (resL.success) stepLogs = resL.data;
-
-            applyRolePermissions();
-            renderDashboardLevel1();
-            renderTaskFocus();
-        }
-
-        async function switchStorageMode(mode) {
-            DataService.setMode(mode);
-            await initData();
-            alert(`已成功切換至 [${mode}] 存取模式！`);
-        }
-
-        async function handleCloudSync() {
-            const res = await DataService.migrateLocalToCloud();
-            if (res.success) {
-                alert('單機資料已成功一鍵同步備份至 Supabase 雲端資料庫！');
-            } else {
-                alert('同步失敗：' + res.error);
-            }
-        }
-
-        // ==========================================
-        // 3. AUTHENTICATION MODULE (權限控制層)
-        // ==========================================
-        function applyRolePermissions() {
-            const isAdmin = (currentRole === 'admin');
-
-            document.getElementById('btn-add-project').style.display = isAdmin ? 'inline-flex' : 'none';
-            document.getElementById('btn-add-client').style.display = isAdmin ? 'inline-flex' : 'none';
-            document.getElementById('btn-add-event').style.display = isAdmin ? 'inline-flex' : 'none';
-            
-            document.getElementById('project-subtitle').innerText = isAdmin ? 
-                '在此設定事務所各項服務的作業標準流程與步驟。' : 
-                '唯讀視角：僅老闆 (Admin) 權限可新增或修改標準作業流程。';
-
-            renderProjects();
-            renderClients();
-            renderCalendarEvents();
-        }
-
-        // ==========================================
-        // 4. UI RENDER MODULE (畫面渲染層)
-        // ==========================================
-        function switchTab(tab) {
-            const tabs = ['dashboard', 'calendar', 'analytics', 'projects', 'clients', 'backup'];
-            tabs.forEach(t => {
-                document.getElementById(`content-${t}`).classList.toggle('hidden', t !== tab);
-                const btn = document.getElementById(`tab-${t}`);
-                btn.className = (t === tab) ? 
-                    'py-2.5 px-4 font-bold text-pearl-600 border-b-2 border-pearl-500 flex items-center gap-2 whitespace-nowrap' : 
-                    'py-2.5 px-4 font-semibold text-slate-500 hover:text-pearl-600 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap';
-            });
-
-            if (tab === 'dashboard') {
-                renderDashboardLevel1();
-                renderTaskFocus();
-            } else if (tab === 'analytics') {
-                renderAnalytics();
-            }
-        }
-
-        function renderTaskFocus() {
-            const todayList = document.getElementById('list-today');
-            const weekList = document.getElementById('list-week');
-            let todayItems = [], weekItems = [];
-
-            const now = new Date();
-
-            events.forEach(evt => {
-                const dueDate = new Date(evt.dueDate);
-                const diffTime = dueDate - now;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays <= evt.remindDays) {
-                    const project = projects.find(p => p.id === evt.projectId);
-                    if (!project) return;
-
-                    clients.forEach(c => {
-                        project.steps.forEach((step, idx) => {
-                            const key = `${project.id}_${c.id}_${idx}`;
-                            const log = stepLogs[key];
-                            if (!log || (log.status !== 'done' && log.status !== 'skip')) {
-                                const itemHTML = `
-                                    <div class="flex items-center justify-between bg-white/80 p-2 rounded border border-pearl-100 hover:border-pearl-300 transition">
-                                        <div class="truncate mr-2">
-                                            <span class="font-bold text-slate-800">${c.name}</span>
-                                            <span class="text-slate-400 mx-1">·</span>
-                                            <span class="text-pearl-600 font-medium">${project.name}</span>
-                                            <span class="text-slate-500">（${step}）</span>
-                                        </div>
-                                        <button onclick="openProjectDetail(${project.id})" class="text-[10px] bg-pearl-50 text-pearl-600 border border-pearl-200 px-2 py-0.5 rounded flex-shrink-0">查看</button>
-                                    </div>
-                                `;
-                                if (diffDays <= 1 || (log && log.status === 'progress')) {
-                                    todayItems.push(itemHTML);
-                                } else {
-                                    weekItems.push(itemHTML);
-                                }
-                            }
-                        });
-                    });
-                }
-            });
-
-            document.getElementById('count-today').innerText = `${todayItems.length} 件`;
-            todayList.innerHTML = todayItems.length ? todayItems.join('') : '<p class="text-slate-400 italic">今日無過期或緊急事項</p>';
-
-            document.getElementById('count-week').innerText = `${weekItems.length} 件`;
-            weekList.innerHTML = weekItems.length ? weekItems.join('') : '<p class="text-slate-400 italic">本週尚無動態提醒事項</p>';
-        }
-
-        function renderDashboardLevel1() {
-            document.getElementById('dashboard-level-1').classList.remove('hidden');
-            document.getElementById('dashboard-level-2').classList.add('hidden');
-
-            const container = document.getElementById('project-kpi-grid');
-            container.innerHTML = projects.map(p => {
-                const stats = calculateProjectProgress(p);
-                const evt = events.find(e => e.projectId === p.id);
-                
-                const sopPreview = p.steps.map((s, idx) => `
-                    <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 flex-shrink-0">
-                        ${idx + 1}.${s}
-                    </span>
-                `).join('<span class="text-slate-300 text-[10px]">➔</span>');
-
-                return `
-                    <div onclick="openProjectDetail(${p.id})" class="pearl-card p-5 rounded-xl shadow-sm hover:shadow-md border hover:border-pearl-300 cursor-pointer transition group space-y-3 flex flex-col justify-between">
-                        <div class="space-y-2">
-                            <div class="flex justify-between items-start">
-                                <h3 class="font-bold text-slate-800 text-base group-hover:text-pearl-600 transition">${p.name}</h3>
-                                <span class="text-xs bg-pearl-50 text-pearl-600 border border-pearl-200 px-2 py-0.5 rounded flex-shrink-0">${clients.length} 家客戶</span>
+            <template v-else>
+                <!-- 1. Dashboard 看板 -->
+                <section v-if="currentTab === 'dashboard'" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- 今日必須完成的工作 -->
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                                    <i data-lucide="calendar-days" class="w-5 h-5 text-rose-500"></i>
+                                    今天必須完成的工作
+                                </h3>
+                                <span class="bg-rose-100 text-rose-600 px-2.5 py-0.5 rounded-full text-xs font-bold">
+                                    {{ todayTasks.length }} 件
+                                </span>
                             </div>
-                            
-                            ${evt ? `<div class="text-[11px] text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200 inline-block">
-                                <i class="fa-regular fa-clock mr-1"></i>截止日：${evt.dueDate}
-                            </div>` : ''}
-
-                            <div class="pt-1">
-                                <span class="text-[10px] font-semibold text-slate-400 block mb-1">作業 SOP 流程脈絡：</span>
-                                <div class="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
-                                    ${sopPreview}
+                            <div class="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                                <div v-if="todayTasks.length === 0" class="py-8 text-center text-slate-400 text-sm">
+                                    今日尚無特定提醒事項
+                                </div>
+                                <div v-for="task in todayTasks" :key="task.id" class="py-3 flex items-center justify-between hover:bg-slate-50 px-2 rounded-lg transition-colors">
+                                    <div>
+                                        <div class="font-medium text-slate-800 text-sm">{{ task.clientName }}</div>
+                                        <div class="text-xs text-slate-500 mt-0.5">{{ task.eventName }} （{{ task.stepName }}）</div>
+                                    </div>
+                                    <button @click="openMatrixModal(task.eventId)" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 font-medium px-2.5 py-1 rounded border border-rose-200 transition-colors">
+                                        查看
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="space-y-2 pt-2 border-t border-slate-100">
-                            <div class="flex items-baseline justify-between">
-                                <span class="text-3xl font-black text-pearl-600">${stats.rate}%</span>
-                                <span class="text-xs text-slate-400">${stats.completed} / ${stats.needed} 步驟完成</span>
+                        <!-- 本週必須完成的工作 -->
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                                    <i data-lucide="calendar-range" class="w-5 h-5 text-amber-500"></i>
+                                    本週必須完成的工作
+                                </h3>
+                                <span class="bg-amber-100 text-amber-600 px-2.5 py-0.5 rounded-full text-xs font-bold">
+                                    {{ weekTasks.length }} 件
+                                </span>
                             </div>
-                            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                                <div class="bg-pearl-500 h-full transition-all duration-500" style="width: ${stats.rate}%"></div>
-                            </div>
-                            <div class="flex justify-end text-xs text-pearl-600 font-bold group-hover:translate-x-1 transition-transform pt-1">
-                                進入客戶進度矩陣 <i class="fa-solid fa-chevron-right ml-1 mt-0.5"></i>
+                            <div class="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                                <div v-if="weekTasks.length === 0" class="py-8 text-center text-slate-400 text-sm">
+                                    本週尚無排定提醒事項
+                                </div>
+                                <div v-for="task in weekTasks" :key="task.id" class="py-3 flex items-center justify-between hover:bg-slate-50 px-2 rounded-lg transition-colors">
+                                    <div>
+                                        <div class="font-medium text-slate-800 text-sm">{{ task.clientName }}</div>
+                                        <div class="text-xs text-slate-500 mt-0.5">{{ task.eventName }} （{{ task.stepName }}）</div>
+                                    </div>
+                                    <span class="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                        {{ task.dueDate }} 截止
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                `;
-            }).join('');
-        }
 
-        function calculateProjectProgress(p) {
-            let needed = 0, completed = 0;
-            clients.forEach(c => {
-                p.steps.forEach((_, idx) => {
-                    const key = `${p.id}_${c.id}_${idx}`;
-                    const log = stepLogs[key] || { status: 'none' };
-                    if (log.status !== 'skip') {
-                        needed++;
-                        if (log.status === 'done') completed++;
-                    }
-                });
-            });
-            const rate = needed > 0 ? Math.round((completed / needed) * 100) : 0;
-            return { needed, completed, rate };
-        }
+                    <!-- 所有專案進行進度 -->
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="mb-4">
+                            <h3 class="font-bold text-slate-800 text-base">所有專案進行進度</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">點擊專案卡片，展開查看專案全體客戶的作業進度矩陣。</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                            <div v-for="event in events" :key="event.id" class="border border-slate-200 hover:border-rose-300 rounded-xl p-4 transition-all duration-200 hover:shadow-md bg-white flex flex-col justify-between">
+                                <div>
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h4 class="font-bold text-slate-800 text-sm">{{ event.title }}</h4>
+                                        <span class="text-xs bg-slate-100 text-slate-600 font-medium px-2 py-0.5 rounded">
+                                            {{ clients.length }} 家客戶
+                                        </span>
+                                    </div>
+                                    <div class="text-xs text-amber-600 font-medium bg-amber-50 inline-block px-2 py-0.5 rounded border border-amber-200/60 mb-3">
+                                        <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i>截止日：{{ event.dueDate }}
+                                    </div>
 
-        function openProjectDetail(projectId) {
-            activeProjectId = projectId;
-            const project = projects.find(p => p.id === projectId);
-            if (!project) return;
+                                    <!-- 作業 SOP 流程預覽 -->
+                                    <div class="text-[11px] text-slate-500 mb-4">
+                                        <span class="font-semibold text-slate-600">作業 SOP 流程簡述：</span>
+                                        <div class="flex items-center gap-1 overflow-x-auto py-1 scrollbar-none">
+                                            <template v-for="(step, idx) in getProjectSteps(event.projectId)" :key="idx">
+                                                <span class="whitespace-nowrap bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                                                    {{ idx + 1 }}.{{ step }}
+                                                </span>
+                                                <i v-if="idx < getProjectSteps(event.projectId).length - 1" data-lucide="chevron-right" class="w-3 h-3 text-slate-300 flex-shrink-0"></i>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
 
-            document.getElementById('dashboard-level-1').classList.add('hidden');
-            document.getElementById('dashboard-level-2').classList.remove('hidden');
+                                <div>
+                                    <!-- 進度條 -->
+                                    <div class="mb-2">
+                                        <div class="flex justify-between text-xs mb-1">
+                                            <span class="font-bold text-rose-600 text-sm">{{ getEventProgress(event.id) }}%</span>
+                                            <span class="text-slate-400 text-[11px]">{{ getCompletedStepCount(event.id) }} / {{ getTotalStepCount(event.id) }} 步驟完成</span>
+                                        </div>
+                                        <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                            <div class="bg-rose-500 h-2 rounded-full transition-all duration-300" :style="{ width: getEventProgress(event.id) + '%' }"></div>
+                                        </div>
+                                    </div>
 
-            document.getElementById('current-project-title').innerText = project.name;
-            const evt = events.find(e => e.projectId === project.id);
-            document.getElementById('current-project-deadline').innerText = evt ? `法定截止日：${evt.dueDate}` : '未設定截止日';
+                                    <!-- 按鈕區 -->
+                                    <button @click="openMatrixModal(event.id)" class="w-full mt-2 text-center text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 py-2 rounded-lg border border-rose-200 transition-colors flex items-center justify-center gap-1">
+                                        進入客戶進度矩陣 <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-            const stats = calculateProjectProgress(project);
-            document.getElementById('current-project-rate').innerText = `${stats.rate}%`;
+                <!-- 2. 申報行事曆 (預留區) -->
+                <section v-if="currentTab === 'calendar'" class="bg-white p-8 rounded-xl border border-slate-200 shadow-sm text-center py-16">
+                    <i data-lucide="calendar" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
+                    <h3 class="text-lg font-bold text-slate-700">申報行事曆模組</h3>
+                    <p class="text-slate-500 text-sm mt-1">即將登場，提供月度與年度稅務申報排程檢視。</p>
+                </section>
 
-            renderMatrix(project);
-        }
+                <!-- 3. 管理分析 (預留區) -->
+                <section v-if="currentTab === 'analytics'" class="bg-white p-8 rounded-xl border border-slate-200 shadow-sm text-center py-16">
+                    <i data-lucide="pie-chart" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
+                    <h3 class="text-lg font-bold text-slate-700">管理分析儀表板</h3>
+                    <p class="text-slate-500 text-sm mt-1">即將登場，提供事務所工時與客戶申報績效統計。</p>
+                </section>
 
-        function backToLevel1() {
-            renderDashboardLevel1();
-            renderTaskFocus();
-        }
-
-        function renderMatrix(project) {
-            const headerRow = document.getElementById('matrix-header');
-            const body = document.getElementById('matrix-body');
-
-            headerRow.innerHTML = `
-                <th class="p-3 w-48 bg-slate-50 sticky left-0 z-10 border-r border-pearl-100 font-bold">公司名稱</th>
-                <th class="p-3 w-20 text-center font-bold">進度</th>
-                ${project.steps.map((step, idx) => `
-                    <th class="p-3 text-center min-w-[120px]">
-                        <span class="block text-slate-400 text-[10px]">STEP ${idx + 1}</span>
-                        <span class="font-bold text-slate-700">${step}</span>
-                    </th>
-                `).join('')}
-            `;
-
-            body.innerHTML = clients.map(c => {
-                let valid = 0, done = 0;
-                const cells = project.steps.map((_, stepIdx) => {
-                    const key = `${project.id}_${c.id}_${stepIdx}`;
-                    const log = stepLogs[key] || { status: 'none' };
-                    const cfg = STATUS_CONFIG[log.status] || STATUS_CONFIG['none'];
-
-                    if (log.status !== 'skip') {
-                        valid++;
-                        if (log.status === 'done') done++;
-                    }
-
-                    return `
-                        <td class="p-2 text-center">
-                            <button onclick="openTimerModal('${key}', '${c.name}', '${project.steps[stepIdx]}')" class="w-full py-1.5 px-2 rounded text-xs transition ${cfg.bg}">
-                                ${cfg.label}
+                <!-- 4. 專案與流程 -->
+                <section v-if="currentTab === 'projects'" class="space-y-6">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-base">專案類別與 SOP 流程設定</h3>
+                                <p class="text-xs text-slate-500 mt-0.5">維護標準作業流程 SOP 步驟，適用於後續發起的各項申報活動。</p>
+                            </div>
+                            <button @click="openProjectModal()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-sm flex items-center gap-1 transition-colors">
+                                <i data-lucide="plus" class="w-4 h-4"></i> 新增專案範本
                             </button>
-                        </td>
-                    `;
-                }).join('');
-
-                const cRate = valid > 0 ? Math.round((done / valid) * 100) : 0;
-
-                return `
-                    <tr class="hover:bg-pearl-50/50 transition">
-                        <td class="p-3 font-semibold text-slate-800 bg-white sticky left-0 z-10 border-r border-pearl-100">
-                            ${c.name}
-                        </td>
-                        <td class="p-3 text-center font-black text-xs text-pearl-600">${cRate}%</td>
-                        ${cells}
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        // ==========================================
-        // 5. TIMER & LOG MODULE (計時器與 DataService 非同步寫入)
-        // ==========================================
-        function openTimerModal(key, clientName, stepName) {
-            activeKey = key;
-            const log = stepLogs[key] || { status: 'none', operator: '', elapsed: 0 };
-
-            document.getElementById('modal-client-name').innerText = clientName;
-            document.getElementById('modal-step-name').innerText = stepName;
-            document.getElementById('timer-status-badge').innerText = STATUS_CONFIG[log.status].label;
-            document.getElementById('timer-user-info').innerText = log.operator ? `執行人員：${log.operator}` : '尚無操作紀錄';
-
-            updateTimerDisplay();
-
-            if (timerInterval) clearInterval(timerInterval);
-            if (log.status === 'progress') {
-                timerInterval = setInterval(() => {
-                    log.elapsed = (log.elapsed || 0) + 1;
-                    updateTimerDisplay();
-                }, 1000);
-            }
-
-            document.getElementById('timer-modal').classList.remove('hidden');
-        }
-
-        function updateTimerDisplay() {
-            const log = stepLogs[activeKey] || { elapsed: 0 };
-            document.getElementById('timer-display').innerText = formatSeconds(log.elapsed || 0);
-        }
-
-        function closeTimerModal() {
-            if (timerInterval) clearInterval(timerInterval);
-            document.getElementById('timer-modal').classList.add('hidden');
-        }
-
-        async function handleTimerAction(action) {
-            if (!activeKey) return;
-
-            const currentUser = (currentRole === 'admin') ? '老闆 (Admin)' : '員工 (Staff)';
-            let log = stepLogs[activeKey] || { status: 'none', elapsed: 0 };
-
-            if (log.operator && log.operator !== currentUser && (action === 'pause' || action === 'complete')) {
-                alert(`[防呆警告] 此步驟最初由「${log.operator}」開始執行，請由同一操作人員進行暫停或完成！`);
-                return;
-            }
-
-            if (action === 'start') {
-                log.status = 'progress';
-                log.operator = currentUser;
-                log.lastStart = Date.now();
-            } else if (action === 'pause') {
-                log.status = 'none';
-            } else if (action === 'complete') {
-                log.status = 'done';
-            } else if (action === 'skip') {
-                log.status = 'skip';
-            }
-
-            stepLogs[activeKey] = log;
-            await DataService.saveStepLogs(stepLogs);
-
-            closeTimerModal();
-            const project = projects.find(p => p.id === activeProjectId);
-            if (project) openProjectDetail(project.id);
-        }
-
-        function formatSeconds(sec) {
-            const hrs = Math.floor(sec / 3600).toString().padStart(2, '0');
-            const mins = Math.floor((sec % 3600) / 60).toString().padStart(2, '0');
-            const secs = (sec % 60).toString().padStart(2, '0');
-            return `${hrs}:${mins}:${secs}`;
-        }
-
-        // ==========================================
-        // 6. CALENDAR MODULE (申報行事曆與非同步寫入)
-        // ==========================================
-        function renderCalendarEvents() {
-            const container = document.getElementById('calendar-event-list');
-            const isAdmin = (currentRole === 'admin');
-
-            container.innerHTML = events.map(e => {
-                const project = projects.find(p => p.id === e.projectId);
-                return `
-                    <div class="pearl-card p-4 rounded-xl shadow-sm space-y-2 border-l-4 border-l-pearl-500">
-                        <div class="flex justify-between items-start">
-                            <span class="text-xs bg-pearl-50 text-pearl-600 font-bold px-2 py-0.5 rounded border border-pearl-200">${project ? project.name : '全域專案'}</span>
-                            ${isAdmin ? `<button onclick="deleteEvent(${e.id})" class="text-xs text-rose-500 hover:underline"><i class="fa-solid fa-trash"></i></button>` : ''}
                         </div>
-                        <h3 class="font-bold text-slate-800 text-sm">${e.title}</h3>
-                        <div class="flex justify-between items-center text-xs text-slate-500 pt-1">
-                            <span>截止日：<strong class="text-slate-700">${e.dueDate}</strong></span>
-                            <span class="bg-slate-100 px-2 py-0.5 rounded text-slate-600">提前 ${e.remindDays} 天提醒</span>
+
+                        <div class="divide-y divide-slate-100">
+                            <div v-for="proj in projects" :key="proj.id" class="py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="flex-1">
+                                    <div class="font-bold text-slate-800 text-sm mb-2">{{ proj.name }}</div>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        <span v-for="(s, idx) in proj.steps" :key="idx" class="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-md border border-slate-200">
+                                            {{ idx + 1 }}. {{ s }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <button @click="openProjectModal(proj)" class="text-xs text-slate-600 hover:text-slate-900 border border-slate-200 px-2.5 py-1.5 rounded bg-slate-50 hover:bg-slate-100">
+                                        編輯 SOP
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                `;
-            }).join('');
-        }
+                </section>
 
-        function openEventModal() {
-            if (currentRole !== 'admin') return alert('僅老闆 (Admin) 具備新增日程權限');
-            const selector = document.getElementById('input-event-project');
-            selector.innerHTML = projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-            document.getElementById('event-modal').classList.remove('hidden');
-        }
+                <!-- 5. 客戶基本資料 -->
+                <section v-if="currentTab === 'clients'" class="space-y-6">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-base">客戶名冊</h3>
+                                <p class="text-xs text-slate-500 mt-0.5">共 {{ clients.length }} 家維護中客戶。</p>
+                            </div>
+                            <button @click="openClientModal()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-sm flex items-center gap-1 transition-colors">
+                                <i data-lucide="user-plus" class="w-4 h-4"></i> 新增客戶
+                            </button>
+                        </div>
 
-        function closeEventModal() { document.getElementById('event-modal').classList.add('hidden'); }
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs text-slate-600">
+                                <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3">編號</th>
+                                        <th class="p-3">公司名稱</th>
+                                        <th class="p-3">統一編號</th>
+                                        <th class="p-3">負責人</th>
+                                        <th class="p-3">聯絡電話</th>
+                                        <th class="p-3 text-right">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <tr v-for="c in clients" :key="c.id" class="hover:bg-slate-50">
+                                        <td class="p-3 font-mono text-slate-400">#{{ c.id }}</td>
+                                        <td class="p-3 font-bold text-slate-800">{{ c.name }}</td>
+                                        <td class="p-3 font-mono">{{ c.taxId || '-' }}</td>
+                                        <td class="p-3">{{ c.owner || '-' }}</td>
+                                        <td class="p-3 font-mono">{{ c.phone || '-' }}</td>
+                                        <td class="p-3 text-right">
+                                            <button @click="openClientModal(c)" class="text-rose-600 hover:underline font-medium">編輯</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
 
-        async function saveEvent() {
-            if (currentRole !== 'admin') return;
-            const projectId = parseInt(document.getElementById('input-event-project').value);
-            const title = document.getElementById('input-event-title').value.trim();
-            const dueDate = document.getElementById('input-event-date').value;
-            const remindDays = parseInt(document.getElementById('input-event-remind').value) || 7;
+                <!-- 6. 備份與還原 -->
+                <section v-if="currentTab === 'backup'" class="space-y-6">
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-2xl">
+                        <h3 class="font-bold text-slate-800 text-base mb-2">資料備份與復原選項</h3>
+                        <p class="text-xs text-slate-500 mb-6">可將目前系統所有客戶、專案與打卡紀錄匯出為 JSON 檔案，或從 JSON 檔案完整還原。</p>
 
-            if (!title || !dueDate) return alert('請填寫日程名稱與截止日期');
+                        <div class="space-y-4">
+                            <div class="p-4 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-slate-700 text-sm">匯出 JSON 備份檔</div>
+                                    <div class="text-xs text-slate-500">下載當前資料庫的完整快照</div>
+                                </div>
+                                <button @click="exportData" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3.5 py-2 rounded-lg flex items-center gap-1">
+                                    <i data-lucide="download" class="w-4 h-4"></i> 下載備份
+                                </button>
+                            </div>
 
-            events.push({ id: Date.now(), projectId, title, dueDate, remindDays });
-            await DataService.saveEvents(events);
-            renderCalendarEvents();
-            closeEventModal();
-            renderTaskFocus();
-            renderDashboardLevel1();
-        }
+                            <div class="p-4 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-slate-700 text-sm">還原 JSON 備份檔</div>
+                                    <div class="text-xs text-slate-500">選擇備份檔並覆蓋目前資料</div>
+                                </div>
+                                <label class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer flex items-center gap-1">
+                                    <i data-lucide="upload" class="w-4 h-4"></i> 選擇檔案匯入
+                                    <input type="file" accept=".json" @change="importData" class="hidden">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </template>
 
-        async function deleteEvent(id) {
-            if (currentRole !== 'admin') return;
-            events = events.filter(e => e.id !== id);
-            await DataService.saveEvents(events);
-            renderCalendarEvents();
-            renderTaskFocus();
-            renderDashboardLevel1();
-        }
+        </main>
 
-        // ==========================================
-        // 7. ANALYTICS MODULE (管理分析)
-        // ==========================================
-        function renderAnalytics() {
-            const staffContainer = document.getElementById('analytics-staff-list');
-            const projectContainer = document.getElementById('analytics-project-list');
-
-            let userStats = {};
-
-            Object.values(stepLogs).forEach(log => {
-                if (log.operator) {
-                    if (!userStats[log.operator]) userStats[log.operator] = { seconds: 0, doneCount: 0 };
-                    userStats[log.operator].seconds += (log.elapsed || 0);
-                    if (log.status === 'done') userStats[log.operator].doneCount++;
-                }
-            });
-
-            staffContainer.innerHTML = Object.keys(userStats).length ? Object.entries(userStats).map(([user, data]) => `
-                <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-200">
+        <!-- 客戶進度矩陣 Modal (全螢幕/大對話框) -->
+        <div v-if="activeMatrixEvent" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-6xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                <!-- Modal Header -->
+                <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                     <div>
-                        <span class="font-bold text-slate-800 text-sm">${user}</span>
-                        <span class="text-slate-400 text-[11px] block">已累積完成 ${data.doneCount} 個步驟</span>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-lg font-bold text-slate-800">{{ activeMatrixEvent.title }}</h2>
+                            <span class="text-xs bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-medium">作業矩陣</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-0.5">點擊進度區塊即可切換狀態，系統將實時計算總體達成率。</p>
                     </div>
-                    <span class="font-mono font-bold text-pearl-600 text-base">${formatSeconds(data.seconds)}</span>
+                    <button @click="activeMatrixEvent = null" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
                 </div>
-            `).join('') : '<p class="text-slate-400 italic">尚無工時紀錄</p>';
 
-            projectContainer.innerHTML = projects.map(p => {
-                let totalSec = 0;
-                clients.forEach(c => {
-                    p.steps.forEach((_, idx) => {
-                        const key = `${p.id}_${c.id}_${idx}`;
-                        const log = stepLogs[key];
-                        if (log) totalSec += (log.elapsed || 0);
-                    });
-                });
-                const stats = calculateProjectProgress(p);
+                <!-- Modal Body: Progress Matrix Table -->
+                <div class="flex-1 overflow-auto p-6">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-200 sticky top-0 z-10">
+                                <th class="p-3 font-bold text-slate-700 border-r border-slate-200 min-w-[140px] bg-slate-100">客戶名稱</th>
+                                <th v-for="(step, idx) in activeMatrixSteps" :key="idx" class="p-3 font-bold text-slate-700 text-center min-w-[120px] border-r border-slate-200 bg-slate-100">
+                                    <div class="text-[10px] text-slate-400 font-mono">STEP {{ idx + 1 }}</div>
+                                    <div>{{ step }}</div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 border-b border-slate-200">
+                            <tr v-for="client in clients" :key="client.id" class="hover:bg-slate-50/80">
+                                <!-- 客戶欄 -->
+                                <td class="p-3 font-bold text-slate-800 border-r border-slate-200 bg-white sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                                    {{ client.name }}
+                                </td>
+                                <!-- 各步驟狀態按鈕 -->
+                                <td v-for="(step, sIdx) in activeMatrixSteps" :key="sIdx" class="p-2 border-r border-slate-200 text-center">
+                                    <button 
+                                        @click="toggleStepStatus(activeMatrixEvent.id, client.id, sIdx)"
+                                        :class="['w-full py-2 px-2 rounded-lg font-medium text-xs transition-all flex flex-col items-center justify-center gap-0.5 border', getStepStatusClass(activeMatrixEvent.id, client.id, sIdx)]">
+                                        <span>{{ getStepStatusLabel(activeMatrixEvent.id, client.id, sIdx) }}</span>
+                                        <span v-if="getStepLogInfo(activeMatrixEvent.id, client.id, sIdx)" class="text-[9px] opacity-75 font-mono">
+                                            {{ getStepLogInfo(activeMatrixEvent.id, client.id, sIdx) }}
+                                        </span>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-                return `
-                    <div class="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="font-bold text-slate-800 text-sm">${p.name}</span>
-                            <span class="font-mono font-bold text-pearl-600">${formatSeconds(totalSec)}</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                                <div class="bg-pearl-500 h-full transition-all duration-300" style="width: ${stats.rate}%"></div>
-                            </div>
-                            <span class="font-bold text-xs text-slate-700 min-w-[36px] text-right">${stats.rate}%</span>
-                        </div>
+                <!-- Modal Footer -->
+                <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs text-slate-500">
+                    <div>圖例：<span class="inline-block w-3 h-3 bg-emerald-100 border border-emerald-300 rounded-sm ml-1 mr-1"></span>已完成 <span class="inline-block w-3 h-3 bg-amber-100 border border-amber-300 rounded-sm ml-2 mr-1"></span>進行中 <span class="inline-block w-3 h-3 bg-slate-100 border border-slate-300 rounded-sm ml-2 mr-1"></span>未開始</div>
+                    <button @click="activeMatrixEvent = null" class="px-4 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-900">
+                        關閉矩陣
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 登入 Auth Modal -->
+        <div v-if="showAuthModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100">
+                <div class="text-center mb-6">
+                    <div class="bg-rose-500 text-white w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-md">
+                        <i data-lucide="lock" class="w-6 h-6"></i>
                     </div>
-                `;
-            }).join('');
+                    <h3 class="text-lg font-bold text-slate-800">登入珍珠會計師事務所系統</h3>
+                    <p class="text-xs text-slate-500 mt-1">請輸入您的帳號密碼，系統將自動進行身分驗證。</p>
+                </div>
+
+                <form @submit.prevent="handleLogin" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Email 帳號</label>
+                        <input v-model="authForm.email" type="email" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none" placeholder="name@firm.com">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">密碼</label>
+                        <input v-model="authForm.password" type="password" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none" placeholder="••••••••">
+                    </div>
+                    
+                    <div v-if="authError" class="text-xs text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-200">
+                        {{ authError }}
+                    </div>
+
+                    <button type="submit" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-lg text-sm shadow-md transition-colors">
+                        登入系統
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // Supabase Client Initialization
+        const SUPABASE_URL = 'https://foiczezuudovzufofsyc.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvaWN6ZXp1dWRvdnp1Zm9mc3ljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2NTI2MTIsImV4cCI6MjA3MDIyODYxMn0.M3p_XWW42v1z7k3zO9bO-L-y_oF--8q1Z02qI98B3qA';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Constants
+        const STORAGE_KEYS = {
+            CLIENTS: 'pf_clients',
+            EVENTS: 'pf_events',
+            PROJECTS: 'pf_projects',
+            STEP_LOGS: 'pf_step_logs',
+            USER_KEYS: 'pf_user_keys',
+            APPROVAL_REQUESTS: 'pf_approval_requests'
+        };
+
+        // Data Service Adapters
+        class LocalStorageAdapter {
+            get(key) {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : null;
+            }
+            set(key, value) {
+                localStorage.setItem(key, JSON.stringify(value));
+                return true;
+            }
         }
 
-        // ==========================================
-        // 8. BACKUP & RESTORE MODULE (備份與還原)
-        // ==========================================
-        function exportSystemData() {
-            const data = {
-                projects,
-                clients,
-                events,
-                stepLogs,
-                exportTime: new Date().toISOString()
-            };
-            const jsonStr = JSON.stringify(data, null, 2);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `PearlFlow_Backup_${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
+        class SupabaseAdapter {
+            async get(key) {
+                const { data, error } = await supabaseClient
+                    .from('system_store')
+                    .select('value')
+                    .eq('key', key)
+                    .single();
+                if (error) return null;
+                return data ? data.value : null;
+            }
+            async set(key, value) {
+                const { error } = await supabaseClient
+                    .from('system_store')
+                    .upsert({ key, value, updated_at: new Date() });
+                return !error;
+            }
         }
 
-        function importSystemData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // Centralized Data Service
+        class DataService {
+            constructor() {
+                this.mode = localStorage.getItem('pf_mode') || 'cloud';
+                this.local = new LocalStorageAdapter();
+                this.cloud = new SupabaseAdapter();
+            }
 
-            const reader = new FileReader();
-            reader.onload = async function(e) {
+            setMode(mode) {
+                this.mode = mode;
+                localStorage.setItem('pf_mode', mode);
+            }
+
+            _getAdapter() {
+                return this.mode === 'cloud' ? this.cloud : this.local;
+            }
+
+            async _wrap(fn) {
                 try {
-                    const data = JSON.parse(e.target.result);
-                    if (data.projects && data.clients) {
-                        projects = data.projects;
-                        clients = data.clients;
-                        events = data.events || [];
-                        stepLogs = data.stepLogs || {};
-
-                        await DataService.saveProjects(projects);
-                        await DataService.saveClients(clients);
-                        await DataService.saveEvents(events);
-                        await DataService.saveStepLogs(stepLogs);
-
-                        alert('資料還原成功！');
-                        await initData();
-                    } else {
-                        alert('檔案格式不正確，請選擇有效的 PearlFlow 備份檔。');
-                    }
-                } catch (err) {
-                    alert('讀取 JSON 檔案失敗！');
+                    return await fn();
+                } catch (e) {
+                    console.error('DataService Error:', e);
+                    return null;
                 }
-            };
-            reader.readAsText(file);
+            }
+
+            async getClients() {
+                return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.CLIENTS)) || [
+                    { id: 101, name: "貿易科技股份有限公司", owner: "陳大明", taxId: "12345678", phone: "02-23456789" },
+                    { id: 102, name: "珍煮丹餐飲有限公司", owner: "林小美", taxId: "87654321", phone: "02-98765432" }
+                ]);
+            }
+
+            async saveClients(clients) {
+                return this._wrap(async () => this._getAdapter().set(STORAGE_KEYS.CLIENTS, clients));
+            }
+
+            async getEvents() {
+                return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.EVENTS)) || [
+                    { id: 201, title: "115年7-8月 營業稅申報截止", dueDate: "2026-09-15", projectId: 1, remindDays: 7 },
+                    { id: 202, title: "114年度 營所稅結算申報截止", dueDate: "2026-05-31", projectId: 2, remindDays: 14 }
+                ]);
+            }
+
+            async saveEvents(events) {
+                return this._wrap(async () => this._getAdapter().set(STORAGE_KEYS.EVENTS, events));
+            }
+
+            async getProjects() {
+                return this._wrap(async () => {
+                    const projects = await this._getAdapter().get(STORAGE_KEYS.PROJECTS);
+                    return (projects && projects.length > 0) ? projects : [];
+                });
+            }
+
+            async saveProjects(projects) {
+                return this._wrap(async () => this._getAdapter().set(STORAGE_KEYS.PROJECTS, projects));
+            }
+
+            async getStepLogs() {
+                return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.STEP_LOGS)) || {});
+            }
+
+            async saveStepLogs(logs) {
+                return this._wrap(async () => this._getAdapter().set(STORAGE_KEYS.STEP_LOGS, logs));
+            },
+
+            async getUserKeys() {
+                return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.USER_KEYS)) || {
+                    user_id: "current_user",
+                    keys: {
+                        room_project_manage: { level: 99 },
+                        room_client_manage: { level: 99 },
+                        room_user_manage: { level: 99 },
+                        room_finance: { level: 99 }
+                    }
+                });
+            },
+
+            async saveUserKeys(keys) {
+                return this._wrap(async () => this._getAdapter().set(STORAGE_KEYS.USER_KEYS, keys));
+            },
+
+            async getApprovalRequests() {
+                return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.APPROVAL_REQUESTS)) || []);
+            },
+
+            async saveApprovalRequests(requests) {
+                return this._wrap(async () => this._getAdapter().set(STORAGE_KEYS.APPROVAL_REQUESTS, requests));
+            }
         }
 
-        // ==========================================
-        // 9. CRUD MODULE (專案與客戶資料管理)
-        // ==========================================
-        function renderProjects() {
-            const container = document.getElementById('project-list');
-            const isAdmin = (currentRole === 'admin');
+        const dataService = new DataService();
 
-            container.innerHTML = projects.map(p => `
-                <div class="pearl-card p-5 rounded-xl shadow-sm space-y-3 flex flex-col justify-between">
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-start">
-                            <h3 class="font-bold text-slate-800 text-base">${p.name}</h3>
-                            ${isAdmin ? `<button onclick="deleteProject(${p.id})" class="text-xs text-rose-500 hover:underline"><i class="fa-solid fa-trash"></i> 刪除專案</button>` : ''}
-                        </div>
-                        <div>
-                            <span class="text-xs font-semibold text-slate-500 block mb-1">標準作業步驟 (${p.steps.length} 步)：</span>
-                            <div class="flex flex-wrap gap-1">
-                                ${p.steps.map((step, idx) => `<span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded border border-slate-200">${idx + 1}. ${step}</span>`).join('')}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="pt-3 border-t border-slate-100 flex justify-end">
-                        <button onclick="switchTab('dashboard'); openProjectDetail(${p.id});" class="text-xs font-bold text-pearl-600 hover:text-pearl-700 flex items-center gap-1">
-                            <i class="fa-solid fa-table-cells"></i> 前往 Dashboard 查看進度矩陣
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
+        // Vue 3 App Instance
+        const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
-        function renderClients() {
-            const tbody = document.getElementById('client-table-body');
-            const isAdmin = (currentRole === 'admin');
+        createApp({
+            setup() {
+                // UI States
+                const currentTab = ref('dashboard');
+                const storageMode = ref(dataService.mode);
+                const isLoading = ref(true);
+                const showAuthModal = ref(false);
+                const authError = ref('');
 
-            document.querySelectorAll('.action-col').forEach(el => el.style.display = isAdmin ? 'table-cell' : 'none');
+                // User Info
+                const currentUserEmail = ref('redlips.chen@gmail.com');
+                const currentRole = ref('admin'); // 'admin' | 'staff'
 
-            tbody.innerHTML = clients.map(c => `
-                <tr class="hover:bg-pearl-50/50 transition">
-                    <td class="p-3 font-semibold text-slate-800">${c.name}</td>
-                    <td class="p-3 text-slate-600">${c.taxId}</td>
-                    <td class="p-3 text-slate-600">${c.owner}</td>
-                    <td class="p-3 text-slate-600">${c.phone}</td>
-                    ${isAdmin ? `
-                        <td class="p-3 text-right">
-                            <button onclick="deleteClient(${c.id})" class="text-xs text-rose-500 hover:underline"><i class="fa-solid fa-trash"></i> 刪除</button>
-                        </td>
-                    ` : ''}
-                </tr>
-            `).join('');
-        }
+                // Auth Form
+                const authForm = ref({ email: '', password: '' });
 
-        function openProjectModal() { 
-            if (currentRole !== 'admin') return alert('僅老闆 (Admin) 具備新增專案權限');
-            document.getElementById('project-modal').classList.remove('hidden'); 
-        }
-        function closeProjectModal() { document.getElementById('project-modal').classList.add('hidden'); }
-        
-        function openClientModal() { 
-            if (currentRole !== 'admin') return alert('僅老闆 (Admin) 具備新增客戶權限');
-            document.getElementById('client-modal').classList.remove('hidden'); 
-        }
-        function closeClientModal() { document.getElementById('client-modal').classList.add('hidden'); }
+                // Core Datasets
+                const clients = ref([]);
+                const events = ref([]);
+                const projects = ref([]);
+                const stepLogs = ref({});
 
-        async function saveProject() {
-            if (currentRole !== 'admin') return;
-            const name = document.getElementById('input-project-name').value.trim();
-            const stepsStr = document.getElementById('input-project-steps').value.trim();
-            if (!name) return alert('請輸入專案名稱');
-            const steps = stepsStr.split(/[,，]/).map(s => s.trim()).filter(s => s);
-            
-            projects.push({ id: Date.now(), name, steps });
-            await DataService.saveProjects(projects);
+                // Active Matrix State
+                const activeMatrixEvent = ref(null);
 
-            renderProjects();
-            closeProjectModal();
-            document.getElementById('input-project-name').value = '';
-            renderDashboardLevel1();
-        }
+                // Date Helper
+                const todayString = computed(() => {
+                    const now = new Date();
+                    return `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`;
+                });
 
-        async function saveClient() {
-            if (currentRole !== 'admin') return;
-            const name = document.getElementById('input-client-name').value.trim();
-            const taxId = document.getElementById('input-client-taxid').value.trim();
-            const owner = document.getElementById('input-client-owner').value.trim();
-            const phone = document.getElementById('input-client-phone').value.trim();
-            if (!name) return alert('請輸入公司名稱');
-            
-            clients.push({ id: Date.now(), name, taxId, owner, phone });
-            await DataService.saveClients(clients);
+                // Refresh Icons Helper
+                const renderIcons = () => {
+                    nextTick(() => {
+                        if (window.lucide) lucide.createIcons();
+                    });
+                };
 
-            renderClients();
-            closeClientModal();
-            document.getElementById('input-client-name').value = '';
-            document.getElementById('input-client-taxid').value = '';
-            document.getElementById('input-client-owner').value = '';
-            document.getElementById('input-client-phone').value = '';
-            renderDashboardLevel1();
-        }
+                // Data Loader
+                const loadData = async () => {
+                    isLoading.value = true;
+                    try {
+                        const [cData, eData, pData, lData] = await Promise.all([
+                            dataService.getClients(),
+                            dataService.getEvents(),
+                            dataService.getProjects(),
+                            dataService.getStepLogs()
+                        ]);
+                        clients.value = cData || [];
+                        events.value = eData || [];
+                        projects.value = pData || [];
+                        stepLogs.value = lData || {};
+                    } catch (err) {
+                        console.error('Load Error:', err);
+                    } finally {
+                        isLoading.value = false;
+                        renderIcons();
+                    }
+                };
 
-        async function deleteProject(id) {
-            if (currentRole !== 'admin') return;
-            projects = projects.filter(p => p.id !== id);
-            await DataService.saveProjects(projects);
-            renderProjects();
-            renderDashboardLevel1();
-        }
+                // Switch Storage Mode
+                const switchMode = async (mode) => {
+                    if (storageMode.value === mode) return;
+                    storageMode.value = mode;
+                    dataService.setMode(mode);
+                    await loadData();
+                };
 
-        async function deleteClient(id) {
-            if (currentRole !== 'admin') return;
-            clients = clients.filter(c => c.id !== id);
-            await DataService.saveClients(clients);
-            renderClients();
-            renderDashboardLevel1();
-        }
+                // Auth Handlers
+                const handleLogin = async () => {
+                    authError.value = '';
+                    try {
+                        const { data, error } = await supabaseClient.auth.signInWithPassword({
+                            email: authForm.value.email,
+                            password: authForm.value.password,
+                        });
+                        if (error) throw error;
+                        
+                        currentUserEmail.value = data.user.email;
+                        currentRole.value = data.user.email.includes('admin') ? 'admin' : 'staff';
+                        showAuthModal.value = false;
+                        await loadData();
+                    } catch (err) {
+                        authError.value = err.message || '登入失敗，請確認帳密';
+                    }
+                };
+
+                const handleLogout = async () => {
+                    await supabaseClient.auth.signOut();
+                    showAuthModal.value = true;
+                };
+
+                // Helpers for Projects & Steps
+                const getProjectSteps = (projectId) => {
+                    const proj = projects.value.find(p => p.id === projectId);
+                    return proj ? proj.steps : [];
+                };
+
+                const activeMatrixSteps = computed(() => {
+                    if (!activeMatrixEvent.value) return [];
+                    return getProjectSteps(activeMatrixEvent.value.projectId);
+                });
+
+                // Progress Matrix Logic
+                const getLogKey = (eventId, clientId, stepIdx) => `${eventId}_${clientId}_${stepIdx}`;
+
+                const getStepStatus = (eventId, clientId, stepIdx) => {
+                    const log = stepLogs.value[getLogKey(eventId, clientId, stepIdx)];
+                    return log ? log.status : 'none'; // 'none' | 'doing' | 'done'
+                };
+
+                const getStepStatusLabel = (eventId, clientId, stepIdx) => {
+                    const status = getStepStatus(eventId, clientId, stepIdx);
+                    if (status === 'done') return '✓ 已完成';
+                    if (status === 'doing') return '⏳ 進行中';
+                    return '未開始';
+                };
+
+                const getStepStatusClass = (eventId, clientId, stepIdx) => {
+                    const status = getStepStatus(eventId, clientId, stepIdx);
+                    if (status === 'done') return 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100';
+                    if (status === 'doing') return 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100';
+                    return 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100';
+                };
+
+                const getStepLogInfo = (eventId, clientId, stepIdx) => {
+                    const log = stepLogs.value[getLogKey(eventId, clientId, stepIdx)];
+                    return log && log.operator ? log.operator : '';
+                };
+
+                const toggleStepStatus = async (eventId, clientId, stepIdx) => {
+                    const key = getLogKey(eventId, clientId, stepIdx);
+                    const currentStatus = getStepStatus(eventId, clientId, stepIdx);
+                    let newStatus = 'doing';
+                    if (currentStatus === 'doing') newStatus = 'done';
+                    else if (currentStatus === 'done') newStatus = 'none';
+
+                    const newLogs = { ...stepLogs.value };
+                    if (newStatus === 'none') {
+                        delete newLogs[key];
+                    } else {
+                        newLogs[key] = {
+                            status: newStatus,
+                            operator: currentRole.value === 'admin' ? '老闆 (Admin)' : '員工 (Staff)',
+                            updatedAt: new Date().toISOString()
+                        };
+                    }
+
+                    stepLogs.value = newLogs;
+                    await dataService.saveStepLogs(newLogs);
+                };
+
+                // Progress Statistics
+                const getCompletedStepCount = (eventId) => {
+                    const steps = getProjectSteps(events.value.find(e => e.id === eventId)?.projectId);
+                    let count = 0;
+                    clients.value.forEach(c => {
+                        steps.forEach((_, sIdx) => {
+                            if (getStepStatus(eventId, c.id, sIdx) === 'done') count++;
+                        });
+                    });
+                    return count;
+                };
+
+                const getTotalStepCount = (eventId) => {
+                    const steps = getProjectSteps(events.value.find(e => e.id === eventId)?.projectId);
+                    return clients.value.length * steps.length;
+                };
+
+                const getEventProgress = (eventId) => {
+                    const total = getTotalStepCount(eventId);
+                    if (total === 0) return 0;
+                    const completed = getCompletedStepCount(eventId);
+                    return Math.round((completed / total) * 100);
+                };
+
+                // Dashboard Task Cards Logic
+                const todayTasks = computed(() => {
+                    const list = [];
+                    events.value.forEach(ev => {
+                        const steps = getProjectSteps(ev.projectId);
+                        clients.value.forEach(cl => {
+                            steps.forEach((stepName, sIdx) => {
+                                if (getStepStatus(ev.id, cl.id, sIdx) === 'doing') {
+                                    list.push({
+                                        id: `${ev.id}_${cl.id}_${sIdx}`,
+                                        eventId: ev.id,
+                                        clientName: cl.name,
+                                        eventName: ev.title,
+                                        stepName: stepName
+                                    });
+                                }
+                            });
+                        });
+                    });
+                    return list;
+                });
+
+                const weekTasks = computed(() => {
+                    return events.value.map(ev => ({
+                        id: ev.id,
+                        eventId: ev.id,
+                        clientName: '全體維護客戶',
+                        eventName: ev.title,
+                        dueDate: ev.dueDate,
+                        stepName: '專案結算核對'
+                    }));
+                });
+
+                // Modals
+                const openMatrixModal = (eventId) => {
+                    activeMatrixEvent.value = events.value.find(e => e.id === eventId) || null;
+                    renderIcons();
+                };
+
+                const openProjectModal = (proj = null) => {
+                    alert('專案 SOP 編輯視窗開啓中...');
+                };
+
+                const openClientModal = (client = null) => {
+                    alert('客戶資料編輯視窗開啓中...');
+                };
+
+                // Backup & Restore
+                const exportData = () => {
+                    const payload = {
+                        clients: clients.value,
+                        events: events.value,
+                        projects: projects.value,
+                        stepLogs: stepLogs.value,
+                        exportedAt: new Date().toISOString()
+                    };
+                    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `pearl_cpa_backup_${new Date().toISOString().slice(0,10)}.json`;
+                    a.click();
+                };
+
+                const importData = (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (data.clients) await dataService.saveClients(data.clients);
+                            if (data.events) await dataService.saveEvents(data.events);
+                            if (data.projects) await dataService.saveProjects(data.projects);
+                            if (data.stepLogs) await dataService.saveStepLogs(data.stepLogs);
+                            alert('資料還原成功！');
+                            await loadData();
+                        } catch (err) {
+                            alert('還原失敗：無效的 JSON 檔案');
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+
+                // Lifecycle
+                onMounted(async () => {
+                    await loadData();
+                });
+
+                return {
+                    currentTab,
+                    storageMode,
+                    isLoading,
+                    showAuthModal,
+                    authError,
+                    currentUserEmail,
+                    currentRole,
+                    authForm,
+                    clients,
+                    events,
+                    projects,
+                    stepLogs,
+                    todayString,
+                    todayTasks,
+                    weekTasks,
+                    activeMatrixEvent,
+                    activeMatrixSteps,
+                    switchMode,
+                    handleLogin,
+                    handleLogout,
+                    getProjectSteps,
+                    getStepStatusLabel,
+                    getStepStatusClass,
+                    getStepLogInfo,
+                    toggleStepStatus,
+                    getCompletedStepCount,
+                    getTotalStepCount,
+                    getEventProgress,
+                    openMatrixModal,
+                    openProjectModal,
+                    openClientModal,
+                    exportData,
+                    importData
+                };
+            }
+        }).mount('#app');
     </script>
 </body>
 </html>
