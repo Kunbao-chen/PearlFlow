@@ -53,7 +53,7 @@
                         <div>
                             <div class="flex items-center space-x-2">
                                 <h1 class="text-lg font-bold text-slate-900 tracking-tight">珍珠聯合會計師事務所</h1>
-                                <span class="px-2 py-0.5 text-xs bg-rose-100 text-rose-600 rounded-full font-mono font-bold border border-rose-200">v2.1.4</span>
+                                <span class="px-2 py-0.5 text-xs bg-rose-100 text-rose-600 rounded-full font-mono font-bold border border-rose-200">v2.1.5</span>
                             </div>
                             <p class="text-xs text-slate-500 font-medium tracking-wider uppercase">Pearl Certified Public Accountants Firm</p>
                         </div>
@@ -356,7 +356,7 @@
                 <section v-if="currentTab === 'backup'" class="space-y-6">
                     <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-2xl">
                         <h3 class="font-bold text-slate-800 text-base mb-2">資料備份與復原選項</h3>
-                        <p class="text-xs text-slate-500 mb-6">可將目前系統所有客戶、專案與打卡紀錄匯出為 JSON 檔案，或從 JSON 檔案完整還原。</p>
+                        <p class="text-xs text-slate-500 mb-6">可將目前系統所有客戶、專案與打卡紀錄匯出為 JSON 檔案，或從 JSON 檔案完整還原（將同步寫入當前『{{ storageMode === 'cloud' ? '雲端' : '本地' }}』資料庫）。</p>
 
                         <div class="space-y-4">
                             <div class="p-4 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between">
@@ -555,10 +555,13 @@
             }
 
             async getClients() {
-                return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.CLIENTS)) || [
-                    { id: 101, name: "貿易科技股份有限公司", owner: "陳大明", taxId: "12345678", phone: "02-23456789" },
-                    { id: 102, name: "珍煮丹餐飲有限公司", owner: "林小美", taxId: "87654321", phone: "02-98765432" }
-                ]);
+                return this._wrap(async () => {
+                    const clients = await this._getAdapter().get(STORAGE_KEYS.CLIENTS);
+                    return (clients && clients.length > 0) ? clients : [
+                        { id: 101, name: "貿易科技股份有限公司", owner: "陳大明", taxId: "12345678", phone: "02-23456789" },
+                        { id: 102, name: "珍煮丹餐飲有限公司", owner: "林小美", taxId: "87654321", phone: "02-98765432" }
+                    ];
+                });
             }
 
             async saveClients(clients) {
@@ -579,7 +582,10 @@
             async getProjects() {
                 return this._wrap(async () => {
                     const projects = await this._getAdapter().get(STORAGE_KEYS.PROJECTS);
-                    return (projects && projects.length > 0) ? projects : [];
+                    return (projects && projects.length > 0) ? projects : [
+                        { id: 1, name: "營業稅申報 SOP", steps: ["憑證收集與分類", "進銷項憑證登錄", "稅額計算與產生申報檔", "客戶確認與網路申報", "繳款單發送與歸檔"] },
+                        { id: 2, name: "營所稅結算申報 SOP", steps: ["帳務結轉與調節", "各項成本費用核對", "資產負債表與損益表確認", "填報營所稅申報書", "送交客戶簽章與申報"] }
+                    ];
                 });
             }
 
@@ -890,7 +896,7 @@
                             if (data.events) await dataService.saveEvents(data.events);
                             if (data.projects) await dataService.saveProjects(data.projects);
                             if (data.stepLogs) await dataService.saveStepLogs(data.stepLogs);
-                            alert('資料還原成功！');
+                            alert(`資料已成功還原至【${storageMode.value === 'cloud' ? '雲端 Supabase' : '本地 LocalStorage'}】！`);
                             await loadData();
                         } catch (err) {
                             alert('還原失敗：無效的 JSON 檔案');
