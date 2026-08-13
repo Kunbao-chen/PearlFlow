@@ -488,7 +488,7 @@
             }
         };
 
-        const DataService = {
+const DataService = {
             getMode() { return currentMode; },
             setMode(mode) {
                 currentMode = mode;
@@ -502,22 +502,22 @@
             async getProjects() {
                 return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.PROJECTS)) || [
                     { id: 1, name: '115年7-8月 營業稅', steps: ['提醒繳交憑證', '收到憑證', '缺漏待補', '整理分類鍵入', '自行檢查', '覆核', '上傳申報', '繳稅完成'] },
-                    { id: 2, name: '114年度 營所稅結算申報', steps: ['蒐集帳冊資料', '調整調帳項目', '編製報告書', '會計師簽章', '國稅局申報'] }
+                    { id: 2, name: '114年度 营所稅結算申報', steps: ['蒐集帳冊資料', '調整調帳項目', '編製報告書', '會計師簽章', '國稅局申報'] }
                 ]);
             },
             async saveProjects(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.PROJECTS, data)); },
             async getClients() {
                 return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.CLIENTS)) || [
-                    { id: 101, name: '珍珠聯合會計師事務所', taxId: '88615713', owner: '陳崑琳', phone: '0937-025-207' },
-                    { id: 102, name: '寶島科技股份有限公司', taxId: '12345678', owner: '陳大明', phone: '02-23456789' },
-                    { id: 103, name: '台灣創新生技股份有限公司', taxId: '54321678', owner: '林玉蓮', phone: '03-5712345' }
+                    { id: 101, name: '珍珠聯合會計師事務所', taxId: '88615713', owner: '陳崑琳', phone: '0937-025-207', projectIds: [1, 2] },
+                    { id: 102, name: '寶島科技股份有限公司', taxId: '12345678', owner: '陳大明', phone: '02-23456789', projectIds: [1] },
+                    { id: 103, name: '台灣創新生技股份有限公司', taxId: '54321678', owner: '林玉蓮', phone: '03-5712345', projectIds: [1, 2] }
                 ]);
             },
             async saveClients(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.CLIENTS, data)); },
             async getEvents() {
                 return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.EVENTS)) || [
-                    { id: 201, projectId: 1, title: '115年7-8月 營業稅申報截止', dueDate: '2026-09-15', remindDays: 7 },
-                    { id: 202, projectId: 2, title: '114年度 營所稅結算申報截止', dueDate: '2026-05-31', remindDays: 14 }
+                    { id: 201, projectId: 1, title: '115年7-8月 營業稅申報截止', dueDate: '2026-09-15', remindDays: 7, remindDaysList: [7, 3, 1] },
+                    { id: 202, projectId: 2, title: '114年度 營所稅結算申報截止', dueDate: '2026-05-31', remindDays: 14, remindDaysList: [14, 7, 1] }
                 ]);
             },
             async saveEvents(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.EVENTS, data)); },
@@ -526,7 +526,7 @@
                     '1_101_0': { status: 'done', operator: '老闆 (Admin)', elapsed: 300 },
                     '1_101_1': { status: 'done', operator: '老闆 (Admin)', elapsed: 450 },
                     '1_101_2': { status: 'progress', operator: '老闆 (Admin)', elapsed: 120, lastStart: Date.now() },
-                    '1_102_0': { status: 'progress', operator: '員工 (Staff)', elapsed: 180, lastStart: Date.now() },
+                    '1_102_0': { status: 'pause', operator: '員工 (Staff)', elapsed: 180 },
                     '2_101_0': { status: 'done', operator: '員工 (Staff)', elapsed: 1200 }
                 });
             },
@@ -542,6 +542,27 @@
                 await ApiAdapter.set(STORAGE_KEYS.LOGS, l);
                 return { success: true };
             }
+        };
+
+        // ==========================================
+        // 2. GLOBAL STATE & INIT (全局狀態與非同步載入)
+        // ==========================================
+        let currentRole = localStorage.getItem('pf_role') || 'admin';
+        let projects = [];
+        let clients = [];
+        let events = [];
+        let stepLogs = {};
+
+        let activeProjectId = null;
+        let activeKey = null;
+        let timerInterval = null;
+
+        const STATUS_CONFIG = {
+            'none': { label: '未開始', bg: 'bg-slate-100 text-slate-600 hover:bg-slate-200' },
+            'progress': { label: '進行中', bg: 'bg-amber-100 text-amber-800 font-semibold hover:bg-amber-200 border border-amber-300 animate-pulse' },
+            'pause': { label: '暫停中', bg: 'bg-orange-100 text-orange-800 font-semibold hover:bg-orange-200 border border-orange-300' },
+            'done': { label: '已完成', bg: 'bg-emerald-100 text-emerald-800 font-semibold hover:bg-emerald-200' },
+            'skip': { label: '無此步驟', bg: 'bg-slate-200 text-slate-500 line-through hover:bg-slate-300' }
         };
 
         // ==========================================
