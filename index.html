@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>珍珠聯合會計師事務所 - PearlFlow v2.1.1</title>
+    <title>珍珠聯合會計師事務所 - PearlFlow v2.1.2</title>
     <!-- Tailwind CSS 樣式庫 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -55,7 +57,7 @@
                 <div class="border-l border-pearl-200 pl-3">
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold tracking-tight text-slate-800">珍珠聯合會計師事務所</h1>
-                        <span class="text-xs font-semibold text-pearl-600 bg-pearl-100 px-2 py-0.5 rounded-full">v2.1.1</span>
+                        <span class="text-xs font-semibold text-pearl-600 bg-pearl-100 px-2 py-0.5 rounded-full">v2.1.2</span>
                     </div>
                     <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Pearl Certified Public Accountants Firm</p>
                 </div>
@@ -72,14 +74,16 @@
                     </select>
                 </div>
 
-                <!-- 權限切換選單 -->
-                <div class="flex items-center gap-1.5 bg-pearl-50 border border-pearl-200 px-3 py-1 rounded-full font-medium">
+                <!-- Supabase 身份驗證狀態與帳號資訊 -->
+                <div id="auth-status-container" class="flex items-center gap-2 bg-pearl-50 border border-pearl-200 px-3 py-1 rounded-full font-medium">
                     <i class="fa-solid fa-user-shield text-pearl-500"></i>
-                    <span class="text-slate-600">當前權限：</span>
-                    <select id="role-selector" onchange="switchRole(this.value)" class="bg-transparent font-bold text-pearl-700 focus:outline-none cursor-pointer">
-                        <option value="admin">老闆 (Admin)</option>
-                        <option value="staff">員工 (Staff)</option>
-                    </select>
+                    <div id="user-info-display" class="flex items-center gap-2">
+                        <span id="user-email-text" class="text-slate-600 font-semibold">未登入 (訪客)</span>
+                        <span id="user-role-badge" class="text-[10px] bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded">Guest</span>
+                    </div>
+                    <button id="btn-auth-action" onclick="toggleAuthModal()" class="ml-1 text-xs font-bold text-pearl-600 hover:text-pearl-800 underline focus:outline-none">
+                        登入
+                    </button>
                 </div>
                 <span class="text-slate-500 hidden sm:inline">系統日期：<span id="current-time" class="font-semibold text-slate-700"></span></span>
             </div>
@@ -305,6 +309,31 @@
         </div>
     </main>
 
+    <!-- Modal: Supabase Auth 登入對話框 -->
+    <div id="auth-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4 border border-pearl-100">
+            <div class="border-b border-slate-100 pb-2 flex justify-between items-center">
+                <h3 class="text-base font-bold text-slate-800">Supabase 帳號登入</h3>
+                <button onclick="closeAuthModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">電子郵件 (Email)</label>
+                    <input type="email" id="auth-email" placeholder="admin@pearl.com" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">密碼 (Password)</label>
+                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pearl-400">
+                </div>
+            </div>
+            <div id="auth-error-msg" class="text-xs text-rose-500 font-semibold hidden"></div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeAuthModal()" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
+                <button onclick="handleAuthLogin()" class="px-4 py-2 text-xs bg-pearl-500 hover:bg-pearl-600 text-white rounded-lg font-bold">登入帳號</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: 打卡與實時計時器彈窗 -->
     <div id="timer-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-pearl-100">
@@ -416,10 +445,10 @@
         </div>
     </div>
 
-    <!-- JavaScript 模組區塊 (DataService 集成) -->
+    <!-- JavaScript 模組區塊 (DataService & Supabase Auth 集成) -->
     <script>
         // ==========================================
-        // 1. DATA SERVICE LAYER (DataService 抽象服務層)
+        // 1. DATA SERVICE & SUPABASE AUTH LAYER
         // ==========================================
         const STORAGE_MODE = { LOCAL: 'LOCAL', CLOUD: 'CLOUD' };
         const STORAGE_KEYS = {
@@ -429,6 +458,10 @@
             EVENTS: 'pf_events',
             LOGS: 'pf_step_logs'
         };
+
+        const SUPABASE_URL = 'https://foiczezuudovzufofsyc.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_IJ2CGw3kS5hC8JgVlD-h5g_ktEpPMK3';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentMode = localStorage.getItem(STORAGE_KEYS.MODE) || STORAGE_MODE.LOCAL;
 
@@ -446,21 +479,14 @@
         };
 
         const ApiAdapter = {
-            supabaseUrl: 'https://foiczezuudovzufofsyc.supabase.co',
-            supabaseKey: 'sb_publishable_IJ2CGw3kS5hC8JgVlD-h5g_ktEpPMK3',
-
             async get(key) {
                 try {
-                    const res = await fetch(`${this.supabaseUrl}/rest/v1/system_store?key=eq.${key}&select=value`, {
-                        method: 'GET',
-                        headers: {
-                            'apikey': this.supabaseKey,
-                            'Authorization': `Bearer ${this.supabaseKey}`
-                        }
-                    });
-                    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-                    const data = await res.json();
-                    return data.length > 0 ? data[0].value : null;
+                    const { data, error } = await supabaseClient
+                        .from('system_store')
+                        .select('value')
+                        .eq('key', key);
+                    if (error) throw error;
+                    return data && data.length > 0 ? data[0].value : null;
                 } catch (err) {
                     console.error(`[ApiAdapter] Read error for key "${key}":`, err);
                     throw err;
@@ -469,17 +495,10 @@
 
             async set(key, val) {
                 try {
-                    const res = await fetch(`${this.supabaseUrl}/rest/v1/system_store`, {
-                        method: 'POST',
-                        headers: {
-                            'apikey': this.supabaseKey,
-                            'Authorization': `Bearer ${this.supabaseKey}`,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'resolution=merge-duplicates'
-                        },
-                        body: JSON.stringify({ key: key, value: val, updated_at: new Date().toISOString() })
-                    });
-                    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                    const { error } = await supabaseClient
+                        .from('system_store')
+                        .upsert({ key: key, value: val, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+                    if (error) throw error;
                     return true;
                 } catch (err) {
                     console.error(`[ApiAdapter] Write error for key "${key}":`, err);
@@ -545,9 +564,11 @@
         };
 
         // ==========================================
-        // 2. GLOBAL STATE & INIT (全局狀態與非同步載入)
+        // 2. GLOBAL STATE & AUTH MONITORING
         // ==========================================
-        let currentRole = localStorage.getItem('pf_role') || 'admin';
+        let currentRole = 'admin';
+        let currentUserSession = null;
+
         let projects = [];
         let clients = [];
         let events = [];
@@ -566,8 +587,77 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('current-time').innerText = new Date().toLocaleDateString('zh-TW');
+            initAuthListener();
             await initData();
         });
+
+        function initAuthListener() {
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                currentUserSession = session;
+                updateAuthUI(session);
+            });
+        }
+
+        function updateAuthUI(session) {
+            const emailText = document.getElementById('user-email-text');
+            const roleBadge = document.getElementById('user-role-badge');
+            const authBtn = document.getElementById('btn-auth-action');
+
+            if (session && session.user) {
+                const email = session.user.email;
+                const role = session.user.user_metadata?.role || (email.includes('admin') ? 'admin' : 'staff');
+                currentRole = role;
+
+                emailText.innerText = email;
+                roleBadge.innerText = role === 'admin' ? 'Admin' : 'Staff';
+                roleBadge.className = role === 'admin' ? 
+                    'text-[10px] bg-pearl-100 text-pearl-700 font-bold px-1.5 py-0.5 rounded' : 
+                    'text-[10px] bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded';
+                authBtn.innerText = '登出';
+                authBtn.onclick = handleAuthLogout;
+            } else {
+                currentRole = 'admin'; // 訪客模式預設為 Admin 測試權限
+                emailText.innerText = '未登入 (訪客)';
+                roleBadge.innerText = 'Guest';
+                roleBadge.className = 'text-[10px] bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded';
+                authBtn.innerText = '登入';
+                authBtn.onclick = toggleAuthModal;
+            }
+            applyRolePermissions();
+        }
+
+        function toggleAuthModal() {
+            document.getElementById('auth-modal').classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+            document.getElementById('auth-error-msg').classList.add('hidden');
+        }
+
+        async function handleAuthLogin() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value.trim();
+            const errorMsg = document.getElementById('auth-error-msg');
+
+            if (!email || !password) {
+                errorMsg.innerText = '請輸入 Email 與密碼';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                errorMsg.innerText = '登入失敗：' + error.message;
+                errorMsg.classList.remove('hidden');
+            } else {
+                closeAuthModal();
+            }
+        }
+
+        async function handleAuthLogout() {
+            await supabaseClient.auth.signOut();
+        }
 
         async function initData() {
             document.getElementById('storage-mode-selector').value = DataService.getMode();
@@ -599,14 +689,7 @@
         // ==========================================
         // 3. AUTHENTICATION MODULE (權限控制層)
         // ==========================================
-        function switchRole(role) {
-            currentRole = role;
-            localStorage.setItem('pf_role', role);
-            applyRolePermissions();
-        }
-
         function applyRolePermissions() {
-            document.getElementById('role-selector').value = currentRole;
             const isAdmin = (currentRole === 'admin');
 
             document.getElementById('btn-add-project').style.display = isAdmin ? 'inline-flex' : 'none';
