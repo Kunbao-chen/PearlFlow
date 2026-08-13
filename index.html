@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PearlFlow 事務所工作流管理系統 v2.1.1</title>
+    <title>PearlFlow 事務所工作流管理系統 v2.2.0</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -163,7 +163,7 @@
 
     </main>
     //3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333//
-        <!-- 打卡與計時器 Modal -->
+<!-- 打卡與計時器 Modal -->
     <div id="timer-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-5">
             <div class="flex justify-between items-start border-b pb-3">
@@ -220,8 +220,64 @@
             </form>
         </div>
     </div>
+
+    <!-- 專案新增/編輯 Modal (v2.2.0 新增) -->
+    <div id="project-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg p-6 space-y-4">
+            <h3 id="project-modal-title" class="text-lg font-bold text-slate-800 border-b pb-2">新增專案與工作步驟</h3>
+            <form id="project-form" onsubmit="saveProjectForm(event)" class="space-y-3">
+                <input type="hidden" id="project-id">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">專案名稱</label>
+                    <input type="text" id="project-name" required placeholder="例如：115年9-10月 營業稅" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">工作步驟 (每行一個步驟)</label>
+                    <textarea id="project-steps" rows="5" required placeholder="提醒繳交憑證&#10;收到憑證&#10;整理分類鍵入&#10;覆核&#10;上傳申報" class="w-full border border-slate-300 rounded-lg p-2 text-sm font-mono focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                </div>
+                <div class="flex justify-end space-x-2 pt-3 border-t">
+                    <button type="button" onclick="closeProjectModal()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg text-sm">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium">儲存專案</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 申報日程 Modal (v2.2.0 新增) -->
+    <div id="event-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-4">
+            <h3 id="event-modal-title" class="text-lg font-bold text-slate-800 border-b pb-2">新增申報日程提醒</h3>
+            <form id="event-form" onsubmit="saveEventForm(event)" class="space-y-3">
+                <input type="hidden" id="event-id">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">關聯專案 (可選)</label>
+                    <select id="event-project-id" class="w-full border border-slate-300 rounded-lg p-2 text-sm">
+                        <!-- 動態載入專案選項 -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">申報事項標題</label>
+                    <input type="text" id="event-title" required placeholder="例如：115年7-8月 營業稅申報截止" class="w-full border border-slate-300 rounded-lg p-2 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">截止日期</label>
+                        <input type="date" id="event-dueDate" required class="w-full border border-slate-300 rounded-lg p-2 text-sm font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">提前提醒 (天)</label>
+                        <input type="number" id="event-remindDays" value="7" min="1" max="30" required class="w-full border border-slate-300 rounded-lg p-2 text-sm font-mono">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-2 pt-3 border-t">
+                    <button type="button" onclick="closeEventModal()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg text-sm">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium">儲存日程</button>
+                </div>
+            </form>
+        </div>
+    </div>
     //444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444//
-        <!-- JavaScript 模組區塊 -->
+<!-- JavaScript 模組區塊 -->
     <script>
         // ==========================================
         // 1. STORAGE & API ADAPTER (資料存儲抽象層)
@@ -413,6 +469,7 @@
         function renderProjectDropdown() {
             const select = document.getElementById('project-select');
             select.innerHTML = projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            if (activeProjectId) select.value = activeProjectId;
         }
 
         function loadProjectMatrix(projectId) {
@@ -541,7 +598,7 @@
         }
 
         // ==========================================
-        // 5. CALENDAR & CLIENTS (申報行事曆與客戶管理)
+        // 5. CALENDAR & CLIENTS & PROJECTS (日程/客戶/專案 Modal 控制)
         // ==========================================
         function renderCalendar() {
             const container = document.getElementById('calendar-list');
@@ -574,6 +631,7 @@
             updateRoleUI();
         }
 
+        // 客戶 Modal
         function openClientModal() {
             document.getElementById('client-form').reset();
             document.getElementById('client-id').value = '';
@@ -622,6 +680,77 @@
             closeClientModal();
             renderClientsTable();
             if (activeProjectId) renderMatrixTable();
+        }
+
+        // 專案 Modal (v2.2.0 新增)
+        function openProjectModal() {
+            document.getElementById('project-form').reset();
+            document.getElementById('project-id').value = '';
+            document.getElementById('project-modal').classList.remove('hidden');
+        }
+
+        function closeProjectModal() {
+            document.getElementById('project-modal').classList.add('hidden');
+        }
+
+        async function saveProjectForm(e) {
+            e.preventDefault();
+            const name = document.getElementById('project-name').value;
+            const stepsRaw = document.getElementById('project-steps').value;
+            const steps = stepsRaw.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+
+            if (steps.length === 0) {
+                alert('請至少輸入一個工作步驟！');
+                return;
+            }
+
+            const newProject = {
+                id: Date.now(),
+                name: name,
+                steps: steps
+            };
+
+            projects.push(newProject);
+            await DataService.saveProjects(projects);
+            closeProjectModal();
+
+            renderProjectDropdown();
+            loadProjectMatrix(newProject.id);
+        }
+
+        // 申報日程 Modal (v2.2.0 新增)
+        function openEventModal() {
+            document.getElementById('event-form').reset();
+            const projSelect = document.getElementById('event-project-id');
+            projSelect.innerHTML = `<option value="">-- 無關聯專案 (一般事項) --</option>` + 
+                projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+            document.getElementById('event-modal').classList.remove('hidden');
+        }
+
+        function closeEventModal() {
+            document.getElementById('event-modal').classList.add('hidden');
+        }
+
+        async function saveEventForm(e) {
+            e.preventDefault();
+            const projIdVal = document.getElementById('event-project-id').value;
+            const title = document.getElementById('event-title').value;
+            const dueDate = document.getElementById('event-dueDate').value;
+            const remindDays = parseInt(document.getElementById('event-remindDays').value) || 7;
+
+            const newEvent = {
+                id: Date.now(),
+                projectId: projIdVal ? parseInt(projIdVal) : null,
+                title: title,
+                dueDate: dueDate,
+                remindDays: remindDays
+            };
+
+            events.push(newEvent);
+            await DataService.saveEvents(events);
+            closeEventModal();
+            renderCalendar();
         }
 
         // ==========================================
