@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PearlFlow 事務所工作流管理系統 v2.2.0</title>
+    <title>PearlFlow 事務所工作流管理系統 v2.1.1</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -24,7 +24,8 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+//111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111//
+    <body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
 
     <!-- 頂部導覽列 -->
     <header class="bg-indigo-900 text-white shadow-lg sticky top-0 z-30">
@@ -32,7 +33,7 @@
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center space-x-3">
                     <span class="text-2xl font-bold tracking-wider text-indigo-200">PearlFlow</span>
-                    <span class="text-xs bg-indigo-700 text-indigo-100 px-2 py-0.5 rounded-full font-mono">v2.2.0</span>
+                    <span class="text-xs bg-indigo-700 text-indigo-100 px-2 py-0.5 rounded-full font-mono">v2.1.1</span>
                 </div>
                 
                 <!-- 視圖切換與角色切換 -->
@@ -62,8 +63,8 @@
             </div>
         </div>
     </header>
-
-    <!-- 主要內容區 -->
+    //2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222//
+        <!-- 主要內容區 -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         <!-- 視圖 1: 進度矩陣 (Matrix) -->
@@ -130,7 +131,6 @@
                             <th class="px-4 py-3">公司/客戶名稱</th>
                             <th class="px-4 py-3">負責人</th>
                             <th class="px-4 py-3">聯絡電話</th>
-                            <th class="px-4 py-3">參與專案</th>
                             <th class="px-4 py-3 text-right">操作</th>
                         </tr>
                     </thead>
@@ -143,11 +143,6 @@
 
         <!-- 視圖 4: 管理分析 (Analytics) -->
         <section id="view-analytics" class="space-y-6 hidden">
-            <!-- 7小時工時異常與逾期專案警報區 -->
-            <div id="analytics-alerts" class="space-y-4">
-                <!-- 動態插入異常提醒卡片 -->
-            </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- 人員工時統計 -->
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
@@ -167,8 +162,8 @@
         </section>
 
     </main>
-
-    <!-- 打卡與計時器 Modal (v2.2.0 升級四態邏輯) -->
+    //3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333//
+        <!-- 打卡與計時器 Modal -->
     <div id="timer-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-5">
             <div class="flex justify-between items-start border-b pb-3">
@@ -185,11 +180,10 @@
                 <div id="modal-status-badge" class="mt-2 inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-600">未開始</div>
             </div>
 
-            <!-- 四態控制按鈕群 -->
+            <!-- 控制按鈕群 -->
             <div class="grid grid-cols-2 gap-3">
                 <button id="btn-timer-start" onclick="handleTimerAction('start')" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition-colors">開始執行</button>
-                <button id="btn-timer-pause" onclick="handleTimerAction('pause')" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg shadow-sm transition-colors">暫停</button>
-                <button id="btn-timer-complete" onclick="handleTimerAction('done')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm transition-colors col-span-2">完成步驟</button>
+                <button id="btn-timer-complete" onclick="handleTimerAction('done')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm transition-colors">完成步驟</button>
                 <button id="btn-timer-skip" onclick="handleTimerAction('skip')" class="w-full py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-medium rounded-lg transition-colors col-span-2">標記為無此步驟</button>
             </div>
         </div>
@@ -219,12 +213,6 @@
                     <label class="block text-xs font-semibold text-slate-600 mb-1">聯絡電話</label>
                     <input type="text" id="client-phone" class="w-full border border-slate-300 rounded-lg p-2 text-sm">
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">參與專案關聯 (可複選)</label>
-                    <div id="client-project-checkboxes" class="space-y-1.5 max-h-32 overflow-y-auto border border-slate-200 p-2 rounded-lg bg-slate-50">
-                        <!-- 動態渲染專案勾選框 -->
-                    </div>
-                </div>
                 <div class="flex justify-end space-x-2 pt-3 border-t">
                     <button type="button" onclick="closeClientModal()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg text-sm">取消</button>
                     <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium">儲存</button>
@@ -232,7 +220,10 @@
             </form>
         </div>
     </div>
-    // ==========================================
+    //444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444//
+        <!-- JavaScript 模組區塊 -->
+    <script>
+        // ==========================================
         // 1. STORAGE & API ADAPTER (資料存儲抽象層)
         // ==========================================
         const STORAGE_MODE = { LOCAL: 'local', CLOUD: 'cloud' };
@@ -288,26 +279,26 @@
             async saveProjects(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.PROJECTS, data)); },
             async getClients() {
                 return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.CLIENTS)) || [
-                    { id: 101, name: '珍珠聯合會計師事務所', taxId: '88615713', owner: '陳崑琳', phone: '0937-025-207', projectIds: [1, 2] },
-                    { id: 102, name: '寶島科技股份有限公司', taxId: '12345678', owner: '陳大明', phone: '02-23456789', projectIds: [1] },
-                    { id: 103, name: '台灣創新生技股份有限公司', taxId: '54321678', owner: '林玉蓮', phone: '03-5712345', projectIds: [1, 2] }
+                    { id: 101, name: '珍珠聯合會計師事務所', taxId: '88615713', owner: '陳崑琳', phone: '0937-025-207' },
+                    { id: 102, name: '寶島科技股份有限公司', taxId: '12345678', owner: '陳大明', phone: '02-23456789' },
+                    { id: 103, name: '台灣創新生技股份有限公司', taxId: '54321678', owner: '林玉蓮', phone: '03-5712345' }
                 ]);
             },
             async saveClients(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.CLIENTS, data)); },
             async getEvents() {
                 return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.EVENTS)) || [
-                    { id: 201, projectId: 1, title: '115年7-8月 營業稅申報截止', dueDate: '2026-09-15', remindDays: 7, remindDaysList: [7, 3, 1] },
-                    { id: 202, projectId: 2, title: '114年度 營所稅結算申報截止', dueDate: '2026-05-31', remindDays: 14, remindDaysList: [14, 7, 1] }
+                    { id: 201, projectId: 1, title: '115年7-8月 營業稅申報截止', dueDate: '2026-09-15', remindDays: 7 },
+                    { id: 202, projectId: 2, title: '114年度 營所稅結算申報截止', dueDate: '2026-05-31', remindDays: 14 }
                 ]);
             },
             async saveEvents(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.EVENTS, data)); },
             async getStepLogs() {
                 return this._wrap(async () => (await this._getAdapter().get(STORAGE_KEYS.LOGS)) || {
-                    '1_101_0': { status: 'done', operator: '老闆 (Admin)', elapsed: 300, date: new Date().toISOString().split('T')[0] },
-                    '1_101_1': { status: 'done', operator: '老闆 (Admin)', elapsed: 450, date: new Date().toISOString().split('T')[0] },
-                    '1_101_2': { status: 'progress', operator: '老闆 (Admin)', elapsed: 120, lastStart: Date.now(), date: new Date().toISOString().split('T')[0] },
-                    '1_102_0': { status: 'pause', operator: '員工 (Staff)', elapsed: 180, date: new Date().toISOString().split('T')[0] },
-                    '2_101_0': { status: 'done', operator: '員工 (Staff)', elapsed: 1200, date: new Date().toISOString().split('T')[0] }
+                    '1_101_0': { status: 'done', operator: '老闆 (Admin)', elapsed: 300 },
+                    '1_101_1': { status: 'done', operator: '老闆 (Admin)', elapsed: 450 },
+                    '1_101_2': { status: 'progress', operator: '老闆 (Admin)', elapsed: 120, lastStart: Date.now() },
+                    '1_102_0': { status: 'progress', operator: '員工 (Staff)', elapsed: 180, lastStart: Date.now() },
+                    '2_101_0': { status: 'done', operator: '員工 (Staff)', elapsed: 1200 }
                 });
             },
             async saveStepLogs(data) { return this._wrap(() => this._getAdapter().set(STORAGE_KEYS.LOGS, data)); }
@@ -329,7 +320,6 @@
         const STATUS_CONFIG = {
             'none': { label: '未開始', bg: 'bg-slate-100 text-slate-600 hover:bg-slate-200' },
             'progress': { label: '進行中', bg: 'bg-amber-100 text-amber-800 font-semibold hover:bg-amber-200 border border-amber-300 animate-pulse' },
-            'pause': { label: '暫停中', bg: 'bg-orange-100 text-orange-800 font-semibold hover:bg-orange-200 border border-orange-300' },
             'done': { label: '已完成', bg: 'bg-emerald-100 text-emerald-800 font-semibold hover:bg-emerald-200' },
             'skip': { label: '無此步驟', bg: 'bg-slate-200 text-slate-500 line-through hover:bg-slate-300' }
         };
@@ -418,7 +408,7 @@
         }
 
         // ==========================================
-        // 4. MATRIX VIEW & TIMER LOGIC (矩陣與四態打卡)
+        // 4. MATRIX VIEW & TIMER LOGIC (矩陣與打卡)
         // ==========================================
         function renderProjectDropdown() {
             const select = document.getElementById('project-select');
@@ -434,9 +424,6 @@
             const project = projects.find(p => p.id === activeProjectId);
             if (!project) return;
 
-            // 過濾參與該專案的客戶 (CRM 關聯，向下相容)
-            const targetClients = clients.filter(c => !c.projectIds || c.projectIds.includes(activeProjectId));
-
             const thead = document.getElementById('matrix-head');
             thead.innerHTML = `
                 <tr>
@@ -446,7 +433,7 @@
             `;
 
             const tbody = document.getElementById('matrix-body');
-            tbody.innerHTML = targetClients.map(client => {
+            tbody.innerHTML = clients.map(client => {
                 const stepCells = project.steps.map((_, stepIdx) => {
                     const key = `${project.id}_${client.id}_${stepIdx}`;
                     const log = stepLogs[key] || { status: 'none', elapsed: 0 };
@@ -478,7 +465,6 @@
             }).join('');
         }
 
-        // 定時器 Modal 與四態邏輯
         function openTimerModal(key, clientName, stepName) {
             activeKey = key;
             const log = stepLogs[key] || { status: 'none', elapsed: 0 };
@@ -523,20 +509,12 @@
             const currentLog = stepLogs[activeKey] || { status: 'none', elapsed: 0 };
             const now = Date.now();
             const operatorName = currentRole === 'admin' ? '老闆 (Admin)' : '員工 (Staff)';
-            const todayStr = new Date().toISOString().split('T')[0];
 
-            let newLog = { ...currentLog, operator: operatorName, date: todayStr };
+            let newLog = { ...currentLog, operator: operatorName };
 
             if (action === 'start') {
                 newLog.status = 'progress';
                 newLog.lastStart = now;
-            } else if (action === 'pause') {
-                if (currentLog.status === 'progress' && currentLog.lastStart) {
-                    const sessionSeconds = Math.floor((now - currentLog.lastStart) / 1000);
-                    newLog.elapsed = (currentLog.elapsed || 0) + sessionSeconds;
-                }
-                newLog.status = 'pause';
-                delete newLog.lastStart;
             } else if (action === 'done') {
                 if (currentLog.status === 'progress' && currentLog.lastStart) {
                     const sessionSeconds = Math.floor((now - currentLog.lastStart) / 1000);
@@ -569,13 +547,12 @@
             const container = document.getElementById('calendar-list');
             container.innerHTML = events.map(ev => {
                 const proj = projects.find(p => p.id === ev.projectId);
-                const remindListStr = ev.remindDaysList ? ev.remindDaysList.join(', ') + ' 天前' : `${ev.remindDays || 7} 天前`;
                 return `
                     <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-2">
                         <div class="text-xs font-semibold text-indigo-600">${proj ? proj.name : '一般項目'}</div>
                         <h4 class="font-bold text-slate-800 text-base">${ev.title}</h4>
                         <div class="text-sm text-slate-600">截止日期：<span class="font-mono font-medium text-slate-900">${ev.dueDate}</span></div>
-                        <div class="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded inline-block">提醒天數：${remindListStr}</div>
+                        <div class="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded inline-block">提醒：${ev.remindDays || 7} 天前</div>
                     </div>
                 `;
             }).join('');
@@ -583,25 +560,17 @@
 
         function renderClientsTable() {
             const tbody = document.getElementById('clients-table-body');
-            tbody.innerHTML = clients.map(c => {
-                const pNames = (c.projectIds || []).map(id => {
-                    const p = projects.find(item => item.id === id);
-                    return p ? p.name : null;
-                }).filter(Boolean).join(', ') || '全選 (預設)';
-
-                return `
-                    <tr class="hover:bg-slate-50">
-                        <td class="px-4 py-3 font-mono">${c.taxId}</td>
-                        <td class="px-4 py-3 font-semibold text-slate-800">${c.name}</td>
-                        <td class="px-4 py-3">${c.owner || '-'}</td>
-                        <td class="px-4 py-3 font-mono">${c.phone || '-'}</td>
-                        <td class="px-4 py-3 text-xs text-indigo-600">${pNames}</td>
-                        <td class="px-4 py-3 text-right">
-                            <button onclick="editClient(${c.id})" class="admin-only text-indigo-600 hover:text-indigo-900 text-xs font-medium">編輯</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+            tbody.innerHTML = clients.map(c => `
+                <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 font-mono">${c.taxId}</td>
+                    <td class="px-4 py-3 font-semibold text-slate-800">${c.name}</td>
+                    <td class="px-4 py-3">${c.owner || '-'}</td>
+                    <td class="px-4 py-3 font-mono">${c.phone || '-'}</td>
+                    <td class="px-4 py-3 text-right">
+                        <button onclick="editClient(${c.id})" class="admin-only text-indigo-600 hover:text-indigo-900 text-xs font-medium">編輯</button>
+                    </td>
+                </tr>
+            `).join('');
             updateRoleUI();
         }
 
@@ -609,15 +578,6 @@
             document.getElementById('client-form').reset();
             document.getElementById('client-id').value = '';
             document.getElementById('client-modal-title').textContent = '新增客戶';
-
-            const container = document.getElementById('client-project-checkboxes');
-            container.innerHTML = projects.map(p => `
-                <label class="flex items-center space-x-2 text-xs text-slate-700">
-                    <input type="checkbox" name="client-projects" value="${p.id}" class="rounded text-indigo-600 focus:ring-indigo-500" checked>
-                    <span>${p.name}</span>
-                </label>
-            `).join('');
-
             document.getElementById('client-modal').classList.remove('hidden');
         }
 
@@ -631,15 +591,6 @@
             document.getElementById('client-owner').value = c.owner || '';
             document.getElementById('client-phone').value = c.phone || '';
 
-            const container = document.getElementById('client-project-checkboxes');
-            const pIds = c.projectIds || projects.map(p => p.id);
-            container.innerHTML = projects.map(p => `
-                <label class="flex items-center space-x-2 text-xs text-slate-700">
-                    <input type="checkbox" name="client-projects" value="${p.id}" class="rounded text-indigo-600 focus:ring-indigo-500" ${pIds.includes(p.id) ? 'checked' : ''}>
-                    <span>${p.name}</span>
-                </label>
-            `).join('');
-
             document.getElementById('client-modal-title').textContent = '編輯客戶';
             document.getElementById('client-modal').classList.remove('hidden');
         }
@@ -651,15 +602,13 @@
         async function saveClientForm(e) {
             e.preventDefault();
             const idVal = document.getElementById('client-id').value;
-            const checkedProjects = Array.from(document.querySelectorAll('input[name="client-projects"]:checked')).map(cb => parseInt(cb.value));
 
             const clientData = {
                 id: idVal ? parseInt(idVal) : Date.now(),
                 name: document.getElementById('client-name').value,
                 taxId: document.getElementById('client-taxId').value,
                 owner: document.getElementById('client-owner').value,
-                phone: document.getElementById('client-phone').value,
-                projectIds: checkedProjects
+                phone: document.getElementById('client-phone').value
             };
 
             if (idVal) {
@@ -676,54 +625,11 @@
         }
 
         // ==========================================
-        // 6. ANALYTICS & 7-HOUR ALERTS (管理分析與異常警報)
+        // 6. ANALYTICS (管理分析)
         // ==========================================
         function renderAnalytics() {
-            renderDailyWorkAlerts();
             renderStaffHours();
             renderProjectStats();
-        }
-
-        function renderDailyWorkAlerts() {
-            const alertContainer = document.getElementById('analytics-alerts');
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            // 統計各操作員每日工時 (以秒計算)
-            const operatorHours = {};
-            Object.values(stepLogs).forEach(log => {
-                const op = log.operator || '未指定';
-                const logDate = log.date || todayStr;
-                if (!operatorHours[op]) operatorHours[op] = {};
-                operatorHours[op][logDate] = (operatorHours[op][logDate] || 0) + (log.elapsed || 0);
-            });
-
-            let alertHtml = '';
-            const MIN_REQUIRED_SECONDS = 7 * 3600; // 7小時防呆臨界值
-
-            Object.keys(operatorHours).forEach(op => {
-                const todaySeconds = operatorHours[op][todayStr] || 0;
-                if (todaySeconds < MIN_REQUIRED_SECONDS) {
-                    const hoursFormatted = (todaySeconds / 3600).toFixed(1);
-                    alertHtml += `
-                        <div class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl flex items-center justify-between">
-                            <div class="flex items-center space-x-3">
-                                <span class="text-rose-600 font-bold text-lg">⚠️</span>
-                                <div>
-                                    <h4 class="text-sm font-bold text-rose-800">工時過低警報 (${op})</h4>
-                                    <p class="text-xs text-rose-600">今日登記累積工時僅 <span class="font-bold font-mono">${hoursFormatted}</span> 小時，未達每日 7.0 小時標準。</p>
-                                </div>
-                            </div>
-                            <span class="text-xs font-semibold px-2 py-1 bg-rose-200 text-rose-800 rounded">異常標記</span>
-                        </div>
-                    `;
-                }
-            });
-
-            alertContainer.innerHTML = alertHtml || `
-                <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-xl">
-                    <p class="text-xs text-emerald-700 font-medium">✅ 今日人員工時申報符合規範，無異常記錄。</p>
-                </div>
-            `;
         }
 
         function renderStaffHours() {
@@ -750,12 +656,11 @@
             const container = document.getElementById('analytics-project-progress');
 
             container.innerHTML = projects.map(p => {
-                const pClients = clients.filter(c => !c.projectIds || c.projectIds.includes(p.id));
-                const totalSteps = pClients.length * p.steps.length;
+                const totalSteps = clients.length * p.steps.length;
                 let doneSteps = 0;
                 let totalElapsed = 0;
 
-                pClients.forEach(c => {
+                clients.forEach(c => {
                     p.steps.forEach((_, sIdx) => {
                         const log = stepLogs[`${p.id}_${c.id}_${sIdx}`];
                         if (log) {
@@ -784,3 +689,4 @@
     </script>
 </body>
 </html>
+//5555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555//
