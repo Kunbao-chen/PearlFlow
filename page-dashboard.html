@@ -3,9 +3,9 @@
 ==========================================================================
 PearlFlow - 聚焦看板與專案總覽
 @file        page-dashboard.html
-@version     1.0.0
+@version     1.0.1
 @updated     2026-08-17
-@description 提供「今日/本週聚焦時效任務」與「首頁專案進度卡片」
+@description 整合 Supabase 資料讀取，呈現今日/本週時效任務與專案動態進度完成率
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -14,6 +14,9 @@ PearlFlow - 聚焦看板與專案總覽
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard 儀表板</title>
     <link rel="stylesheet" href="css/theme.css?v=1.0.3">
+    <!-- 引入 Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/global-config.js?v=1.0.3"></script>
     <style>
         body {
             padding: 24px;
@@ -48,6 +51,9 @@ PearlFlow - 聚焦看板與專案總覽
         .card-header h4 {
             font-size: 1.05rem;
             color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .task-list {
@@ -66,6 +72,19 @@ PearlFlow - 聚焦看板與專案總覽
             border-bottom: none;
         }
 
+        .task-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .task-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--accent-color);
+        }
+
         .badge {
             padding: 2px 8px;
             border-radius: 4px;
@@ -75,6 +94,7 @@ PearlFlow - 聚焦看板與專案總覽
 
         .badge-urgent { background: #FFEBEE; color: #C62828; }
         .badge-warning { background: #FFF3E0; color: #EF6C00; }
+        .badge-count { background: var(--accent-light); color: var(--accent-color); }
 
         .project-progress-grid {
             display: grid;
@@ -82,18 +102,32 @@ PearlFlow - 聚焦看板與專案總覽
             gap: 16px;
         }
 
+        .project-card {
+            border: 1px solid var(--border-color);
+            padding: 16px;
+            border-radius: 6px;
+            background: #FAFAFA;
+        }
+
         .progress-bar-bg {
-            background-color: var(--bg-color);
+            background-color: #E0E0E0;
             height: 8px;
             border-radius: 4px;
             overflow: hidden;
-            margin-top: 8px;
+            margin-top: 10px;
         }
 
         .progress-bar-fill {
             background-color: var(--accent-color);
             height: 100%;
-            transition: width 0.3s ease;
+            transition: width 0.4s ease-in-out;
+        }
+
+        .empty-state {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            padding: 12px 0;
+            text-align: center;
         }
     </style>
 </head>
@@ -105,17 +139,10 @@ PearlFlow - 聚焦看板與專案總覽
         <div class="card">
             <div class="card-header">
                 <h4>🔥 今日必須完成 (Focus Today)</h4>
-                <span class="badge badge-urgent">2 項待辦</span>
+                <span class="badge badge-urgent" id="today-count">0 項待辦</span>
             </div>
-            <ul class="task-list">
-                <li class="task-item">
-                    <span>【營業稅】台積供應商 7-8 月憑證核對</span>
-                    <span class="badge badge-urgent">17:00 截止</span>
-                </li>
-                <li class="task-item">
-                    <span>【扣繳申報】華碩供應鏈扣繳資料上傳</span>
-                    <span class="badge badge-urgent">今日到期</span>
-                </li>
+            <ul class="task-list" id="today-tasks">
+                <li class="empty-state">載入中...</li>
             </ul>
         </div>
 
@@ -123,17 +150,10 @@ PearlFlow - 聚焦看板與專案總覽
         <div class="card">
             <div class="card-header">
                 <h4>📅 本週必須完成 (Focus This Week)</h4>
-                <span class="badge badge-warning">2 項待辦</span>
+                <span class="badge badge-warning" id="week-count">0 項待辦</span>
             </div>
-            <ul class="task-list">
-                <li class="task-item">
-                    <span>【工商登記】大元科技資本額變更簽章</span>
-                    <span class="badge badge-warning">週三到期</span>
-                </li>
-                <li class="task-item">
-                    <span>【財報簽證】聯發創投 Q2 查核報告初稿</span>
-                    <span class="badge badge-warning">週五到期</span>
-                </li>
+            <ul class="task-list" id="week-tasks">
+                <li class="empty-state">載入中...</li>
             </ul>
         </div>
     </div>
@@ -142,29 +162,158 @@ PearlFlow - 聚焦看板與專案總覽
     <div class="card">
         <div class="card-header">
             <h4>📊 進行中專案整體進度 (Projects Overview)</h4>
+            <span class="badge badge-count" id="project-count">0 個專案</span>
         </div>
-        <div class="project-progress-grid">
-            <div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 6px;">
-                <div style="display:flex; justify-size: space-between; justify-content: space-between; font-weight: 500;">
-                    <span>2026 Q3 營業稅申報專案</span>
-                    <span style="color: var(--accent-color);">75%</span>
-                </div>
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" style="width: 75%;"></div>
-                </div>
-            </div>
-
-            <div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 6px;">
-                <div style="display:flex; justify-content: space-between; font-weight: 500;">
-                    <span>年度財報查核專案</span>
-                    <span style="color: var(--accent-color);">40%</span>
-                </div>
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" style="width: 40%;"></div>
-                </div>
-            </div>
+        <div class="project-progress-grid" id="project-progress-container">
+            <div class="empty-state">載入專案進度中...</div>
         </div>
     </div>
 
+    <script>
+        // 初始化載入資料
+        window.addEventListener('DOMContentLoaded', async () => {
+            loadDashboardData();
+        });
+
+        async function loadDashboardData() {
+            // 若尚無 Supabase 設定，載入模擬資料
+            if (!window.supabase) {
+                renderMockData();
+                return;
+            }
+
+            try {
+                // 1. 抓取進行中的專案及其任務計算完成率
+                const { data: projects, error: pError } = await window.supabase
+                    .from('projects')
+                    .select('id, name, status, tasks(id, status, due_date)');
+
+                if (pError) throw pError;
+
+                if (projects && projects.length > 0) {
+                    renderProjects(projects);
+                    renderUrgentTasks(projects);
+                } else {
+                    renderMockData();
+                }
+            } catch (err) {
+                console.warn('Supabase 連線或讀取失敗，展示模擬數據：', err);
+                renderMockData();
+            }
+        }
+
+        // 渲染專案卡片與進度條 (%)
+        function renderProjects(projects) {
+            const container = document.getElementById('project-progress-container');
+            document.getElementById('project-count').innerText = `${projects.length} 個專案`;
+
+            if (projects.length === 0) {
+                container.innerHTML = '<div class="empty-state">目前無進行中的專案</div>';
+                return;
+            }
+
+            container.innerHTML = projects.map(p => {
+                const totalTasks = p.tasks ? p.tasks.length : 0;
+                const completedTasks = p.tasks ? p.tasks.filter(t => t.status === 'completed' || t.status === '完成').length : 0;
+                const percent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+                return `
+                    <div class="project-card">
+                        <div style="display:flex; justify-content: space-between; font-weight: 600; font-size: 0.95rem;">
+                            <span>${p.name}</span>
+                            <span style="color: var(--accent-color);">${percent}%</span>
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
+                            已完成 ${completedTasks} / ${totalTasks} 項子任務
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: ${percent}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 篩選與渲染聚焦時效任務
+        function renderUrgentTasks(projects) {
+            const allTasks = [];
+            projects.forEach(p => {
+                if (p.tasks) {
+                    p.tasks.forEach(t => {
+                        allTasks.push({ ...t, projectName: p.name });
+                    });
+                }
+            });
+
+            // 簡易模擬當前日期的任務比對
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            const todayTasks = allTasks.filter(t => t.due_date === todayStr && t.status !== 'completed');
+            const weekTasks = allTasks.filter(t => t.due_date > todayStr && t.status !== 'completed');
+
+            renderTaskList('today-tasks', 'today-count', todayTasks, 'badge-urgent', '今日到期');
+            renderTaskList('week-tasks', 'week-count', weekTasks, 'badge-warning', '本週到期');
+        }
+
+        function renderTaskList(elementId, countId, tasks, badgeClass, defaultTag) {
+            const ul = document.getElementById(elementId);
+            document.getElementById(countId).innerText = `${tasks.length} 項待辦`;
+
+            if (tasks.length === 0) {
+                ul.innerHTML = '<li class="empty-state">🎉 太棒了，目前沒有急迫的待辦事項！</li>';
+                return;
+            }
+
+            ul.innerHTML = tasks.map(t => `
+                <li class="task-item">
+                    <div class="task-left">
+                        <input type="checkbox" class="task-checkbox" onchange="toggleTaskStatus('${t.id}', this)">
+                        <span>【${t.projectName}】${t.name || '未命名任務'}</span>
+                    </div>
+                    <span class="badge ${badgeClass}">${t.due_date || defaultTag}</span>
+                </li>
+            `).join('');
+        }
+
+        // 勾選完成任務處理
+        async function toggleTaskStatus(taskId, checkbox) {
+            if (checkbox.checked) {
+                alert('任務標記為完成！');
+                if (window.supabase) {
+                    await window.supabase
+                        .from('tasks')
+                        .update({ status: 'completed' })
+                        .eq('id', taskId);
+                }
+                loadDashboardData();
+            }
+        }
+
+        // 靜態/備用預設資料（確保展示效果）
+        function renderMockData() {
+            const mockProjects = [
+                {
+                    name: '2026 Q3 營業稅申報專案',
+                    tasks: [
+                        { id: '1', name: '台積供應商 7-8 月憑證核對', status: 'in_progress', due_date: new Date().toISOString().split('T')[0] },
+                        { id: '2', name: '華碩供應鏈扣繳資料上傳', status: 'in_progress', due_date: new Date().toISOString().split('T')[0] },
+                        { id: '3', name: '進項稅額扣抵清單查核', status: 'completed', due_date: '2026-08-15' },
+                        { id: '4', name: '銷項發票彙整', status: 'completed', due_date: '2026-08-14' }
+                    ]
+                },
+                {
+                    name: '年度財報查核專案',
+                    tasks: [
+                        { id: '5', name: '大元科技資本額變更簽章', status: 'in_progress', due_date: '2026-08-19' },
+                        { id: '6', name: '聯發創投 Q2 查核報告初稿', status: 'in_progress', due_date: '2026-08-21' },
+                        { id: '7', name: '盤點庫存資產', status: 'completed', due_date: '2026-08-10' }
+                    ]
+                }
+            ];
+
+            renderProjects(mockProjects);
+            renderUrgentTasks(mockProjects);
+        }
+    </script>
 </body>
 </html>
