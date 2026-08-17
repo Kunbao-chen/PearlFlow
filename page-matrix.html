@@ -3,7 +3,7 @@
 ==========================================================================
 PearlFlow - 專案進度矩陣 (第二層)
 @file        page-matrix.html
-@version     1.0.0
+@version     1.0.1
 @updated     2026-08-17
 @description 提供「客戶 x 服務類別」矩陣總覽與「四態打卡」即時狀態切換
 ==========================================================================
@@ -16,7 +16,7 @@ PearlFlow - 專案進度矩陣 (第二層)
     <link rel="stylesheet" href="css/theme.css?v=1.0.3">
     <!-- 引入 Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/global-config.js?v=1.0.3"></script>
+    <script src="js/global-config.js?v=1.0.5"></script>
     <style>
         body {
             padding: 24px;
@@ -47,7 +47,6 @@ PearlFlow - 專案進度矩陣 (第二層)
             color: var(--primary-color);
         }
 
-        /* 矩陣表格樣式 */
         .matrix-table-wrapper {
             overflow-x: auto;
         }
@@ -78,7 +77,6 @@ PearlFlow - 專案進度矩陣 (第二層)
             white-space: nowrap;
         }
 
-        /* 四態打卡下拉選單與標籤 */
         .status-select {
             padding: 4px 8px;
             border-radius: 4px;
@@ -128,6 +126,11 @@ PearlFlow - 專案進度矩陣 (第二層)
     </div>
 
     <script>
+        // 取得有效的 Supabase Client 實例
+        function getClient() {
+            return window.supabaseClient || (window.supabase && typeof window.supabase.from === 'function' ? window.supabase : null);
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             loadMatrixData();
         });
@@ -135,22 +138,23 @@ PearlFlow - 專案進度矩陣 (第二層)
         async function loadMatrixData() {
             const headerRow = document.getElementById('matrix-header');
             const tbody = document.getElementById('matrix-body');
+            const client = getClient();
 
-            if (!window.supabase) {
+            if (!client) {
                 tbody.innerHTML = '<tr><td colspan="100" class="empty-state">尚未設定 Supabase 連線資訊 (js/global-config.js)</td></tr>';
                 return;
             }
 
             try {
                 // 1. 取得所有客戶
-                const { data: clients, error: cErr } = await window.supabase
+                const { data: clients, error: cErr } = await client
                     .from('clients')
                     .select('id, name');
 
                 if (cErr) throw cErr;
 
                 // 2. 取得所有專案與關聯任務
-                const { data: projects, error: pErr } = await window.supabase
+                const { data: projects, error: pErr } = await client
                     .from('projects')
                     .select('id, client_id, name, tasks(id, name, service_category, status)');
 
@@ -173,19 +177,18 @@ PearlFlow - 專案進度矩陣 (第二層)
 
                 const categories = Array.from(categoriesSet);
                 if (categories.length === 0) {
-                    categories.push('一般服務'); // 預設欄位
+                    categories.push('一般服務');
                 }
 
-                // 渲染 表頭 (Headers)
+                // 渲染表頭
                 headerRow.innerHTML = `<th>客戶名稱 \\ 服務類別</th>` + 
                     categories.map(cat => `<th>${cat}</th>`).join('');
 
-                // 渲染 表身 (Rows)
-                tbody.innerHTML = clients.map(client => {
-                    const clientProjects = projects.filter(p => p.client_id === client.id);
+                // 渲染表身
+                tbody.innerHTML = clients.map(c => {
+                    const clientProjects = projects.filter(p => p.client_id === c.id);
 
                     const cells = categories.map(cat => {
-                        // 找出該客戶屬於此類別的任務
                         let matchedTask = null;
                         clientProjects.forEach(p => {
                             if (p.tasks) {
@@ -212,7 +215,7 @@ PearlFlow - 專案進度矩陣 (第二層)
 
                     return `
                         <tr>
-                            <td class="client-cell">${client.name}</td>
+                            <td class="client-cell">${c.name}</td>
                             ${cells}
                         </tr>
                     `;
@@ -226,18 +229,18 @@ PearlFlow - 專案進度矩陣 (第二層)
 
         // 四態打卡：即時更新 Supabase 資料庫
         async function updateTaskStatus(taskId, newStatus, selectEl) {
-            // 更新樣式
             selectEl.className = `status-select status-${newStatus}`;
+            const client = getClient();
 
-            if (window.supabase) {
-                const { error } = await window.supabase
+            if (client) {
+                const { error } = await client
                     .from('tasks')
                     .update({ status: newStatus })
                     .eq('id', taskId);
 
                 if (error) {
                     alert('狀態更新失敗：' + error.message);
-                    loadMatrixData(); // 失敗時重新整理還原
+                    loadMatrixData();
                 }
             }
         }
