@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<!--
+==========================================================================
+PearlFlow - 聚焦看板與專案總覽
+@file        page-dashboard.html
+@version     1.0.0
+@updated     2026-08-17
+@description 提供「今日/本週聚焦時效任務」與「首頁專案進度卡片」
+==========================================================================
+-->
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard 儀表板</title>
+    <link rel="stylesheet" href="css/theme.css?v=1.0.3">
+    <style>
+        body {
+            padding: 24px;
+            overflow-y: auto;
+            height: 100%;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: #FFFFFF;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+
+        .card-header h4 {
+            font-size: 1.05rem;
+            color: var(--primary-color);
+        }
+
+        .task-list {
+            list-style: none;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .badge-urgent { background: #FFEBEE; color: #C62828; }
+        .badge-warning { background: #FFF3E0; color: #EF6C00; }
+
+        .project-progress-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .progress-bar-bg {
+            background-color: var(--bg-color);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-bar-fill {
+            background-color: var(--accent-color);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部聚焦看板：時效任務區 -->
+    <div class="dashboard-grid">
+        <!-- 今日必須完成 -->
+        <div class="card">
+            <div class="card-header">
+                <h4>🔥 今日必須完成 (Focus Today)</h4>
+                <span class="badge badge-urgent">2 項待辦</span>
+            </div>
+            <ul class="task-list">
+                <li class="task-item">
+                    <span>【營業稅】台積供應商 7-8 月憑證核對</span>
+                    <span class="badge badge-urgent">17:00 截止</span>
+                </li>
+                <li class="task-item">
+                    <span>【扣繳申報】華碩供應鏈扣繳資料上傳</span>
+                    <span class="badge badge-urgent">今日到期</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 本週必須完成 -->
+        <div class="card">
+            <div class="card-header">
+                <h4>📅 本週必須完成 (Focus This Week)</h4>
+                <span class="badge badge-warning">2 項待辦</span>
+            </div>
+            <ul class="task-list">
+                <li class="task-item">
+                    <span>【工商登記】大元科技資本額變更簽章</span>
+                    <span class="badge badge-warning">週三到期</span>
+                </li>
+                <li class="task-item">
+                    <span>【財報簽證】聯發創投 Q2 查核報告初稿</span>
+                    <span class="badge badge-warning">週五到期</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 專案整體進度卡片區 -->
+    <div class="card">
+        <div class="card-header">
+            <h4>📊 進行中專案整體進度 (Projects Overview)</h4>
+        </div>
+        <div class="project-progress-grid">
+            <div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 6px;">
+                <div style="display:flex; justify-size: space-between; justify-content: space-between; font-weight: 500;">
+                    <span>2026 Q3 營業稅申報專案</span>
+                    <span style="color: var(--accent-color);">75%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width: 75%;"></div>
+                </div>
+            </div>
+
+            <div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 6px;">
+                <div style="display:flex; justify-content: space-between; font-weight: 500;">
+                    <span>年度財報查核專案</span>
+                    <span style="color: var(--accent-color);">40%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width: 40%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
