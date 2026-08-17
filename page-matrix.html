@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<!--
+==========================================================================
+PearlFlow - 專案進度矩陣 (第二層)
+@file        page-matrix.html
+@version     1.0.0
+@updated     2026-08-17
+@description 提供「客戶 x 服務類別」矩陣總覽與「四態打卡」即時狀態切換
+==========================================================================
+-->
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>專案進度矩陣</title>
+    <link rel="stylesheet" href="css/theme.css?v=1.0.3">
+    <!-- 引入 Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/global-config.js?v=1.0.3"></script>
+    <style>
+        body {
+            padding: 24px;
+            overflow-y: auto;
+            height: 100%;
+        }
+
+        .card {
+            background: #FFFFFF;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+
+        .card-header h4 {
+            font-size: 1.05rem;
+            color: var(--primary-color);
+        }
+
+        /* 矩陣表格樣式 */
+        .matrix-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        .matrix-table th, .matrix-table td {
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .matrix-table th {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .client-cell {
+            font-weight: bold;
+            color: var(--primary-color);
+            background-color: #FAFAFA;
+            white-space: nowrap;
+        }
+
+        /* 四態打卡下拉選單與標籤 */
+        .status-select {
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            cursor: pointer;
+            outline: none;
+            font-weight: 500;
+        }
+
+        .status-not_started { background-color: #F3F4F6; color: var(--status-not-started); }
+        .status-in_progress { background-color: #E3F2FD; color: var(--status-in-progress); }
+        .status-paused { background-color: #FFF3E0; color: var(--status-paused); }
+        .status-completed { background-color: #E8F5E9; color: var(--status-completed); }
+
+        .empty-state {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            padding: 24px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="card-header">
+            <h4>📋 客戶 x 服務類別 專案進度矩陣</h4>
+            <button onclick="loadMatrixData()" style="padding: 6px 12px; background: var(--accent-light); color: var(--accent-color); border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">🔄 重新整理</button>
+        </div>
+
+        <div class="matrix-table-wrapper">
+            <table class="matrix-table" id="matrix-table">
+                <thead>
+                    <tr id="matrix-header">
+                        <th>客戶名稱 \ 服務類別</th>
+                        <th>資料載入中...</th>
+                    </tr>
+                </thead>
+                <tbody id="matrix-body">
+                    <tr>
+                        <td colspan="2" class="empty-state">讀取 Supabase 資料庫中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            loadMatrixData();
+        });
+
+        async function loadMatrixData() {
+            const headerRow = document.getElementById('matrix-header');
+            const tbody = document.getElementById('matrix-body');
+
+            if (!window.supabase) {
+                tbody.innerHTML = '<tr><td colspan="100" class="empty-state">尚未設定 Supabase 連線資訊 (js/global-config.js)</td></tr>';
+                return;
+            }
+
+            try {
+                // 1. 取得所有客戶
+                const { data: clients, error: cErr } = await window.supabase
+                    .from('clients')
+                    .select('id, name');
+
+                if (cErr) throw cErr;
+
+                // 2. 取得所有專案與關聯任務
+                const { data: projects, error: pErr } = await window.supabase
+                    .from('projects')
+                    .select('id, client_id, name, tasks(id, name, service_category, status)');
+
+                if (pErr) throw pErr;
+
+                if (!clients || clients.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="100" class="empty-state">目前資料庫無客戶資料</td></tr>';
+                    return;
+                }
+
+                // 3. 動態萃取出現過的所有「服務類別 (service_category)」作為橫軸
+                const categoriesSet = new Set();
+                projects.forEach(p => {
+                    if (p.tasks) {
+                        p.tasks.forEach(t => {
+                            if (t.service_category) categoriesSet.add(t.service_category);
+                        });
+                    }
+                });
+
+                const categories = Array.from(categoriesSet);
+                if (categories.length === 0) {
+                    categories.push('一般服務'); // 預設欄位
+                }
+
+                // 渲染 表頭 (Headers)
+                headerRow.innerHTML = `<th>客戶名稱 \\ 服務類別</th>` + 
+                    categories.map(cat => `<th>${cat}</th>`).join('');
+
+                // 渲染 表身 (Rows)
+                tbody.innerHTML = clients.map(client => {
+                    const clientProjects = projects.filter(p => p.client_id === client.id);
+
+                    const cells = categories.map(cat => {
+                        // 找出該客戶屬於此類別的任務
+                        let matchedTask = null;
+                        clientProjects.forEach(p => {
+                            if (p.tasks) {
+                                const found = p.tasks.find(t => (t.service_category || '一般服務') === cat);
+                                if (found) matchedTask = found;
+                            }
+                        });
+
+                        if (matchedTask) {
+                            return `
+                                <td>
+                                    <select class="status-select status-${matchedTask.status}" onchange="updateTaskStatus('${matchedTask.id}', this.value, this)">
+                                        <option value="not_started" ${matchedTask.status === 'not_started' ? 'selected' : ''}>⚪ 未開始</option>
+                                        <option value="in_progress" ${matchedTask.status === 'in_progress' ? 'selected' : ''}>🔵 進行中</option>
+                                        <option value="paused" ${matchedTask.status === 'paused' ? 'selected' : ''}>🟠 暫停</option>
+                                        <option value="completed" ${matchedTask.status === 'completed' ? 'selected' : ''}>🟢 已完成</option>
+                                    </select>
+                                </td>
+                            `;
+                        } else {
+                            return `<td style="color: #CCC; font-size: 0.8rem;">-</td>`;
+                        }
+                    }).join('');
+
+                    return `
+                        <tr>
+                            <td class="client-cell">${client.name}</td>
+                            ${cells}
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error('矩陣資料讀取失敗：', err);
+                tbody.innerHTML = `<tr><td colspan="100" class="empty-state">讀取失敗：${err.message}</td></tr>`;
+            }
+        }
+
+        // 四態打卡：即時更新 Supabase 資料庫
+        async function updateTaskStatus(taskId, newStatus, selectEl) {
+            // 更新樣式
+            selectEl.className = `status-select status-${newStatus}`;
+
+            if (window.supabase) {
+                const { error } = await window.supabase
+                    .from('tasks')
+                    .update({ status: newStatus })
+                    .eq('id', taskId);
+
+                if (error) {
+                    alert('狀態更新失敗：' + error.message);
+                    loadMatrixData(); // 失敗時重新整理還原
+                }
+            }
+        }
+    </script>
+</body>
+</html>
