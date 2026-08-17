@@ -3,9 +3,9 @@
 ==========================================================================
 PearlFlow - 珍珠聯合會計師事務所 主入口外殼網頁
 @file        index.html
-@version     1.0.1
+@version     1.0.2
 @updated     2026-08-17
-@description 主介面框架、選單切換、品牌 Logo 標頭與 sessionStorage 驗證
+@description 修正 Logo 路徑結構、樣式優化，並新增 iframe 無頁面時的預設載入提示
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -13,20 +13,20 @@ PearlFlow - 珍珠聯合會計師事務所 主入口外殼網頁
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PearlFlow - 珍珠聯合會計師事務所</title>
-    <link rel="stylesheet" href="css/theme.css?v=1.0.1">
+    <link rel="stylesheet" href="css/theme.css?v=1.0.2">
     <!-- 引入 Supabase JS SDK (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/global-config.js?v=1.0.1"></script>
+    <script src="js/global-config.js?v=1.0.2"></script>
 </head>
 <body>
     <div id="app-container">
         <!-- 左側選單 -->
         <aside id="sidebar">
             <div class="brand">
-                <img src="logo.png" alt="珍珠聯合會計師事務所 Logo">
+                <img src="logo.png" alt="Logo" onerror="this.style.display='none'">
                 <div class="brand-title">
                     <span class="main-name">珍珠聯合會計師事務所</span>
-                    <span class="sub-name">Pearl CPAs Firm v1.0.1</span>
+                    <span class="sub-name">Pearl CPAs Firm v1.0.2</span>
                 </div>
             </div>
             <nav>
@@ -78,8 +78,8 @@ PearlFlow - 珍珠聯合會計師事務所 主入口外殼網頁
         // 登出處理
         async function handleLogout() {
             if (confirm('確定要登出系統嗎？')) {
-                if (supabase) {
-                    await supabase.auth.signOut();
+                if (window.supabase) {
+                    await window.supabase.auth.signOut();
                 }
                 sessionStorage.clear();
                 alert('已成功登出');
@@ -89,15 +89,15 @@ PearlFlow - 珍珠聯合會計師事務所 主入口外殼網頁
 
         // 初始化檢查登入狀態與使用者名稱
         window.addEventListener('DOMContentLoaded', async () => {
-            if (supabase) {
-                const { data: { session } } = await supabase.auth.getSession();
+            if (window.supabase) {
+                const { data: { session } } = await window.supabase.auth.getSession();
                 if (session) {
                     document.getElementById('user-display-name').innerText = session.user.email || '使用者';
                 } else {
                     document.getElementById('user-display-name').innerText = '未登入 (訪客模式)';
                 }
             } else {
-                document.getElementById('user-display-name').innerText = '未連接 Supabase';
+                document.getElementById('user-display-name').innerText = '系統初始化中';
             }
         });
     </script>
