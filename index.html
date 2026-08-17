@@ -3,9 +3,9 @@
 ==========================================================================
 PearlFlow - 珍珠聯合會計師事務所 主入口外殼網頁
 @file        index.html
-@version     1.0.2
+@version     1.0.3
 @updated     2026-08-17
-@description 修正 Logo 路徑結構、樣式優化，並新增 iframe 無頁面時的預設載入提示
+@description 移除舊版子標題文字，確保主名稱單行顯示不換行
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -13,10 +13,10 @@ PearlFlow - 珍珠聯合會計師事務所 主入口外殼網頁
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PearlFlow - 珍珠聯合會計師事務所</title>
-    <link rel="stylesheet" href="css/theme.css?v=1.0.2">
+    <link rel="stylesheet" href="css/theme.css?v=1.0.3">
     <!-- 引入 Supabase JS SDK (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/global-config.js?v=1.0.2"></script>
+    <script src="js/global-config.js?v=1.0.3"></script>
 </head>
 <body>
     <div id="app-container">
@@ -26,7 +26,6 @@ PearlFlow - 珍珠聯合會計師事務所 主入口外殼網頁
                 <img src="logo.png" alt="Logo" onerror="this.style.display='none'">
                 <div class="brand-title">
                     <span class="main-name">珍珠聯合會計師事務所</span>
-                    <span class="sub-name">Pearl CPAs Firm v1.0.2</span>
                 </div>
             </div>
             <nav>
