@@ -8,8 +8,8 @@ PearlFlow - 全域組態與 Supabase 初始化 (完全覆蓋版)
 ==========================================================================
 */
 
-const SUPABASE_URL = 'https://your-project-id.supabase.co'; // 請替換為您的 Supabase URL
-const SUPABASE_ANON_KEY = 'your-anon-key-here';           // 請替換為您的 Supabase Anon Key
+const SUPABASE_URL = 'https://foiczezuudovzufofsyc.supabase.co'; // 請替換為您的 Supabase URL
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvaWN6ZXp1dWRvdnp1Zm9mc3ljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0MzYwNTIsImV4cCI6MjEwMjAxMjA1Mn0.hPpxjYHi2qRebaoosqVvsZYOuJlHnFpTY6JePVMkqTQ';           // 請替換為您的 Supabase Anon Key
 
 // 初始化 Supabase Client 實例
 (function initSupabase() {
