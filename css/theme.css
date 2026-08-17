@@ -1,16 +1,16 @@
 /* ==========================================================================
    PearlFlow - 珍珠聯合會計師事務所 VI 主題與通用樣式
    @file        css/theme.css
-   @version     1.0.2
+   @version     1.0.3
    @updated     2026-08-17
-   @description 根據甲方名片 VI 調整側邊欄為淺色柔粉/暖杏白系，全面去除暗色系
+   @description 修正 Brand Logo 區塊文字不換行問題，微調側邊欄寬度與邊距
    ========================================================================== */
 
 :root {
-  /* 甲方 VI 核心配色 (萃取自名片) */
-  --primary-color: #4A4A4A;       /* 深石墨灰 (主結構/文字) */
+  /* 甲方 VI 核心配色 */
+  --primary-color: #4A4A4A;       /* 深石墨灰 */
   --primary-light: #616161;       /* 中灰 */
-  --accent-color: #E88B97;        /* 珊瑚粉 / 珍珠粉 (主視覺焦點) */
+  --accent-color: #E88B97;        /* 珊瑚粉 / 珍珠粉 */
   --accent-light: #FCEAE6;        /* 暖杏粉 / 淺粉背景 */
   --bg-color: #FAF6F5;           /* 暖杏白 背景 */
   --card-bg: #FFFFFF;            /* 純白卡片 */
@@ -25,8 +25,8 @@
   --status-completed: #2ECC71;
   --status-skipped: #D1D5DB;
 
-  /* 尺寸設定 */
-  --sidebar-width: 250px;
+  /* 尺寸設定 (微調側邊欄寬度至 260px 防止擠壓) */
+  --sidebar-width: 260px;
   --header-height: 64px;
 }
 
@@ -51,7 +51,7 @@ body {
   width: 100vw;
 }
 
-/* 側邊導覽列 Sidebar (已全面改為名片明亮色系) */
+/* 側邊導覽列 Sidebar */
 #sidebar {
   width: var(--sidebar-width);
   background-color: #FFFFFF;
@@ -68,20 +68,24 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 16px;
+  padding: 0 12px;
   border-bottom: 1px solid var(--border-color);
   background-color: #FFFFFF;
+  white-space: nowrap; /* 強制不換行 */
 }
 
 #sidebar .brand img {
-  height: 32px;
+  height: 36px;
   width: auto;
   object-fit: contain;
+  flex-shrink: 0;
 }
 
 #sidebar .brand .brand-title {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  white-space: nowrap; /* 強制不換行 */
 }
 
 #sidebar .brand .brand-title .main-name {
@@ -89,11 +93,7 @@ body {
   font-weight: bold;
   color: var(--primary-color);
   letter-spacing: 0.5px;
-}
-
-#sidebar .brand .brand-title .sub-name {
-  font-size: 0.65rem;
-  color: var(--text-muted);
+  white-space: nowrap; /* 強制不換行 */
 }
 
 #sidebar nav {
@@ -110,6 +110,7 @@ body {
   font-size: 0.92rem;
   transition: all 0.25s ease;
   border-left: 4px solid transparent;
+  white-space: nowrap;
 }
 
 #sidebar nav a:hover {
