@@ -2,19 +2,31 @@
 ==========================================================================
 PearlFlow - 全域組態與 Supabase 初始化 (完全覆蓋版)
 @file        js/global-config.js
-@version     1.0.4
+@version     1.0.5
 @updated     2026-08-17
-@description 正確初始化 Supabase Client 並掛載至 window.supabase 實例
+@description 防止全域命名空間衝突，將 Supabase 實例統一掛載至 window.supabaseClient
 ==========================================================================
 */
 
-// 請替換為您 Supabase Project 的實際 API 資訊
-const SUPABASE_URL = 'https://your-project-id.supabase.co';
-const SUPABASE_ANON_KEY = 'your-anon-key-here';
+const SUPABASE_URL = 'https://your-project-id.supabase.co'; // 請替換為您的 Supabase URL
+const SUPABASE_ANON_KEY = 'your-anon-key-here';           // 請替換為您的 Supabase Anon Key
 
-// 確保 Supabase SDK CDN 已經載入，並透過 createClient 建立實例物件
-if (typeof supabase !== 'undefined' && typeof supabase.createClient === 'function') {
-    window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} else {
-    console.error('Supabase SDK 未正確載入，請確認 HTML 中的 CDN <script> 標籤！');
-}
+// 初始化 Supabase Client 實例
+(function initSupabase() {
+    try {
+        // 取得 Supabase 工廠函式 (相容 v1 與 v2 CDN)
+        const supabaseFactory = window.supabase || supabase;
+
+        if (supabaseFactory && typeof supabaseFactory.createClient === 'function') {
+            window.supabaseClient = supabaseFactory.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            // 為了相容性，同時將 .from 代理至 window.supabase
+            window.supabase = window.supabaseClient;
+        } else if (window.supabaseClient && typeof window.supabaseClient.from === 'function') {
+            // 已初始化過，保持現狀
+        } else {
+            console.error('Supabase SDK 未能成功取得 createClient 方法');
+        }
+    } catch (err) {
+        console.error('Supabase 初始化失敗：', err);
+    }
+})();
