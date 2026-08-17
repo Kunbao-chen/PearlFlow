@@ -1,19 +1,34 @@
 <!DOCTYPE html>
+<!--
+==========================================================================
+PearlFlow - 珍珠聯合會計師事務所 主入口外殼網頁
+@file        index.html
+@version     1.0.1
+@updated     2026-08-17
+@description 主介面框架、選單切換、品牌 Logo 標頭與 sessionStorage 驗證
+==========================================================================
+-->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PearlFlow 事務所管理工具</title>
-    <link rel="stylesheet" href="css/theme.css">
+    <title>PearlFlow - 珍珠聯合會計師事務所</title>
+    <link rel="stylesheet" href="css/theme.css?v=1.0.1">
     <!-- 引入 Supabase JS SDK (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/global-config.js"></script>
+    <script src="js/global-config.js?v=1.0.1"></script>
 </head>
 <body>
     <div id="app-container">
         <!-- 左側選單 -->
         <aside id="sidebar">
-            <div class="brand">PearlFlow</div>
+            <div class="brand">
+                <img src="logo.png" alt="珍珠聯合會計師事務所 Logo">
+                <div class="brand-title">
+                    <span class="main-name">珍珠聯合會計師事務所</span>
+                    <span class="sub-name">Pearl CPAs Firm v1.0.1</span>
+                </div>
+            </div>
             <nav>
                 <a href="#" class="nav-item active" data-page="page-dashboard.html"> Dashboard 儀表板</a>
                 <a href="#" class="nav-item" data-page="page-matrix.html"> 專案進度矩陣</a>
@@ -30,7 +45,7 @@
                 <div class="page-title"><h3 id="current-page-name">Dashboard 儀表板</h3></div>
                 <div class="user-info">
                     <span id="user-display-name">載入中...</span>
-                    <span id="user-role-badge" style="padding: 2px 8px; background: #eee; border-radius: 4px; font-size: 0.8rem;">Staff</span>
+                    <span id="user-role-badge" style="padding: 2px 8px; background: var(--accent-light); color: var(--primary-color); border-radius: 4px; font-size: 0.8rem; font-weight: 500;">Staff</span>
                     <button class="btn-logout" onclick="handleLogout()">登出</button>
                 </div>
             </header>
