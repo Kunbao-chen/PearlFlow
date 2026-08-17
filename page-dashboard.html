@@ -3,9 +3,9 @@
 ==========================================================================
 PearlFlow - 聚焦看板與專案總覽
 @file        page-dashboard.html
-@version     1.0.1
+@version     1.0.2
 @updated     2026-08-17
-@description 整合 Supabase 資料讀取，呈現今日/本週時效任務與專案動態進度完成率
+@description 移除所有 Hardcode 假資料，完全透過 Supabase 動態讀取專案與時效任務
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -126,7 +126,7 @@ PearlFlow - 聚焦看板與專案總覽
         .empty-state {
             color: var(--text-muted);
             font-size: 0.9rem;
-            padding: 12px 0;
+            padding: 16px 0;
             text-align: center;
         }
     </style>
@@ -142,7 +142,7 @@ PearlFlow - 聚焦看板與專案總覽
                 <span class="badge badge-urgent" id="today-count">0 項待辦</span>
             </div>
             <ul class="task-list" id="today-tasks">
-                <li class="empty-state">載入中...</li>
+                <li class="empty-state">資料載入中...</li>
             </ul>
         </div>
 
@@ -153,7 +153,7 @@ PearlFlow - 聚焦看板與專案總覽
                 <span class="badge badge-warning" id="week-count">0 項待辦</span>
             </div>
             <ul class="task-list" id="week-tasks">
-                <li class="empty-state">載入中...</li>
+                <li class="empty-state">資料載入中...</li>
             </ul>
         </div>
     </div>
@@ -165,7 +165,7 @@ PearlFlow - 聚焦看板與專案總覽
             <span class="badge badge-count" id="project-count">0 個專案</span>
         </div>
         <div class="project-progress-grid" id="project-progress-container">
-            <div class="empty-state">載入專案進度中...</div>
+            <div class="empty-state">資料載入中...</div>
         </div>
     </div>
 
@@ -176,17 +176,23 @@ PearlFlow - 聚焦看板與專案總覽
         });
 
         async function loadDashboardData() {
-            // 若尚無 Supabase 設定，載入模擬資料
+            const projectContainer = document.getElementById('project-progress-container');
+            const todayUl = document.getElementById('today-tasks');
+            const weekUl = document.getElementById('week-tasks');
+
             if (!window.supabase) {
-                renderMockData();
+                const connErrMsg = '<div class="empty-state">尚未設定 Supabase 連線資訊 (js/global-config.js)</div>';
+                projectContainer.innerHTML = connErrMsg;
+                todayUl.innerHTML =connErrMsg;
+                weekUl.innerHTML = connErrMsg;
                 return;
             }
 
             try {
-                // 1. 抓取進行中的專案及其任務計算完成率
+                // 讀取 projects 並 Join 關聯的 tasks
                 const { data: projects, error: pError } = await window.supabase
                     .from('projects')
-                    .select('id, name, status, tasks(id, status, due_date)');
+                    .select('id, name, status, tasks(id, name, status, due_date)');
 
                 if (pError) throw pError;
 
@@ -194,15 +200,21 @@ PearlFlow - 聚焦看板與專案總覽
                     renderProjects(projects);
                     renderUrgentTasks(projects);
                 } else {
-                    renderMockData();
+                    showEmptyState('資料庫目前尚無專案與任務資料');
                 }
             } catch (err) {
-                console.warn('Supabase 連線或讀取失敗，展示模擬數據：', err);
-                renderMockData();
+                console.error('Supabase 讀取錯誤：', err);
+                showEmptyState(`讀取失敗：${err.message || '請確認 SQL Schema 是否已匯入'}`);
             }
         }
 
-        // 渲染專案卡片與進度條 (%)
+        function showEmptyState(msg) {
+            document.getElementById('project-progress-container').innerHTML = `<div class="empty-state">${msg}</div>`;
+            document.getElementById('today-tasks').innerHTML = `<li class="empty-state">${msg}</li>`;
+            document.getElementById('week-tasks').innerHTML = `<li class="empty-state">${msg}</li>`;
+        }
+
+        // 渲染專案卡片與動態進度條 (%)
         function renderProjects(projects) {
             const container = document.getElementById('project-progress-container');
             document.getElementById('project-count').innerText = `${projects.length} 個專案`;
@@ -214,7 +226,7 @@ PearlFlow - 聚焦看板與專案總覽
 
             container.innerHTML = projects.map(p => {
                 const totalTasks = p.tasks ? p.tasks.length : 0;
-                const completedTasks = p.tasks ? p.tasks.filter(t => t.status === 'completed' || t.status === '完成').length : 0;
+                const completedTasks = p.tasks ? p.tasks.filter(t => t.status === 'completed' || t.status === '已完成').length : 0;
                 const percent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
                 return `
@@ -234,7 +246,7 @@ PearlFlow - 聚焦看板與專案總覽
             }).join('');
         }
 
-        // 篩選與渲染聚焦時效任務
+        // 篩選時效任務（今日 / 本週）
         function renderUrgentTasks(projects) {
             const allTasks = [];
             projects.forEach(p => {
@@ -245,11 +257,10 @@ PearlFlow - 聚焦看板與專案總覽
                 }
             });
 
-            // 簡易模擬當前日期的任務比對
             const todayStr = new Date().toISOString().split('T')[0];
 
-            const todayTasks = allTasks.filter(t => t.due_date === todayStr && t.status !== 'completed');
-            const weekTasks = allTasks.filter(t => t.due_date > todayStr && t.status !== 'completed');
+            const todayTasks = allTasks.filter(t => t.due_date === todayStr && t.status !== 'completed' && t.status !== '已完成');
+            const weekTasks = allTasks.filter(t => t.due_date > todayStr && t.status !== 'completed' && t.status !== '已完成');
 
             renderTaskList('today-tasks', 'today-count', todayTasks, 'badge-urgent', '今日到期');
             renderTaskList('week-tasks', 'week-count', weekTasks, 'badge-warning', '本週到期');
@@ -260,7 +271,7 @@ PearlFlow - 聚焦看板與專案總覽
             document.getElementById(countId).innerText = `${tasks.length} 項待辦`;
 
             if (tasks.length === 0) {
-                ul.innerHTML = '<li class="empty-state">🎉 太棒了，目前沒有急迫的待辦事項！</li>';
+                ul.innerHTML = '<li class="empty-state">🎉 目前無待辦事項！</li>';
                 return;
             }
 
@@ -275,44 +286,21 @@ PearlFlow - 聚焦看板與專案總覽
             `).join('');
         }
 
-        // 勾選完成任務處理
+        // 即時打卡/完成狀態更新
         async function toggleTaskStatus(taskId, checkbox) {
-            if (checkbox.checked) {
-                alert('任務標記為完成！');
-                if (window.supabase) {
-                    await window.supabase
-                        .from('tasks')
-                        .update({ status: 'completed' })
-                        .eq('id', taskId);
+            if (checkbox.checked && window.supabase) {
+                const { error } = await window.supabase
+                    .from('tasks')
+                    .update({ status: 'completed' })
+                    .eq('id', taskId);
+
+                if (error) {
+                    alert('更新失敗：' + error.message);
+                    checkbox.checked = false;
+                } else {
+                    loadDashboardData();
                 }
-                loadDashboardData();
             }
-        }
-
-        // 靜態/備用預設資料（確保展示效果）
-        function renderMockData() {
-            const mockProjects = [
-                {
-                    name: '2026 Q3 營業稅申報專案',
-                    tasks: [
-                        { id: '1', name: '台積供應商 7-8 月憑證核對', status: 'in_progress', due_date: new Date().toISOString().split('T')[0] },
-                        { id: '2', name: '華碩供應鏈扣繳資料上傳', status: 'in_progress', due_date: new Date().toISOString().split('T')[0] },
-                        { id: '3', name: '進項稅額扣抵清單查核', status: 'completed', due_date: '2026-08-15' },
-                        { id: '4', name: '銷項發票彙整', status: 'completed', due_date: '2026-08-14' }
-                    ]
-                },
-                {
-                    name: '年度財報查核專案',
-                    tasks: [
-                        { id: '5', name: '大元科技資本額變更簽章', status: 'in_progress', due_date: '2026-08-19' },
-                        { id: '6', name: '聯發創投 Q2 查核報告初稿', status: 'in_progress', due_date: '2026-08-21' },
-                        { id: '7', name: '盤點庫存資產', status: 'completed', due_date: '2026-08-10' }
-                    ]
-                }
-            ];
-
-            renderProjects(mockProjects);
-            renderUrgentTasks(mockProjects);
         }
     </script>
 </body>
