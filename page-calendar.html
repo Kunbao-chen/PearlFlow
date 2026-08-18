@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PearlFlow - 珍珠聯合會計師事務所 | 事務所行事曆</title>
+    <link rel="stylesheet" href="css/theme.css?v=1.0.3">
+    <!-- 引入 Supabase JS SDK CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/global-config.js?v=1.0.6"></script>
+    <style>
+        .calendar-container {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            border: 1px solid #f0eae1;
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+        .weekday-header {
+            text-align: center;
+            font-weight: 600;
+            color: #7d7268;
+            padding: 8px 0;
+            background: #faf6f0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        .calendar-day {
+            min-height: 110px;
+            background: #fcfbfa;
+            border: 1px solid #f3eee8;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .calendar-day.empty {
+            background: transparent;
+            border: none;
+        }
+        .day-number {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #5a524c;
+            margin-bottom: 4px;
+        }
+        .task-chip {
+            font-size: 0.75rem;
+            padding: 4px 6px;
+            border-radius: 4px;
+            background: #fff3e0;
+            color: #d97706;
+            border-left: 3px solid #f59e0b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+        .task-chip.completed {
+            background: #ecfdf5;
+            color: #059669;
+            border-left-color: #10b981;
+            text-decoration: line-through;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <!-- 左側選單由外殼或 JavaScript 動態維護 -->
+        <main class="main-content">
+            <header class="content-header">
+                <h2>📅 事務所行事曆 (Calendar)</h2>
+            </header>
+
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <button class="btn btn-secondary" onclick="changeMonth(-1)">◀ 上一個月</button>
+                    <h3 id="current-month-display" style="margin: 0; color: #4a423a;">載入中...</h3>
+                    <button class="btn btn-secondary" onclick="changeMonth(1)">下一個月 ▶</button>
+                </div>
+
+                <div class="calendar-grid">
+                    <div class="weekday-header">日</div>
+                    <div class="weekday-header">一</div>
+                    <div class="weekday-header">二</div>
+                    <div class="weekday-header">三</div>
+                    <div class="weekday-header">四</div>
+                    <div class="weekday-header">五</div>
+                    <div class="weekday-header">六</div>
+                </div>
+
+                <div class="calendar-grid" id="calendar-days" style="margin-top: 8px;">
+                    <!-- 動態生成日期與任務卡片 -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let currentDate = new Date();
+        let tasksData = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchCalendarTasks();
+            renderCalendar();
+        });
+
+        async function fetchCalendarTasks() {
+            if (!window.supabaseClient) return;
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('tasks')
+                    .select('*, projects(project_name)');
+                if (error) throw error;
+                tasksData = data || [];
+            } catch (err) {
+                console.error('行事曆任務資料取得失敗:', err);
+            }
+        }
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            document.getElementById('current-month-display').textContent = `${year} 年 ${month + 1} 月`;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const calendarDays = document.getElementById('calendar-days');
+            calendarDays.innerHTML = '';
+
+            // 補齊月初空白填充格
+            for (let i = 0; i < firstDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'calendar-day empty';
+                calendarDays.appendChild(emptyCell);
+            }
+
+            // 渲染當月日期格子
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'calendar-day';
+
+                const dayNum = document.createElement('div');
+                dayNum.className = 'day-number';
+                dayNum.textContent = day;
+                dayCell.appendChild(dayNum);
+
+                // 格式化 YYYY-MM-DD 比對任務
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayTasks = tasksData.filter(t => t.due_date === dateStr);
+
+                dayTasks.forEach(task => {
+                    const chip = document.createElement('div');
+                    chip.className = `task-chip ${task.status === 'completed' ? 'completed' : ''}`;
+                    chip.textContent = task.task_name;
+                    chip.title = `${task.projects?.project_name || '未指定專案'} - ${task.task_name}`;
+                    dayCell.appendChild(chip);
+                });
+
+                calendarDays.appendChild(dayCell);
+            }
+        }
+
+        function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            renderCalendar();
+        }
+    </script>
+</body>
+</html>
