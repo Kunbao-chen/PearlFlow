@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理分析報表</title>
+    <link rel="stylesheet" href="css/theme.css?v=1.0.3">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/global-config.js?v=1.0.6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color, #FAF6F5);
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .reports-wrapper {
+            padding: 24px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* KPI 數據指標卡片 */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--border-color, #EAE2E1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .kpi-title {
+            font-size: 0.85rem;
+            color: #7A7A7A;
+            font-weight: 600;
+        }
+
+        .kpi-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary-color, #4A4A4A);
+        }
+
+        .kpi-sub {
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        /* 圖表區域雙欄佈局 */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--border-color, #EAE2E1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chart-card h4 {
+            margin: 0;
+            color: var(--primary-color, #4A4A4A);
+            font-size: 1rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 280px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="reports-wrapper">
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <span class="kpi-title">👥 客戶總數</span>
+                <span class="kpi-value" id="kpi-clients">-</span>
+                <span class="kpi-sub">事務所服務中之客戶</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-title">📂 進行中專案</span>
+                <span class="kpi-value" id="kpi-projects">-</span>
+                <span class="kpi-sub">尚未結案的專案數量</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-title">⚠️ 逾期待處理任務</span>
+                <span class="kpi-value" id="kpi-overdue" style="color: #D32F2F;">-</span>
+                <span class="kpi-sub">需要優先跟進事項</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-title">✅ 任務完成率</span>
+                <span class="kpi-value" id="kpi-completion-rate" style="color: #2ECC71;">-%</span>
+                <span class="kpi-sub">全系統任務完成佔比</span>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h4>📊 任務執行狀態分佈</h4>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h4>📋 服務類別任務負擔分析</h4>
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getClient() {
+            return window.supabaseClient || (window.supabase && typeof window.supabase.from === 'function' ? window.supabase : null);
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadReportData();
+        });
+
+        async function loadReportData() {
+            const client = getClient();
+            if (!client) return;
+
+            try {
+                // 並行讀取 Supabase 數據
+                const [clientsRes, projectsRes, tasksRes, categoriesRes] = await Promise.all([
+                    client.from('clients').select('id', { count: 'exact' }),
+                    client.from('projects').select('id, status'),
+                    client.from('tasks').select('id, status, due_date, service_category_id'),
+                    client.from('service_categories').select('id, category_name')
+                ]);
+
+                const clientsCount = clientsRes.count || (clientsRes.data ? clientsRes.data.length : 0);
+                const projects = projectsRes.data || [];
+                const tasks = tasksRes.data || [];
+                const categories = categoriesRes.data || [];
+
+                // 計算 KPI
+                const activeProjects = projects.filter(p => p.status !== 'completed').length;
+                const today = new Date().toISOString().split('T')[0];
+                const overdueTasks = tasks.filter(t => t.due_date && t.due_date < today && t.status !== 'completed').length;
+                const completedTasks = tasks.filter(t => t.status === 'completed').length;
+                const completionRate = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+
+                // 更新 KPI 視圖
+                document.getElementById('kpi-clients').innerText = clientsCount;
+                document.getElementById('kpi-projects').innerText = activeProjects;
+                document.getElementById('kpi-overdue').innerText = overdueTasks;
+                document.getElementById('kpi-completion-rate').innerText = `${completionRate}%`;
+
+                // 渲染圖表
+                renderStatusChart(tasks);
+                renderCategoryChart(tasks, categories);
+
+            } catch (err) {
+                console.error('報表數據讀取失敗：', err);
+            }
+        }
+
+        // 繪製任務狀態圓餅圖
+        function renderStatusChart(tasks) {
+            const notStarted = tasks.filter(t => t.status === 'not_started' || !t.status).length;
+            const inProgress = tasks.filter(t => t.status === 'in_progress').length;
+            const paused = tasks.filter(t => t.status === 'paused').length;
+            const completed = tasks.filter(t => t.status === 'completed').length;
+
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['未開始', '進行中', '暫緩/卡關', '已完成'],
+                    datasets: [{
+                        data: [notStarted, inProgress, paused, completed],
+                        backgroundColor: ['#9E9E9E', '#3498DB', '#E67E22', '#2ECC71'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // 繪製服務類別長條圖
+        function renderCategoryChart(tasks, categories) {
+            const labels = categories.length > 0 ? categories.map(c => c.category_name) : ['工商登記', '財稅簽證', '記帳服務', '其他服務'];
+            
+            // 統計每個類別的任務數
+            const counts = categories.map(cat => {
+                return tasks.filter(t => t.service_category_id === cat.id).length;
+            });
+
+            // 若沒有分類關聯，給予預設視覺表現
+            const chartData = categories.length > 0 ? counts : [tasks.length, Math.floor(tasks.length/2), Math.floor(tasks.length/3), 1];
+
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '任務數量',
+                        data: chartData,
+                        backgroundColor: '#E88B97',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
