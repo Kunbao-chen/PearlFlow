@@ -1,10 +1,20 @@
 <!DOCTYPE html>
+<!--
+==========================================================================
+PearlFlow - 珍珠聯合會計師事務所 主入口外殼網頁
+@file        index.html
+@version     1.0.6
+@updated     2026-08-18
+@description 替換品牌區域為完整 Logo 圖片
+==========================================================================
+-->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PearlFlow - 珍珠聯合會計師事務所</title>
     <link rel="stylesheet" href="css/theme.css?v=1.0.3">
+    <!-- 引入 Supabase JS SDK (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/global-config.js?v=1.0.6"></script>
     <style>
@@ -32,6 +42,23 @@
             border-right: 1px solid var(--border-color, #EAE2E1);
             display: flex;
             flex-direction: column;
+        }
+
+        /* 品牌區：直接顯示 logo.png */
+        .brand {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color, #EAE2E1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 60px;
+            box-sizing: border-box;
+        }
+
+        .brand img {
+            max-width: 100%;
+            max-height: 36px;
+            object-fit: contain;
         }
 
         /* 主內容框架區域 */
@@ -73,9 +100,10 @@
 </head>
 <body>
     <div id="app-container">
+        <!-- 左側導覽選單 -->
         <aside id="sidebar">
-            <div class="brand" style="padding: 20px; border-bottom: 1px solid var(--border-color, #EAE2E1);">
-                <span class="main-name" style="font-weight: bold; color: var(--primary-color, #4A4A4A);">珍珠聯合會計師事務所</span>
+            <div class="brand">
+                <img src="logo.png" alt="珍珠聯合會計師事務所 Logo">
             </div>
             
             <nav style="flex: 1; padding: 12px 0;">
@@ -90,6 +118,7 @@
             </div>
         </aside>
 
+        <!-- 右側內容區 -->
         <div id="main-wrapper">
             <header id="header">
                 <div class="page-title">
@@ -97,6 +126,7 @@
                 </div>
             </header>
             
+            <!-- 載入指定網頁檔 -->
             <iframe id="content-frame" src="page-dashboard.html"></iframe>
         </div>
     </div>
