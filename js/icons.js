@@ -2,13 +2,12 @@
 ==========================================================================
 PearlFlow - 全域 SVG 圖示管理庫
 @file        js/icons.js
-@version     1.1.0
-@updated     2026-08-18
 @description 統一管理全系統 SVG Icon，支援全域風格替換與動態渲染
 ==========================================================================
 */
 
 const PFIcons = {
+    // 圖示 SVG Path 字典 (可隨時替換風格)
     symbols: {
         'dashboard': '<path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>',
         'matrix': '<path d="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z"/>',
@@ -24,11 +23,13 @@ const PFIcons = {
         'close': '<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>'
     },
 
+    // 渲染 SVG 字串
     render(name, size = 18, className = 'pf-icon') {
         const path = this.symbols[name] || '';
         return `<svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor">${path}</svg>`;
     },
 
+    // 自動搜尋帶有 data-pf-icon 的 HTML 元素並注入 SVG
     init() {
         document.querySelectorAll('[data-pf-icon]').forEach(el => {
             const iconName = el.getAttribute('data-pf-icon');
@@ -38,6 +39,7 @@ const PFIcons = {
     }
 };
 
+// 頁面載入完成後自動執行
 document.addEventListener('DOMContentLoaded', () => {
     PFIcons.init();
 });
