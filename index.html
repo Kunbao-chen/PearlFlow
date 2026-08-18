@@ -8,40 +8,84 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/global-config.js?v=1.0.6"></script>
     <style>
-        /* 強制將外殼主框架拉到 100% 寬度 */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color, #FAF6F5);
+        }
+
+        #app-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 側邊導覽欄 */
+        #sidebar {
+            width: 240px;
+            flex-shrink: 0;
+            background-color: #FFFFFF;
+            border-right: 1px solid var(--border-color, #EAE2E1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 主內容框架區域 */
         #main-wrapper {
             flex: 1;
             display: flex;
             flex-direction: column;
-            width: calc(100% - 240px); /* 扣除側邊欄寬度 */
+            width: calc(100vw - 240px);
             height: 100vh;
             overflow: hidden;
         }
 
+        #header {
+            height: var(--header-height, 60px);
+            background-color: #FFFFFF;
+            border-bottom: 1px solid var(--border-color, #EAE2E1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            flex-shrink: 0;
+        }
+
+        #header .page-title h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--primary-color, #4A4A4A);
+        }
+
+        /* 滿版無縫 iframe */
         #content-frame {
-            width: 100% !important;
-            height: calc(100vh - var(--header-height, 60px)) !important;
+            width: 100%;
+            height: calc(100vh - 60px);
             border: none;
             display: block;
+            background-color: var(--bg-color, #FAF6F5);
         }
     </style>
 </head>
 <body>
-    <div id="app-container" style="display: flex; width: 100vw; height: 100vh; overflow: hidden;">
+    <div id="app-container">
         <aside id="sidebar">
-            <div class="brand">
-                <img src="logo.png" alt="Logo" onerror="this.style.display='none'">
-                <div class="brand-title">
-                    <span class="main-name">珍珠聯合會計師事務所</span>
-                </div>
+            <div class="brand" style="padding: 20px; border-bottom: 1px solid var(--border-color, #EAE2E1);">
+                <span class="main-name" style="font-weight: bold; color: var(--primary-color, #4A4A4A);">珍珠聯合會計師事務所</span>
             </div>
-            <nav>
-                <a href="#" class="nav-item active" data-page="page-dashboard.html"> Dashboard 儀表板</a>
-                <a href="#" class="nav-item" data-page="page-matrix.html"> 專案進度矩陣</a>
-                <a href="#" class="nav-item" data-page="page-calendar.html"> 事務所行事曆</a>
+            
+            <nav style="flex: 1; padding: 12px 0;">
+                <a href="#" class="nav-item active" data-page="page-dashboard.html">📊 Dashboard 儀表板</a>
+                <a href="#" class="nav-item" data-page="page-matrix.html">🧩 專案進度矩陣</a>
+                <a href="#" class="nav-item" data-page="page-calendar.html">📅 事務所行事曆</a>
             </nav>
-            <div class="user-profile" style="padding: 16px; border-top: 1px solid var(--border-color); margin-top: auto;">
-                <span id="user-display-name" style="font-size: 0.85rem; color: var(--text-muted);">載入中...</span>
+
+            <div class="user-profile" style="padding: 16px; border-top: 1px solid var(--border-color, #EAE2E1); margin-top: auto;">
+                <span id="user-display-name" style="font-size: 0.85rem; color: #7A7A7A;">載入中...</span>
                 <button onclick="handleLogout()" style="margin-top: 8px; width: 100%; padding: 6px; background: #FFF0F0; color: #D32F2F; border: 1px solid #FFCDD2; border-radius: 4px; cursor: pointer;">登出</button>
             </div>
         </aside>
@@ -49,15 +93,16 @@
         <div id="main-wrapper">
             <header id="header">
                 <div class="page-title">
-                    <h3 id="current-page-name">Dashboard 儀表板</h3>
+                    <h3 id="current-page-name">📊 Dashboard 儀表板</h3>
                 </div>
             </header>
+            
             <iframe id="content-frame" src="page-dashboard.html"></iframe>
         </div>
     </div>
 
     <script>
-        // 側邊欄切換邏輯
+        // 切換頁面：單純替換 iframe src 與標題
         document.querySelectorAll('#sidebar nav .nav-item').forEach(item => {
             item.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -72,29 +117,19 @@
             });
         });
 
-        // 登出處理
+        // 登出與身份檢查
         async function handleLogout() {
             if (confirm('確定要登出系統嗎？')) {
-                if (window.supabase) {
-                    await window.supabase.auth.signOut();
-                }
+                if (window.supabase) await window.supabase.auth.signOut();
                 sessionStorage.clear();
-                alert('已成功登出');
                 window.location.reload();
             }
         }
 
-        // 初始化檢查登入狀態
         window.addEventListener('DOMContentLoaded', async () => {
             if (window.supabase) {
                 const { data: { session } } = await window.supabase.auth.getSession();
-                if (session) {
-                    document.getElementById('user-display-name').innerText = session.user.email || '使用者';
-                } else {
-                    document.getElementById('user-display-name').innerText = '未登入 (訪客模式)';
-                }
-            } else {
-                document.getElementById('user-display-name').innerText = '系統初始化中';
+                document.getElementById('user-display-name').innerText = session ? (session.user.email || '使用者') : '未登入 (訪客模式)';
             }
         });
     </script>
