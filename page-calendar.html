@@ -9,33 +9,57 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/global-config.js?v=1.0.6"></script>
     <style>
-        .calendar-container {
+        /* 兩欄式主佈局 */
+        .calendar-layout {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            min-height: calc(100vh - 120px);
+        }
+        
+        /* 左側滿版行事曆 */
+        .calendar-main {
+            flex: 1;
             background: #ffffff;
             border-radius: 12px;
             padding: 24px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
             border: 1px solid #f0eae1;
+            display: flex;
+            flex-direction: column;
         }
+        
         .calendar-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
         }
+
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 8px;
         }
+
         .weekday-header {
             text-align: center;
             font-weight: 600;
             color: #7d7268;
-            padding: 8px 0;
+            padding: 10px 0;
             background: #faf6f0;
             border-radius: 6px;
             font-size: 0.9rem;
         }
+
+        .calendar-days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            flex: 1;
+            margin-top: 8px;
+        }
+
         .calendar-day {
             min-height: 110px;
             background: #fcfbfa;
@@ -45,17 +69,28 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
+            transition: all 0.2s ease;
+            cursor: pointer;
         }
+
+        .calendar-day:hover {
+            border-color: #d97706;
+            background-color: #fffdfa;
+        }
+
         .calendar-day.empty {
             background: transparent;
             border: none;
+            cursor: default;
         }
+
         .day-number {
             font-size: 0.85rem;
             font-weight: 600;
             color: #5a524c;
             margin-bottom: 4px;
         }
+
         .task-chip {
             font-size: 0.75rem;
             padding: 4px 6px;
@@ -68,41 +103,99 @@
             text-overflow: ellipsis;
             cursor: pointer;
         }
+
         .task-chip.completed {
             background: #ecfdf5;
             color: #059669;
             border-left-color: #10b981;
             text-decoration: line-through;
         }
+
+        /* 右側 Outlook 風格邊窗預覽 */
+        .calendar-sidebar {
+            width: 320px;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            border: 1px solid #f0eae1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .preview-card {
+            background: #fcfbfa;
+            border: 1px solid #f3eee8;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .preview-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #4a423a;
+            margin-bottom: 8px;
+        }
+
+        .preview-item {
+            font-size: 0.9rem;
+            color: #6b635b;
+            margin-bottom: 6px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-pending { background: #fef3c7; color: #d97706; }
+        .status-completed { background: #d1fae5; color: #059669; }
     </style>
 </head>
 <body>
     <div id="app-container">
-        <!-- 左側選單由外殼或 JavaScript 動態維護 -->
-        <main class="main-content">
-            <header class="content-header">
+        <main class="main-content" style="padding: 20px;">
+            <header class="content-header" style="margin-bottom: 16px;">
                 <h2>📅 事務所行事曆 (Calendar)</h2>
             </header>
 
-            <div class="calendar-container">
-                <div class="calendar-header">
-                    <button class="btn btn-secondary" onclick="changeMonth(-1)">◀ 上一個月</button>
-                    <h3 id="current-month-display" style="margin: 0; color: #4a423a;">載入中...</h3>
-                    <button class="btn btn-secondary" onclick="changeMonth(1)">下一個月 ▶</button>
+            <div class="calendar-layout">
+                <!-- 左側：滿版日曆 -->
+                <div class="calendar-main">
+                    <div class="calendar-header">
+                        <button class="btn btn-secondary" onclick="changeMonth(-1)">◀ 上一個月</button>
+                        <h3 id="current-month-display" style="margin: 0; color: #4a423a;">載入中...</h3>
+                        <button class="btn btn-secondary" onclick="changeMonth(1)">下一個月 ▶</button>
+                    </div>
+
+                    <div class="calendar-grid">
+                        <div class="weekday-header">日</div>
+                        <div class="weekday-header">一</div>
+                        <div class="weekday-header">二</div>
+                        <div class="weekday-header">三</div>
+                        <div class="weekday-header">四</div>
+                        <div class="weekday-header">五</div>
+                        <div class="weekday-header">六</div>
+                    </div>
+
+                    <div class="calendar-days-grid" id="calendar-days">
+                        <!-- 動態生成日期格子 -->
+                    </div>
                 </div>
 
-                <div class="calendar-grid">
-                    <div class="weekday-header">日</div>
-                    <div class="weekday-header">一</div>
-                    <div class="weekday-header">二</div>
-                    <div class="weekday-header">三</div>
-                    <div class="weekday-header">四</div>
-                    <div class="weekday-header">五</div>
-                    <div class="weekday-header">六</div>
-                </div>
-
-                <div class="calendar-grid" id="calendar-days" style="margin-top: 8px;">
-                    <!-- 動態生成日期與任務卡片 -->
+                <!-- 右側：Outlook 風格側邊預覽窗 -->
+                <div class="calendar-sidebar">
+                    <h3 style="margin: 0; color: #4a423a; font-size: 1.1rem;">📋 任務細節預覽</h3>
+                    <hr style="border: 0; border-top: 1px solid #f0eae1; margin: 0;">
+                    
+                    <div id="preview-content">
+                        <p style="color: #9ca3af; font-size: 0.9rem; text-align: center; margin-top: 40px;">
+                            點擊日曆上的任務或日期<br>即可在此處預覽詳細內容
+                        </p>
+                    </div>
                 </div>
             </div>
         </main>
@@ -122,7 +215,7 @@
             try {
                 const { data, error } = await window.supabaseClient
                     .from('tasks')
-                    .select('*, projects(project_name)');
+                    .select('*, projects(project_name, clients(client_name))');
                 if (error) throw error;
                 tasksData = data || [];
             } catch (err) {
@@ -141,14 +234,14 @@
             const calendarDays = document.getElementById('calendar-days');
             calendarDays.innerHTML = '';
 
-            // 補齊月初空白填充格
+            // 填充月初空白
             for (let i = 0; i < firstDay; i++) {
                 const emptyCell = document.createElement('div');
                 emptyCell.className = 'calendar-day empty';
                 calendarDays.appendChild(emptyCell);
             }
 
-            // 渲染當月日期格子
+            // 渲染當月日曆
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayCell = document.createElement('div');
                 dayCell.className = 'calendar-day';
@@ -158,20 +251,75 @@
                 dayNum.textContent = day;
                 dayCell.appendChild(dayNum);
 
-                // 格式化 YYYY-MM-DD 比對任務
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const dayTasks = tasksData.filter(t => t.due_date === dateStr);
+
+                dayCell.onclick = (e) => {
+                    if (e.target === dayCell || e.target === dayNum) {
+                        showDayPreview(dateStr, dayTasks);
+                    }
+                };
 
                 dayTasks.forEach(task => {
                     const chip = document.createElement('div');
                     chip.className = `task-chip ${task.status === 'completed' ? 'completed' : ''}`;
                     chip.textContent = task.task_name;
-                    chip.title = `${task.projects?.project_name || '未指定專案'} - ${task.task_name}`;
+                    chip.onclick = (e) => {
+                        e.stopPropagation();
+                        showTaskPreview(task);
+                    };
                     dayCell.appendChild(chip);
                 });
 
                 calendarDays.appendChild(dayCell);
             }
+        }
+
+        function showTaskPreview(task) {
+            const sidebar = document.getElementById('preview-content');
+            const clientName = task.projects?.clients?.client_name || '未指定客戶';
+            const projectName = task.projects?.project_name || '未指定專案';
+            const isCompleted = task.status === 'completed';
+
+            sidebar.innerHTML = `
+                <div class="preview-card">
+                    <div class="preview-title">${task.task_name}</div>
+                    <div class="preview-item"><strong>客戶：</strong>${clientName}</div>
+                    <div class="preview-item"><strong>專案：</strong>${projectName}</div>
+                    <div class="preview-item"><strong>到期日：</strong>${task.due_date || '未定'}</div>
+                    <div class="preview-item" style="margin-top: 10px;">
+                        <strong>狀態：</strong>
+                        <span class="status-badge ${isCompleted ? 'status-completed' : 'status-pending'}">
+                            ${isCompleted ? '已完成' : '待辦中'}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showDayPreview(dateStr, tasks) {
+            const sidebar = document.getElementById('preview-content');
+            if (tasks.length === 0) {
+                sidebar.innerHTML = `
+                    <div class="preview-card">
+                        <div class="preview-title">${dateStr}</div>
+                        <div class="preview-item" style="color: #9ca3af;">當日無排定任務</div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `<h4 style="margin: 0 0 10px 0; color: #5a524c;">${dateStr} 當日任務列表</h4>`;
+            tasks.forEach(t => {
+                const isCompleted = t.status === 'completed';
+                html += `
+                    <div class="preview-card" style="margin-bottom: 8px; cursor: pointer;" onclick='showTaskPreview(${JSON.stringify(t)})'>
+                        <div style="font-weight: 600; color: #4a423a;">${t.task_name}</div>
+                        <div style="font-size: 0.8rem; color: #7d7268;">${t.projects?.project_name || '未指定專案'}</div>
+                    </div>
+                `;
+            });
+            sidebar.innerHTML = html;
         }
 
         function changeMonth(delta) {
