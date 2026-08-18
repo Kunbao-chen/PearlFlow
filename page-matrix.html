@@ -1,27 +1,36 @@
 <!DOCTYPE html>
+<!--
+==========================================================================
+PearlFlow - 專案進度矩陣
+@file        page-matrix.html
+@description 專案進度矩陣，支援動態新增客戶、建立專案與同步寫入 Supabase 雲端
+==========================================================================
+-->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>專案進度矩陣</title>
-    <link rel="stylesheet" href="css/theme.css?v=1.2.0">
+    <!-- 不鎖版號引入 -->
+    <link rel="stylesheet" href="css/theme.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/global-config.js?v=1.0.6"></script>
-    <script src="js/icons.js?v=1.1.0"></script>
+    <script src="js/global-config.js"></script>
+    <script src="js/icons.js"></script>
     <style>
         * { box-sizing: border-box; }
         body { padding: 24px; font-family: system-ui, -apple-system, sans-serif; background: transparent; margin: 0; }
         .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-primary { background: var(--primary-color); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--primary-color); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; }
         .btn-primary:hover { background: var(--primary-hover); }
-        .btn-secondary { background: #fff; color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px; }
-        .matrix-table { width: 100%; border-collapse: separate; border-spacing: 0; background: rgba(255, 255, 255, 0.92); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; }
+        .btn-secondary { background: #fff; color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+        .btn-secondary:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .matrix-table { width: 100%; border-collapse: separate; border-spacing: 0; background: rgba(255, 255, 255, 0.92); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; backdrop-filter: blur(8px); box-shadow: var(--shadow-soft); }
         .matrix-table th, .matrix-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border-color); }
-        .matrix-table th { background: var(--primary-light); color: var(--primary-color); font-weight: 600; }
+        .matrix-table th { background: var(--primary-light); color: var(--primary-color); font-weight: 600; font-size: 0.92rem; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 100; }
-        .modal-body { background: #fff; width: 620px; max-width: 92%; max-height: 85vh; overflow-y: auto; border-radius: 12px; padding: 24px; }
+        .modal-body { background: #fff; width: 620px; max-width: 92%; max-height: 85vh; overflow-y: auto; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
         .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; }
+        .form-group label { display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: #444; }
         .form-control { width: 100%; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; }
         .dynamic-task-row { display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; margin-bottom: 8px; align-items: center; }
     </style>
@@ -48,11 +57,12 @@
             <tr>
                 <th>客戶名稱</th>
                 <th>專案名稱</th>
-                <th>專案步驟進度</th>
+                <th>執行步驟數量</th>
+                <th>建立時間</th>
             </tr>
         </thead>
         <tbody id="matrix-tbody">
-            <tr><td colspan="3" style="text-align: center; color: #888;">資料載入中...</td></tr>
+            <tr><td colspan="4" style="text-align: center; color: #888;">資料載入中...</td></tr>
         </tbody>
     </table>
 
@@ -60,7 +70,7 @@
     <div class="modal-overlay" id="createProjectModal">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="margin: 0; color: var(--primary-color);">新增事務所服務專案</h3>
+                <h3 style="margin: 0; color: var(--primary-color); font-size: 1.15rem;">新增事務所服務專案</h3>
                 <span data-pf-icon="close" style="cursor: pointer; color: #888;" onclick="closeCreateProjectModal()"></span>
             </div>
 
@@ -87,9 +97,9 @@
             </div>
 
             <div class="form-group">
-                <label style="display: flex; justify-content: space-between;">
+                <label style="display: flex; justify-content: space-between; align-items: center;">
                     <span>專案執行步驟</span>
-                    <button type="button" onclick="addCustomTaskRow()" style="color: var(--primary-color); border: none; background: none; cursor: pointer; font-weight: 600;">＋ 新增步驟</button>
+                    <button type="button" onclick="addCustomTaskRow()" style="color: var(--primary-color); border: none; background: none; cursor: pointer; font-size: 0.82rem; font-weight: 600;">＋ 新增步驟</button>
                 </label>
                 <div id="project-tasks-list"></div>
             </div>
@@ -107,13 +117,12 @@
             'training': [ { name: '訪談客戶確定大綱', days: 2 }, { name: '撰寫講義教材', days: 7 }, { name: '現場授課與 Q&A', days: 10 } ]
         };
 
-        // 頁面載入後自動讀取雲端資料
         document.addEventListener('DOMContentLoaded', async () => {
             await loadClientsDropdown();
             await loadMatrixData();
         });
 
-        // 1. 讀取客戶清單至下拉選單
+        // 1. 讀取 Supabase 客戶清單
         async function loadClientsDropdown() {
             const select = document.getElementById('project-client-select');
             if (!window.supabase) return;
@@ -128,7 +137,7 @@
             select.innerHTML += '<option value="NEW_CLIENT" style="color: var(--primary-color); font-weight: bold;">＋ 新增其他客戶...</option>';
         }
 
-        // 2. 處理新增客戶邏輯
+        // 2. 新增客戶彈窗與寫入流程
         async function handleClientSelectChange(val) {
             if (val === 'NEW_CLIENT') {
                 const clientName = prompt('請輸入新客戶名稱（例：台積電股份有限公司）：');
@@ -137,14 +146,14 @@
                     return;
                 }
 
-                // 寫入 Supabase clients 表
                 const { data, error } = await window.supabase.from('clients').insert([{ name: clientName }]).select();
                 if (error) {
                     alert('新增客戶失敗：' + error.message);
+                    document.getElementById('project-client-select').value = '';
                     return;
                 }
 
-                alert(`客戶「${clientName}」已成功新增至雲端！`);
+                alert(`客戶「${clientName}」已成功新增！`);
                 await loadClientsDropdown();
                 document.getElementById('project-client-select').value = data[0].id;
             }
@@ -174,12 +183,12 @@
             div.innerHTML = `
                 <input type="text" class="form-control task-name-input" placeholder="步驟名稱" value="${name}">
                 <input type="number" class="form-control task-days-input" placeholder="天數" value="${days}">
-                <button type="button" onclick="this.parentElement.remove()" style="color: #d32f2f; border: none; background: none; cursor: pointer;">✕</button>
+                <button type="button" onclick="this.parentElement.remove()" style="color: #d32f2f; border: none; background: none; cursor: pointer; font-weight: bold;">✕</button>
             `;
             document.getElementById('project-tasks-list').appendChild(div);
         }
 
-        // 3. 真實寫入 Supabase 資料庫
+        // 3. 寫入 projects 與 project_tasks 兩張資料表
         async function submitCreateProject() {
             const clientId = document.getElementById('project-client-select').value;
             const projectName = document.getElementById('project-name').value.trim();
@@ -192,7 +201,7 @@
             btn.innerText = '寫入雲端中...';
 
             try {
-                // Step A: 寫入 projects 表
+                // A. 寫入專案主表
                 const { data: projectData, error: pError } = await window.supabase
                     .from('projects')
                     .insert([{ client_id: clientId, name: projectName, status: '進行中' }])
@@ -201,7 +210,7 @@
                 if (pError) throw pError;
                 const projectId = projectData[0].id;
 
-                // Step B: 蒐集步驟並批次寫入 project_tasks 表
+                // B. 寫入專案步驟表
                 const taskRows = document.querySelectorAll('.dynamic-task-row');
                 const tasksToInsert = [];
 
@@ -223,45 +232,47 @@
                     if (tError) throw tError;
                 }
 
-                alert('專案已成功同步至 Supabase 雲端！');
+                alert('專案已成功建立並同步至 Supabase！');
                 closeCreateProjectModal();
-                await loadMatrixData(); // 重新讀取雲端資料
+                await loadMatrixData();
             } catch (err) {
-                alert('寫入雲端失敗：' + err.message);
+                alert('寫入失敗：' + err.message);
             } finally {
                 btn.disabled = false;
                 btn.innerText = '確認建立並同步至雲端';
             }
         }
 
-        // 4. 從雲端讀取矩陣資料並渲染
+        // 4. 從雲端讀取資料並渲染表格
         async function loadMatrixData() {
             const tbody = document.getElementById('matrix-tbody');
             if (!window.supabase) return;
 
             const { data: projects, error } = await window.supabase
                 .from('projects')
-                .select('id, name, clients(name), project_tasks(task_name)')
+                .select('id, name, created_at, clients(name), project_tasks(task_name)')
                 .order('created_at', { ascending: false });
 
             if (error) {
-                tbody.innerHTML = `<tr><td colspan="3" style="color: red;">讀取失敗：${error.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" style="color: red;">讀取失敗：${error.message}</td></tr>`;
                 return;
             }
 
             if (!projects || projects.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #888;">目前雲端資料庫尚無專案資料</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #888;">目前雲端資料庫尚無專案資料</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = projects.map(p => {
                 const clientName = p.clients ? p.clients.name : '未知客戶';
                 const taskCount = p.project_tasks ? p.project_tasks.length : 0;
+                const createdDate = new Date(p.created_at).toLocaleDateString('zh-TW');
                 return `
                     <tr>
                         <td style="font-weight: 600;">${clientName}</td>
                         <td>${p.name}</td>
-                        <td>含 ${taskCount} 個執行步驟</td>
+                        <td>含 ${taskCount} 個 SOP 步驟</td>
+                        <td style="color: #666; font-size: 0.88rem;">${createdDate}</td>
                     </tr>
                 `;
             }).join('');
