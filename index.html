@@ -1,14 +1,21 @@
 <!DOCTYPE html>
+<!--
+==========================================================================
+PearlFlow - 主系統外框
+@file        index.html
+@description 系統導覽列與 iframe 主畫面外框（採用不鎖版號引入機制）
+==========================================================================
+-->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PearlFlow - 珍珠聯合會計師事務所</title>
-    <link rel="stylesheet" href="css/theme.css?v=1.2.0">
+    <!-- 不鎖版號引入 -->
+    <link rel="stylesheet" href="css/theme.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/global-config.js?v=1.0.6"></script>
-    <!-- 引入全域 Icon 庫 -->
-    <script src="js/icons.js?v=1.0.0"></script>
+    <script src="js/global-config.js"></script>
+    <script src="js/icons.js"></script>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
         #app-container { display: flex; width: 100vw; height: 100vh; }
@@ -50,7 +57,6 @@
                 <img src="logo.png" alt="珍珠聯合會計師事務所 Logo">
             </div>
             
-            <!-- 選單項目使用 data-pf-icon 簡化 -->
             <nav style="flex: 1; padding: 16px 0; overflow-y: auto;">
                 <a href="#" class="nav-item active" data-page="page-dashboard.html">
                     <span data-pf-icon="dashboard"></span>
