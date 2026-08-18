@@ -9,24 +9,30 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/global-config.js?v=1.0.6"></script>
     <style>
-        /* 兩欄式主佈局 */
+        /* 強制破除外部容器的最大寬度限制 */
+        body, #app-container, .main-content {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box;
+        }
+
+        /* 雙欄滿版佈局 */
         .calendar-layout {
             display: flex;
             gap: 20px;
-            width: 100%;
-            min-height: calc(100vh - 120px);
+            width: 100% !important;
+            box-sizing: border-box;
         }
         
-        /* 左側滿版行事曆 */
+        /* 左側：強行拉寬的主日曆區域 */
         .calendar-main {
-            flex: 1;
+            flex: 1 1 auto;
             background: #ffffff;
             border-radius: 12px;
             padding: 24px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
             border: 1px solid #f0eae1;
-            display: flex;
-            flex-direction: column;
+            box-sizing: border-box;
         }
         
         .calendar-header {
@@ -40,6 +46,7 @@
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 8px;
+            width: 100%;
         }
 
         .weekday-header {
@@ -56,12 +63,12 @@
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 8px;
-            flex: 1;
             margin-top: 8px;
+            width: 100%;
         }
 
         .calendar-day {
-            min-height: 110px;
+            min-height: 100px;
             background: #fcfbfa;
             border: 1px solid #f3eee8;
             border-radius: 8px;
@@ -71,6 +78,7 @@
             gap: 4px;
             transition: all 0.2s ease;
             cursor: pointer;
+            box-sizing: border-box;
         }
 
         .calendar-day:hover {
@@ -111,9 +119,10 @@
             text-decoration: line-through;
         }
 
-        /* 右側 Outlook 風格邊窗預覽 */
+        /* 右側：固定寬度預覽邊窗 */
         .calendar-sidebar {
             width: 320px;
+            flex-shrink: 0;
             background: #ffffff;
             border-radius: 12px;
             padding: 24px;
@@ -122,6 +131,7 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
+            box-sizing: border-box;
         }
 
         .preview-card {
@@ -157,13 +167,13 @@
 </head>
 <body>
     <div id="app-container">
-        <main class="main-content" style="padding: 20px;">
+        <main class="main-content" style="padding: 24px;">
             <header class="content-header" style="margin-bottom: 16px;">
                 <h2>📅 事務所行事曆 (Calendar)</h2>
             </header>
 
             <div class="calendar-layout">
-                <!-- 左側：滿版日曆 -->
+                <!-- 左側：橫向完全撐開的日曆 -->
                 <div class="calendar-main">
                     <div class="calendar-header">
                         <button class="btn btn-secondary" onclick="changeMonth(-1)">◀ 上一個月</button>
@@ -186,7 +196,7 @@
                     </div>
                 </div>
 
-                <!-- 右側：Outlook 風格側邊預覽窗 -->
+                <!-- 右側：側邊資訊面板 -->
                 <div class="calendar-sidebar">
                     <h3 style="margin: 0; color: #4a423a; font-size: 1.1rem;">📋 任務細節預覽</h3>
                     <hr style="border: 0; border-top: 1px solid #f0eae1; margin: 0;">
