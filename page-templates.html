@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<!--
+==========================================================================
+PearlFlow - 專案模板管理
+@file        page-templates.html
+@version     1.0.0
+@updated     2026-08-18
+@description 主管可建立教育訓練、營業稅、財稅簽證等靈活步驟模板
+==========================================================================
+-->
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>專案模板管理</title>
+    <link rel="stylesheet" href="css/theme.css?v=1.2.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/global-config.js?v=1.0.6"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { padding: 24px; font-family: system-ui, -apple-system, sans-serif; background: transparent; }
+        
+        .header-actions {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color); color: #fff; border: none; padding: 10px 18px;
+            border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: 0 2px 8px rgba(217,107,122,0.3); transition: all 0.2s;
+        }
+        .btn-primary:hover { background: var(--primary-hover); }
+        
+        .templates-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;
+        }
+        
+        .template-card {
+            background: rgba(255, 255, 255, 0.92); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 20px; backdrop-filter: blur(8px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 12px;
+        }
+        
+        .template-card .card-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+        }
+        .template-title { font-weight: 700; font-size: 1.1rem; color: var(--primary-color); margin: 0; }
+        .category-badge {
+            background: var(--primary-light); color: var(--primary-color);
+            padding: 4px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600;
+        }
+        
+        .task-list { list-style: none; padding: 0; margin: 10px 0; }
+        .task-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 10px; background: rgba(250, 244, 242, 0.6); margin-bottom: 6px;
+            border-radius: 6px; font-size: 0.88rem; border: 1px dashed var(--border-color);
+        }
+        
+        /* Modal 彈窗樣式 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none;
+            justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal-body {
+            background: #fff; width: 560px; max-width: 90%; max-height: 85vh; overflow-y: auto;
+            border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: #555; }
+        .form-control { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; }
+        
+        .dynamic-task-row {
+            display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; margin-bottom: 8px; align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-actions">
+        <div>
+            <h2 style="margin: 0; color: var(--primary-color);">專案步驟模板庫</h2>
+            <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.88rem;">主管可預設各類服務（教育訓練、稅務申報、查核）的 SOP 步驟與完成天數</p>
+        </div>
+        <button class="btn-primary" onclick="openTemplateModal()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            建立新模板
+        </button>
+    </div>
+
+    <!-- 模板卡片陣列 -->
+    <div class="templates-grid" id="templates-container">
+        <!-- 預設載入範例模板 -->
+        <div class="template-card">
+            <div class="card-header">
+                <h3 class="template-title">營業稅申報標準流程</h3>
+                <span class="category-badge">營業稅</span>
+            </div>
+            <p style="font-size: 0.85rem; color: #666; margin: 0;">包含憑證蒐集、進銷項進單、稅額計算至網路申報。</p>
+            <ul class="task-list">
+                <div class="task-item"><span>1. 蒐集發票憑證</span><span style="color: #888; font-size: 0.8rem;">+3 天</span></div>
+                <div class="task-item"><span>2. 登錄進銷項資料</span><span style="color: #888; font-size: 0.8rem;">+5 天</span></div>
+                <div class="task-item"><span>3. 編製 401 申報書</span><span style="color: #888; font-size: 0.8rem;">+7 天</span></div>
+                <div class="task-item"><span>4. 完成網路關貿申報</span><span style="color: #888; font-size: 0.8rem;">+10 天</span></div>
+            </ul>
+        </div>
+
+        <div class="template-card">
+            <div class="card-header">
+                <h3 class="template-title">客戶內部教育訓練</h3>
+                <span class="category-badge">教育訓練</span>
+            </div>
+            <p style="font-size: 0.85rem; color: #666; margin: 0;">適用於為企業客戶進行最新稅法講習或記帳實務培訓。</p>
+            <ul class="task-list">
+                <div class="task-item"><span>1. 訪談客戶確定培訓大綱</span><span style="color: #888; font-size: 0.8rem;">+2 天</span></div>
+                <div class="task-item"><span>2. 撰寫簡報與講義教材</span><span style="color: #888; font-size: 0.8rem;">+7 天</span></div>
+                <div class="task-item"><span>3. 現場授課與 Q&A 研討</span><span style="color: #888; font-size: 0.8rem;">+10 天</span></div>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 新增 / 編輯模板 Modal -->
+    <div class="modal-overlay" id="templateModal">
+        <div class="modal-body">
+            <h3 style="margin-top: 0; color: var(--primary-color);">建立專案步驟模板</h3>
+            <div class="form-group">
+                <label>模板名稱</label>
+                <input type="text" class="form-control" placeholder="例：年度財務報表查核標準流程">
+            </div>
+            <div class="form-group">
+                <label>服務類別</label>
+                <select class="form-control">
+                    <option>營業稅</option>
+                    <option>財稅簽證</option>
+                    <option>教育訓練</option>
+                    <option>專案稽核</option>
+                    <option>其他業務</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>步驟與預計完成相對天數 (Offset Days)</label>
+                <div id="dynamic-tasks-container">
+                    <div class="dynamic-task-row">
+                        <input type="text" class="form-control" placeholder="步驟名稱 (如: 蒐集憑證)">
+                        <input type="number" class="form-control" placeholder="相對天數" value="3">
+                        <select class="form-control">
+                            <option>查帳員</option>
+                            <option>記帳員</option>
+                            <option>主辦會計</option>
+                        </select>
+                        <button type="button" onclick="this.parentElement.remove()" style="color: #d32f2f; border: none; background: none; cursor: pointer;">✕</button>
+                    </div>
+                </div>
+                <button type="button" onclick="addDynamicTaskRow()" style="margin-top: 8px; background: #fff; border: 1px dashed var(--primary-color); color: var(--primary-color); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">＋ 新增下一個步驟</button>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+                <button type="button" onclick="closeTemplateModal()" style="padding: 8px 16px; border: 1px solid #ccc; background: #fff; border-radius: 6px; cursor: pointer;">取消</button>
+                <button type="button" onclick="saveTemplate()" class="btn-primary">儲存模板</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openTemplateModal() {
+            document.getElementById('templateModal').style.display = 'flex';
+        }
+        function closeTemplateModal() {
+            document.getElementById('templateModal').style.display = 'none';
+        }
+        function addDynamicTaskRow() {
+            const container = document.getElementById('dynamic-tasks-container');
+            const div = document.createElement('div');
+            div.className = 'dynamic-task-row';
+            div.innerHTML = `
+                <input type="text" class="form-control" placeholder="步驟名稱">
+                <input type="number" class="form-control" placeholder="相對天數" value="5">
+                <select class="form-control">
+                    <option>查帳員</option>
+                    <option>記帳員</option>
+                    <option>主辦會計</option>
+                </select>
+                <button type="button" onclick="this.parentElement.remove()" style="color: #d32f2f; border: none; background: none; cursor: pointer;">✕</button>
+            `;
+            container.appendChild(div);
+        }
+        function saveTemplate() {
+            alert('模板儲存成功！同仁在建立新專案時即可點選套用。');
+            closeTemplateModal();
+        }
+    </script>
+</body>
+</html>
