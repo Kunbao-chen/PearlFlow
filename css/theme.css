@@ -2,27 +2,27 @@
 ==========================================================================
 PearlFlow - 全域視覺主題樣式表 (VI System)
 @file        css/theme.css
-@version     1.1.0
+@version     1.2.0
 @updated     2026-08-18
-@description 融入名片幾何多邊形層次底紋與商務配色
+@description 完全還原名片「幾何粉彩方塊、傾斜色塊與雙線邊框」風格
 ==========================================================================
 */
 
 :root {
-    /* 品牌主配色（擷取自名片配色） */
-    --primary-color: #C85A6A;          /* 沉穩珊瑚紅 */
-    --primary-hover: #B04756;          /* 深胭脂紅 */
+    /* 品牌主配色（擷取自名片） */
+    --primary-color: #D96B7A;          /* 珊瑚粉紅 */
+    --primary-hover: #C85A6A;          /* 胭脂紅 */
     --primary-light: #FCE8EB;          /* 淺粉襯底 */
     --bg-color: #FAF4F2;               /* 暖杏米背景底色 */
     
     /* 文字與邊框 */
-    --text-primary: #333333;           /* 主文字 */
-    --text-muted: #7A7A7A;             /* 次要文字 */
-    --border-color: #EADCDA;           /* 質感邊框 */
+    --text-primary: #333333;           
+    --text-muted: #7A7A7A;             
+    --border-color: #EADCDA;           
     
     /* 卡片與容器 */
-    --card-bg: rgba(255, 255, 255, 0.92); /* 半透明高斯白 */
-    --shadow-soft: 0 4px 20px rgba(200, 90, 106, 0.06);
+    --card-bg: rgba(255, 255, 255, 0.94); 
+    --shadow-soft: 0 4px 20px rgba(217, 107, 122, 0.08);
     --header-height: 60px;
 }
 
@@ -34,12 +34,10 @@ body, html {
     background-color: var(--bg-color);
     color: var(--text-primary);
     
-    /* 名片幾何色塊重疊底紋 (Geometric Translucent Overlays) */
-    background-image: 
-        linear-gradient(135deg, rgba(253, 232, 226, 0.65) 0%, rgba(250, 244, 242, 0) 40%),
-        linear-gradient(215deg, rgba(232, 139, 151, 0.25) 0%, rgba(217, 107, 122, 0.12) 30%, rgba(250, 244, 242, 0) 65%),
-        linear-gradient(45deg, rgba(200, 90, 106, 0.08) 0%, rgba(253, 232, 226, 0.3) 25%, rgba(250, 244, 242, 0) 50%);
+    /* 1:1 還原名片幾何粉彩方塊 + 傾斜色塊 + 細框線底紋 */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cdefs%3E%3Cstyle%3E.bg-line%7Bstroke:%23D96B7A;stroke-width:1;opacity:0.25;fill:none;%7D.box1%7Bfill:%23E88B97;opacity:0.18;%7D.box2%7Bfill:%23F5C2B3;opacity:0.25;%7D.box3%7Bfill:%23D96B7A;opacity:0.15;%7D%3C/style%3E%3C/defs%3E%3Cg%3E%3C!-- 傾斜幾何粉彩方塊 --%3E%3Cpolygon points='-50,0 600,-100 500,450 -150,550' class='box1' transform='rotate(-8 200 200)' /%3E%3Cpolygon points='200,-50 900,-50 850,500 150,450' class='box2' transform='rotate(12 500 200)' /%3E%3Crect x='60%25' y='10%25' width='500' height='600' class='box3' transform='rotate(-15)' /%3E%3Cpolygon points='80%25,40%25 120%25,30%25 110%25,90%25 70%25,80%25' class='box1' /%3E%3C!-- 名片經典邊框線條 --%3E%3Crect x='15' y='15' width='calc(100%25 - 30px)' height='calc(100%25 - 30px)' class='bg-line' /%3E%3Crect x='20' y='20' width='calc(100%25 - 40px)' height='calc(100%25 - 40px)' class='bg-line' /%3E%3C/g%3E%3C/svg%3E");
     background-attachment: fixed;
+    background-size: cover;
 }
 
 /* 側邊導覽列樣式優化 */
