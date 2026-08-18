@@ -1,26 +1,33 @@
 <!DOCTYPE html>
-<!--
-==========================================================================
-PearlFlow - 珍珠聯合會計師事務所 主入口外殼網頁
-@file        index.html
-@version     1.0.3
-@updated     2026-08-17
-@description 移除舊版子標題文字，確保主名稱單行顯示不換行
-==========================================================================
--->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PearlFlow - 珍珠聯合會計師事務所</title>
     <link rel="stylesheet" href="css/theme.css?v=1.0.3">
-    <!-- 引入 Supabase JS SDK (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/global-config.js?v=1.0.3"></script>
+    <script src="js/global-config.js?v=1.0.6"></script>
+    <style>
+        /* 強制將外殼主框架拉到 100% 寬度 */
+        #main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: calc(100% - 240px); /* 扣除側邊欄寬度 */
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #content-frame {
+            width: 100% !important;
+            height: calc(100vh - var(--header-height, 60px)) !important;
+            border: none;
+            display: block;
+        }
+    </style>
 </head>
 <body>
-    <div id="app-container">
-        <!-- 左側選單 -->
+    <div id="app-container" style="display: flex; width: 100vw; height: 100vh; overflow: hidden;">
         <aside id="sidebar">
             <div class="brand">
                 <img src="logo.png" alt="Logo" onerror="this.style.display='none'">
@@ -32,43 +39,34 @@ PearlFlow - 珍珠聯合會計師事務所 主入口外殼網頁
                 <a href="#" class="nav-item active" data-page="page-dashboard.html"> Dashboard 儀表板</a>
                 <a href="#" class="nav-item" data-page="page-matrix.html"> 專案進度矩陣</a>
                 <a href="#" class="nav-item" data-page="page-calendar.html"> 事務所行事曆</a>
-                <a href="#" class="nav-item" data-page="page-crm.html"> 客戶管理 (CRM)</a>
-                <a href="#" class="nav-item" data-page="page-analytics.html"> 管理分析報表</a>
             </nav>
+            <div class="user-profile" style="padding: 16px; border-top: 1px solid var(--border-color); margin-top: auto;">
+                <span id="user-display-name" style="font-size: 0.85rem; color: var(--text-muted);">載入中...</span>
+                <button onclick="handleLogout()" style="margin-top: 8px; width: 100%; padding: 6px; background: #FFF0F0; color: #D32F2F; border: 1px solid #FFCDD2; border-radius: 4px; cursor: pointer;">登出</button>
+            </div>
         </aside>
 
-        <!-- 右側主區域 -->
         <div id="main-wrapper">
-            <!-- 頂部資訊列 -->
             <header id="header">
-                <div class="page-title"><h3 id="current-page-name">Dashboard 儀表板</h3></div>
-                <div class="user-info">
-                    <span id="user-display-name">載入中...</span>
-                    <span id="user-role-badge" style="padding: 2px 8px; background: var(--accent-light); color: var(--primary-color); border-radius: 4px; font-size: 0.8rem; font-weight: 500;">Staff</span>
-                    <button class="btn-logout" onclick="handleLogout()">登出</button>
+                <div class="page-title">
+                    <h3 id="current-page-name">Dashboard 儀表板</h3>
                 </div>
             </header>
-
-            <!-- 獨立子頁面載入容器 (Iframe) -->
             <iframe id="content-frame" src="page-dashboard.html"></iframe>
         </div>
     </div>
 
     <script>
-        // 切換側邊欄選單與動態載入子網頁
-        document.querySelectorAll('.nav-item').forEach(item => {
+        // 側邊欄切換邏輯
+        document.querySelectorAll('#sidebar nav .nav-item').forEach(item => {
             item.addEventListener('click', function(e) {
                 e.preventDefault();
-                
-                // 移除所有 active 狀態
                 document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
                 this.classList.add('active');
 
-                // 取得目標頁面與標題
                 const pageUrl = this.getAttribute('data-page');
                 const pageTitle = this.innerText.trim();
                 
-                // 更新 Header 標題與 iframe 源
                 document.getElementById('current-page-name').innerText = pageTitle;
                 document.getElementById('content-frame').src = pageUrl;
             });
@@ -86,7 +84,7 @@ PearlFlow - 珍珠聯合會計師事務所 主入口外殼網頁
             }
         }
 
-        // 初始化檢查登入狀態與使用者名稱
+        // 初始化檢查登入狀態
         window.addEventListener('DOMContentLoaded', async () => {
             if (window.supabase) {
                 const { data: { session } } = await window.supabase.auth.getSession();
