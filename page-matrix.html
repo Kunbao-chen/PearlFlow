@@ -3,7 +3,7 @@
 ==========================================================================
 PearlFlow - 專案進度矩陣
 @file        page-matrix.html
-@description 專案進度矩陣，支援動態新增客戶、建立專案與同步寫入 Supabase 雲端
+@description 專案進度矩陣，支援自訂起始日、子任務進度追蹤與 Supabase 同步
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -27,12 +27,19 @@ PearlFlow - 專案進度矩陣
         .matrix-table { width: 100%; border-collapse: separate; border-spacing: 0; background: rgba(255, 255, 255, 0.92); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; backdrop-filter: blur(8px); box-shadow: var(--shadow-soft); }
         .matrix-table th, .matrix-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border-color); }
         .matrix-table th { background: var(--primary-light); color: var(--primary-color); font-weight: 600; font-size: 0.92rem; }
+        .matrix-table tbody tr { cursor: pointer; transition: background 0.15s ease; }
+        .matrix-table tbody tr:hover { background: rgba(182, 40, 70, 0.04); }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 100; }
-        .modal-body { background: #fff; width: 620px; max-width: 92%; max-height: 85vh; overflow-y: auto; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+        .modal-body { background: #fff; width: 680px; max-width: 92%; max-height: 85vh; overflow-y: auto; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: #444; }
         .form-control { width: 100%; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; }
         .dynamic-task-row { display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .progress-bar-bg { width: 100%; background: #E0E0E0; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+        .progress-bar-fill { background: var(--primary-color); height: 100%; width: 0%; transition: width 0.3s ease; }
+        .task-detail-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 8px; background: #FAF9F9; }
+        .task-detail-item.completed { background: #F0FDF4; border-color: #BBF7D0; }
+        .task-detail-item.completed .task-text { text-decoration: line-through; color: #888; }
     </style>
 </head>
 <body>
@@ -57,8 +64,8 @@ PearlFlow - 專案進度矩陣
             <tr>
                 <th>客戶名稱</th>
                 <th>專案名稱</th>
-                <th>執行步驟數量</th>
-                <th>建立時間</th>
+                <th>起始日期</th>
+                <th>執行進度</th>
             </tr>
         </thead>
         <tbody id="matrix-tbody">
@@ -66,7 +73,7 @@ PearlFlow - 專案進度矩陣
         </tbody>
     </table>
 
-    <!-- 建立新專案 Modal -->
+    <!-- 1. 建立新專案 Modal -->
     <div class="modal-overlay" id="createProjectModal">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -74,12 +81,18 @@ PearlFlow - 專案進度矩陣
                 <span data-pf-icon="close" style="cursor: pointer; color: #888;" onclick="closeCreateProjectModal()"></span>
             </div>
 
-            <div class="form-group">
-                <label>選擇目標客戶</label>
-                <select class="form-control" id="project-client-select" onchange="handleClientSelectChange(this.value)">
-                    <option value="">-- 請選擇客戶 --</option>
-                    <option value="NEW_CLIENT" style="color: var(--primary-color); font-weight: bold;">＋ 新增其他客戶...</option>
-                </select>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>選擇目標客戶</label>
+                    <select class="form-control" id="project-client-select" onchange="handleClientSelectChange(this.value)">
+                        <option value="">-- 請選擇客戶 --</option>
+                        <option value="NEW_CLIENT" style="color: var(--primary-color); font-weight: bold;">＋ 新增其他客戶...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>專案起始日期 (補登/預約)</label>
+                    <input type="date" class="form-control" id="project-start-date">
+                </div>
             </div>
 
             <div class="form-group">
@@ -111,18 +124,54 @@ PearlFlow - 專案進度矩陣
         </div>
     </div>
 
+    <!-- 2. 查看與編輯專案內容/子任務 Modal -->
+    <div class="modal-overlay" id="detailProjectModal">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                <div>
+                    <h3 style="margin: 0; color: var(--primary-color); font-size: 1.2rem;" id="modal-detail-project-name">專案名稱</h3>
+                    <div style="font-size: 0.85rem; color: #666; margin-top: 4px;" id="modal-detail-client-name">客戶：-</div>
+                </div>
+                <span data-pf-icon="close" style="cursor: pointer; color: #888;" onclick="closeDetailProjectModal()"></span>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; font-weight: 600; color: #444;">
+                    <span>整體完成進度</span>
+                    <span id="modal-detail-progress-percent">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="modal-detail-progress-fill"></div>
+                </div>
+            </div>
+
+            <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; color: #333;">SOP 子任務清單 (勾選即時更新進度)</div>
+            <div id="modal-detail-tasks-container">
+                <div style="text-align: center; color: #888;">載入中...</div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <button type="button" class="btn-secondary" onclick="closeDetailProjectModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const templateLibrary = {
             'tax': [ { name: '蒐集發票憑證', days: 3 }, { name: '登錄進銷項資料', days: 5 }, { name: '完成網路關貿申報', days: 10 } ],
             'training': [ { name: '訪談客戶確定大綱', days: 2 }, { name: '撰寫講義教材', days: 7 }, { name: '現場授課與 Q&A', days: 10 } ]
         };
 
+        let cachedProjects = [];
+
         document.addEventListener('DOMContentLoaded', async () => {
+            // 預設專案起始日為今天 (YYYY-MM-DD)
+            document.getElementById('project-start-date').value = new Date().toISOString().split('T')[0];
             await loadClientsDropdown();
             await loadMatrixData();
         });
 
-        // 1. 讀取 Supabase 客戶清單
+        // 讀取 Supabase 客戶清單
         async function loadClientsDropdown() {
             const select = document.getElementById('project-client-select');
             if (!window.supabase) return;
@@ -131,20 +180,14 @@ PearlFlow - 專案進度矩陣
             if (error) return console.error('無法讀取客戶清單:', error);
 
             select.innerHTML = '<option value="">-- 請選擇客戶 --</option>';
-            clients.forEach(c => {
-                select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-            });
+            clients.forEach(c => { select.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
             select.innerHTML += '<option value="NEW_CLIENT" style="color: var(--primary-color); font-weight: bold;">＋ 新增其他客戶...</option>';
         }
 
-        // 2. 新增客戶彈窗與寫入流程
         async function handleClientSelectChange(val) {
             if (val === 'NEW_CLIENT') {
                 const clientName = prompt('請輸入新客戶名稱（例：台積電股份有限公司）：');
-                if (!clientName) {
-                    document.getElementById('project-client-select').value = '';
-                    return;
-                }
+                if (!clientName) { document.getElementById('project-client-select').value = ''; return; }
 
                 const { data, error } = await window.supabase.from('clients').insert([{ name: clientName }]).select();
                 if (error) {
@@ -152,7 +195,6 @@ PearlFlow - 專案進度矩陣
                     document.getElementById('project-client-select').value = '';
                     return;
                 }
-
                 alert(`客戶「${clientName}」已成功新增！`);
                 await loadClientsDropdown();
                 document.getElementById('project-client-select').value = data[0].id;
@@ -182,47 +224,57 @@ PearlFlow - 專案進度矩陣
             div.className = 'dynamic-task-row';
             div.innerHTML = `
                 <input type="text" class="form-control task-name-input" placeholder="步驟名稱" value="${name}">
-                <input type="number" class="form-control task-days-input" placeholder="天數" value="${days}">
+                <input type="number" class="form-control task-days-input" placeholder="所需天數" value="${days}">
                 <button type="button" onclick="this.parentElement.remove()" style="color: #d32f2f; border: none; background: none; cursor: pointer; font-weight: bold;">✕</button>
             `;
             document.getElementById('project-tasks-list').appendChild(div);
         }
 
-        // 3. 寫入 projects 與 project_tasks 兩張資料表
+        // 建立專案與連動推算 Due Date
         async function submitCreateProject() {
             const clientId = document.getElementById('project-client-select').value;
             const projectName = document.getElementById('project-name').value.trim();
+            const startDateStr = document.getElementById('project-start-date').value;
             const btn = document.getElementById('btn-submit-project');
 
             if (!clientId || clientId === 'NEW_CLIENT') return alert('請選擇有效的目標客戶');
             if (!projectName) return alert('請輸入專案名稱');
+            if (!startDateStr) return alert('請選擇專案起始日期');
 
             btn.disabled = true;
             btn.innerText = '寫入雲端中...';
 
             try {
-                // A. 寫入專案主表
+                // A. 寫入專案主表 (包含 start_date)
                 const { data: projectData, error: pError } = await window.supabase
                     .from('projects')
-                    .insert([{ client_id: clientId, name: projectName, status: '進行中' }])
+                    .insert([{ client_id: clientId, name: projectName, status: '進行中', start_date: startDateStr }])
                     .select();
 
                 if (pError) throw pError;
                 const projectId = projectData[0].id;
 
-                // B. 寫入專案步驟表
+                // B. 依據起始日期與所需天數，推算各步驟 due_date 並寫入 project_tasks
                 const taskRows = document.querySelectorAll('.dynamic-task-row');
                 const tasksToInsert = [];
+                let currentDueDate = new Date(startDateStr);
 
                 taskRows.forEach((row, index) => {
                     const tName = row.querySelector('.task-name-input').value.trim();
-                    const tDays = row.querySelector('.task-days-input').value;
+                    const tDays = parseInt(row.querySelector('.task-days-input').value) || 1;
+                    
                     if (tName) {
+                        // 推算累積天數後的交件日
+                        currentDueDate.setDate(currentDueDate.getDate() + tDays);
+                        const calculatedDueDate = currentDueDate.toISOString().split('T')[0];
+
                         tasksToInsert.push({
                             project_id: projectId,
                             task_name: tName,
-                            days_required: parseInt(tDays) || 1,
-                            sort_order: index + 1
+                            days_required: tDays,
+                            due_date: calculatedDueDate,
+                            sort_order: index + 1,
+                            is_completed: false
                         });
                     }
                 });
@@ -243,14 +295,14 @@ PearlFlow - 專案進度矩陣
             }
         }
 
-        // 4. 從雲端讀取資料並渲染表格
+        // 載入專案矩陣列表
         async function loadMatrixData() {
             const tbody = document.getElementById('matrix-tbody');
             if (!window.supabase) return;
 
             const { data: projects, error } = await window.supabase
                 .from('projects')
-                .select('id, name, created_at, clients(name), project_tasks(task_name)')
+                .select('id, name, start_date, created_at, clients(name), project_tasks(id, task_name, due_date, is_completed)')
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -258,24 +310,108 @@ PearlFlow - 專案進度矩陣
                 return;
             }
 
-            if (!projects || projects.length === 0) {
+            cachedProjects = projects || [];
+
+            if (cachedProjects.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #888;">目前雲端資料庫尚無專案資料</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = projects.map(p => {
+            tbody.innerHTML = cachedProjects.map(p => {
                 const clientName = p.clients ? p.clients.name : '未知客戶';
-                const taskCount = p.project_tasks ? p.project_tasks.length : 0;
-                const createdDate = new Date(p.created_at).toLocaleDateString('zh-TW');
+                const tasks = p.project_tasks || [];
+                const totalTasks = tasks.length;
+                const completedTasks = tasks.filter(t => t.is_completed).length;
+                const percent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+                const startDate = p.start_date || p.created_at.split('T')[0];
+
                 return `
-                    <tr>
+                    <tr onclick="openDetailProjectModal('${p.id}')">
                         <td style="font-weight: 600;">${clientName}</td>
                         <td>${p.name}</td>
-                        <td>含 ${taskCount} 個 SOP 步驟</td>
-                        <td style="color: #666; font-size: 0.88rem;">${createdDate}</td>
+                        <td style="color: #555; font-size: 0.88rem;">${startDate}</td>
+                        <td style="width: 200px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #666;">
+                                <span>${completedTasks} / ${totalTasks} 項完成</span>
+                                <span>${percent}%</span>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" style="width: ${percent}%;"></div>
+                            </div>
+                        </td>
                     </tr>
                 `;
             }).join('');
+        }
+
+        // 打開專案詳情與子任務編輯 Modal
+        function openDetailProjectModal(projectId) {
+            const project = cachedProjects.find(p => p.id === projectId);
+            if (!project) return;
+
+            document.getElementById('modal-detail-project-name').innerText = project.name;
+            document.getElementById('modal-detail-client-name').innerText = `客戶：${project.clients ? project.clients.name : '未知'}`;
+
+            renderModalTasks(project);
+            document.getElementById('detailProjectModal').style.display = 'flex';
+        }
+
+        function closeDetailProjectModal() {
+            document.getElementById('detailProjectModal').style.display = 'none';
+        }
+
+        // 渲染 Modal 內的子任務勾選清單
+        function renderModalTasks(project) {
+            const container = document.getElementById('modal-detail-tasks-container');
+            const tasks = project.project_tasks || [];
+            
+            const completedCount = tasks.filter(t => t.is_completed).length;
+            const percent = tasks.length === 0 ? 0 : Math.round((completedCount / tasks.length) * 100);
+
+            document.getElementById('modal-detail-progress-percent').innerText = `${percent}%`;
+            document.getElementById('modal-detail-progress-fill').style.width = `${percent}%`;
+
+            if (tasks.length === 0) {
+                container.innerHTML = `<div style="text-align: center; color: #888; padding: 12px;">此專案無子任務步驟</div>`;
+                return;
+            }
+
+            container.innerHTML = tasks.map(t => `
+                <div class="task-detail-item ${t.is_completed ? 'completed' : ''}">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1;">
+                        <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleTaskStatus('${project.id}', '${t.id}', this.checked)">
+                        <span class="task-text" style="font-size: 0.9rem; color: #333;">${t.task_name}</span>
+                    </label>
+                    <span style="font-size: 0.8rem; color: #888;">預計完成：${t.due_date || '未指定'}</span>
+                </div>
+            `).join('');
+        }
+
+        // 勾選/取消勾選子任務並即時寫入 Supabase
+        async function toggleTaskStatus(projectId, taskId, isCompleted) {
+            const project = cachedProjects.find(p => p.id === projectId);
+            if (!project) return;
+
+            const task = project.project_tasks.find(t => t.id === taskId);
+            if (task) task.is_completed = isCompleted;
+
+            // 即時更新 Modal 內的進度 UI
+            renderModalTasks(project);
+
+            // 寫入資料庫
+            const { error } = await window.supabase
+                .from('project_tasks')
+                .update({ is_completed: isCompleted })
+                .eq('id', taskId);
+
+            if (error) {
+                alert('更新狀態失敗：' + error.message);
+                task.is_completed = !isCompleted; // 失敗復原
+                renderModalTasks(project);
+            } else {
+                // 同步刷新背景主矩陣表格
+                await loadMatrixData();
+            }
         }
     </script>
 </body>
