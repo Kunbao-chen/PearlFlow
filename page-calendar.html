@@ -1,333 +1,195 @@
 <!DOCTYPE html>
+<!--
+==========================================================================
+PearlFlow - 事務所行事曆
+@file        page-calendar.html
+@description 整合專案步驟到期日之動態月曆，支援點擊直接跳轉至專案進度矩陣
+==========================================================================
+-->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>事務所行事曆</title>
-    <link rel="stylesheet" href="css/theme.css?v=1.0.3">
+    <link rel="stylesheet" href="css/theme.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/global-config.js?v=1.0.6"></script>
+    <script src="js/global-config.js"></script>
+    <script src="js/icons.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--bg-color, #FAF6F5);
-            font-family: system-ui, -apple-system, sans-serif;
-            overflow-x: hidden;
-        }
-
-        .calendar-wrapper {
-            padding: 20px;
-            width: 100%;
-            height: 100%;
-            box-sizing: border-box;
-        }
-
-        /* 雙欄滿版佈局 */
-        .calendar-layout {
-            display: flex;
-            gap: 20px;
-            width: 100%;
-            height: calc(100vh - 40px);
-        }
+        * { box-sizing: border-box; }
+        body { padding: 24px; font-family: system-ui, -apple-system, sans-serif; background: transparent; margin: 0; }
         
-        /* 左側主日曆：自動填滿所有剩餘寬度 */
-        .calendar-main {
-            flex: 1;
-            background: #ffffff;
-            border-radius: 8px;
-            padding: 20px;
-            border: 1px solid var(--border-color, #EAE2E1);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            display: flex;
-            flex-direction: column;
-        }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .calendar-controls { display: flex; align-items: center; gap: 12px; }
+        .calendar-title { font-size: 1.25rem; font-weight: bold; color: var(--primary-color); min-width: 140px; text-align: center; }
         
-        .calendar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
+        .btn-secondary { background: #fff; color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+        .btn-secondary:hover { border-color: var(--primary-color); color: var(--primary-color); }
 
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 6px;
-            width: 100%;
-        }
+        /* 月曆容器與網格 */
+        .calendar-container { background: rgba(255, 255, 255, 0.92); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; backdrop-filter: blur(8px); box-shadow: var(--shadow-soft); }
+        .calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--primary-light); border-bottom: 1px solid var(--border-color); text-align: center; font-weight: 600; color: var(--primary-color); font-size: 0.9rem; padding: 10px 0; }
+        .calendar-days { display: grid; grid-template-columns: repeat(7, 1fr); auto-rows: minmax(110px, auto); }
+        
+        .day-cell { border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 8px; background: #fff; transition: background 0.15s; position: relative; overflow-y: auto; }
+        .day-cell:nth-child(7n) { border-right: none; }
+        .day-cell.other-month { background: #FAF9F9; color: #ccc; }
+        .day-cell.today { background: rgba(182, 40, 70, 0.04); }
+        
+        .day-number { font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: #555; }
+        .day-cell.today .day-number { color: var(--primary-color); font-weight: bold; }
 
-        .weekday-header {
-            text-align: center;
-            font-weight: 600;
-            color: var(--primary-color, #4A4A4A);
-            padding: 8px 0;
-            background: #FAF6F5;
-            border-radius: 4px;
-            font-size: 0.85rem;
-        }
-
-        .calendar-days-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 6px;
-            margin-top: 6px;
-            width: 100%;
-            flex: 1;
-        }
-
-        .calendar-day {
-            background: #FFFFFF;
-            border: 1px solid var(--border-color, #EAE2E1);
-            border-radius: 6px;
-            padding: 6px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            overflow: hidden;
-        }
-
-        .calendar-day:hover {
-            border-color: var(--accent-color, #E88B97);
-            background-color: #FFFDFD;
-        }
-
-        .calendar-day.empty {
-            background: transparent;
-            border: none;
-            cursor: default;
-        }
-
-        .day-number {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #5a524c;
-        }
-
-        .task-chip {
-            font-size: 0.75rem;
-            padding: 3px 6px;
-            border-radius: 3px;
-            background: #FFF3E0;
-            color: #D97706;
-            border-left: 3px solid #F59E0B;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            cursor: pointer;
-        }
-
-        .task-chip.completed {
-            background: #E8F5E9;
-            color: #2ECC71;
-            border-left-color: #2ECC71;
-            text-decoration: line-through;
-        }
-
-        /* 右側 Outlook 風格邊窗預覽 */
-        .calendar-sidebar {
-            width: 300px;
-            flex-shrink: 0;
-            background: #ffffff;
-            border-radius: 8px;
-            padding: 20px;
-            border: 1px solid var(--border-color, #EAE2E1);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .preview-card {
-            background: #FAF6F5;
-            border: 1px solid var(--border-color, #EAE2E1);
-            border-radius: 6px;
-            padding: 12px;
-        }
-
-        .preview-title {
-            font-weight: bold;
-            font-size: 1rem;
-            color: var(--primary-color, #4A4A4A);
-            margin-bottom: 8px;
-        }
-
-        .preview-item {
-            font-size: 0.85rem;
-            color: #666;
-            margin-bottom: 4px;
-        }
+        /* 專案卡片/標籤 (可點擊) */
+        .event-chip { background: #FFF0F2; color: var(--primary-color); border: 1px solid #FFCDD2; font-size: 0.78rem; padding: 4px 6px; border-radius: 4px; margin-bottom: 4px; cursor: pointer; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; }
+        .event-chip:hover { background: var(--primary-color); color: #fff; border-color: var(--primary-color); transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .event-chip.completed { background: #F0FDF4; color: #166534; border-color: #BBF7D0; text-decoration: line-through; opacity: 0.75; }
+        .event-chip.completed:hover { background: #166534; color: #fff; text-decoration: none; }
     </style>
 </head>
 <body>
-    <div class="calendar-wrapper">
-        <div class="calendar-layout">
-            <div class="calendar-main">
-                <div class="calendar-header">
-                    <button class="btn" onclick="changeMonth(-1)" style="padding: 6px 12px; cursor: pointer;">◀ 上個月</button>
-                    <h3 id="current-month-display" style="margin: 0; color: var(--primary-color, #4A4A4A);">載入中...</h3>
-                    <button class="btn" onclick="changeMonth(1)" style="padding: 6px 12px; cursor: pointer;">下個月 ▶</button>
-                </div>
 
-                <div class="calendar-grid">
-                    <div class="weekday-header">日</div>
-                    <div class="weekday-header">一</div>
-                    <div class="weekday-header">二</div>
-                    <div class="weekday-header">三</div>
-                    <div class="weekday-header">四</div>
-                    <div class="weekday-header">五</div>
-                    <div class="weekday-header">六</div>
-                </div>
+    <div class="header-bar">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span data-pf-icon="calendar" data-size="22" style="color: var(--primary-color);"></span>
+            <h2 style="margin: 0; color: var(--primary-color); font-size: 1.25rem;">事務所行事曆</h2>
+        </div>
+        
+        <div class="calendar-controls">
+            <button class="btn-secondary" onclick="changeMonth(-1)">◀ 上一個月</button>
+            <div class="calendar-title" id="calendar-month-title">2026 年 8 月</div>
+            <button class="btn-secondary" onclick="changeMonth(1)">下一個月 ▶</button>
+            <button class="btn-secondary" onclick="resetToToday()">回到今天</button>
+        </div>
+    </div>
 
-                <div class="calendar-days-grid" id="calendar-days">
-                    </div>
-            </div>
-
-            <div class="calendar-sidebar">
-                <h4 style="margin: 0; color: var(--primary-color, #4A4A4A);">📋 任務細節預覽</h4>
-                <hr style="border: 0; border-top: 1px solid var(--border-color, #EAE2E1); margin: 0;">
-                
-                <div id="preview-content">
-                    <p style="color: #999; font-size: 0.85rem; text-align: center; margin-top: 30px;">
-                        點擊日曆上的任務或日期<br>即可在此處預覽詳細內容
-                    </p>
-                </div>
-            </div>
+    <div class="calendar-container">
+        <div class="calendar-weekdays">
+            <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+        </div>
+        <div class="calendar-days" id="calendar-days-grid">
+            <div style="grid-column: span 7; text-align: center; padding: 40px; color: #888;">行事曆資料載入中...</div>
         </div>
     </div>
 
     <script>
         let currentDate = new Date();
-        let tasksData = [];
-
-        function getClient() {
-            return window.supabaseClient || (window.supabase && typeof window.supabase.from === 'function' ? window.supabase : null);
-        }
+        let tasksMapByDate = {}; // 存放 'YYYY-MM-DD' => [task1, task2]
 
         document.addEventListener('DOMContentLoaded', async () => {
-            await fetchCalendarTasks();
+            await fetchProjectTasks();
             renderCalendar();
         });
 
-        async function fetchCalendarTasks() {
-            const client = getClient();
-            if (!client) return;
-            try {
-                const { data, error } = await client
-                    .from('tasks')
-                    .select('*, projects(name, clients(name))');
-                if (error) throw error;
-                tasksData = data || [];
-            } catch (err) {
-                console.error('行事曆任務資料取得失敗:', err);
-            }
-        }
+        // 1. 從 Supabase 讀取包含專案資訊的子任務
+        async function fetchProjectTasks() {
+            if (!window.supabase) return;
 
-        function renderCalendar() {
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
+            const { data: tasks, error } = await window.supabase
+                .from('project_tasks')
+                .select('id, task_name, due_date, is_completed, project_id, projects(id, name, clients(name))');
 
-            document.getElementById('current-month-display').textContent = `${year} 年 ${month + 1} 月`;
-
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const calendarDays = document.getElementById('calendar-days');
-            calendarDays.innerHTML = '';
-
-            // 填充月初空白
-            for (let i = 0; i < firstDay; i++) {
-                const emptyCell = document.createElement('div');
-                emptyCell.className = 'calendar-day empty';
-                calendarDays.appendChild(emptyCell);
-            }
-
-            // 渲染當月日曆
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayCell = document.createElement('div');
-                dayCell.className = 'calendar-day';
-
-                const dayNum = document.createElement('div');
-                dayNum.className = 'day-number';
-                dayNum.textContent = day;
-                dayCell.appendChild(dayNum);
-
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const dayTasks = tasksData.filter(t => t.due_date === dateStr);
-
-                dayCell.onclick = (e) => {
-                    if (e.target === dayCell || e.target === dayNum) {
-                        showDayPreview(dateStr, dayTasks);
-                    }
-                };
-
-                dayTasks.forEach(task => {
-                    const chip = document.createElement('div');
-                    chip.className = `task-chip ${task.status === 'completed' ? 'completed' : ''}`;
-                    chip.textContent = task.name || '未命名任務';
-                    chip.onclick = (e) => {
-                        e.stopPropagation();
-                        showTaskPreview(task);
-                    };
-                    dayCell.appendChild(chip);
-                });
-
-                calendarDays.appendChild(dayCell);
-            }
-        }
-
-        function showTaskPreview(task) {
-            const sidebar = document.getElementById('preview-content');
-            const clientName = task.projects?.clients?.name || '未指定客戶';
-            const projectName = task.projects?.name || '未指定專案';
-            const isCompleted = task.status === 'completed';
-
-            sidebar.innerHTML = `
-                <div class="preview-card">
-                    <div class="preview-title">${task.name || '未命名任務'}</div>
-                    <div class="preview-item"><strong>客戶：</strong>${clientName}</div>
-                    <div class="preview-item"><strong>專案：</strong>${projectName}</div>
-                    <div class="preview-item"><strong>到期日：</strong>${task.due_date || '未定'}</div>
-                    <div class="preview-item" style="margin-top: 8px;">
-                        <strong>狀態：</strong> ${isCompleted ? '🟢 已完成' : '🔵 進行中'}
-                    </div>
-                </div>
-            `;
-        }
-
-        function showDayPreview(dateStr, tasks) {
-            const sidebar = document.getElementById('preview-content');
-            if (tasks.length === 0) {
-                sidebar.innerHTML = `
-                    <div class="preview-card">
-                        <div class="preview-title">${dateStr}</div>
-                        <div class="preview-item" style="color: #999;">當日無排定任務</div>
-                    </div>
-                `;
+            if (error) {
+                console.error('無法讀取行事曆任務:', error);
                 return;
             }
 
-            let html = `<h5 style="margin: 0 0 8px 0; color: #4A4A4A;">${dateStr} 當日任務</h5>`;
-            tasks.forEach(t => {
-                html += `
-                    <div class="preview-card" style="margin-bottom: 8px; cursor: pointer;" onclick='showTaskPreview(${JSON.stringify(t)})'>
-                        <div style="font-weight: 600; color: #333;">${t.name || '未命名任務'}</div>
-                        <div style="font-size: 0.8rem; color: #777;">${t.projects?.name || '未指定專案'}</div>
-                    </div>
-                `;
+            tasksMapByDate = {};
+            (tasks || []).forEach(task => {
+                if (task.due_date) {
+                    const dateKey = task.due_date; // 格式: YYYY-MM-DD
+                    if (!tasksMapByDate[dateKey]) {
+                        tasksMapByDate[dateKey] = [];
+                    }
+                    tasksMapByDate[dateKey].push(task);
+                }
             });
-            sidebar.innerHTML = html;
         }
 
+        // 2. 渲染月曆網格
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-days-grid');
+            const title = document.getElementById('calendar-month-title');
+            
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            title.innerText = `${year} 年 ${month + 1} 月`;
+
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            const prevLastDay = new Date(year, month, 0).getDate();
+
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            let html = '';
+
+            // 上個月的填充日期
+            for (let x = firstDayIndex; x > 0; x--) {
+                const dayNum = prevLastDay - x + 1;
+                html += `<div class="day-cell other-month"><div class="day-number">${dayNum}</div></div>`;
+            }
+
+            // 當月日期
+            for (let i = 1; i <= lastDay; i++) {
+                const monthStr = String(month + 1).padStart(2, '0');
+                const dayStr = String(i).padStart(2, '0');
+                const dateKey = `${year}-${monthStr}-${dayStr}`;
+                
+                const isToday = dateKey === todayStr;
+                const tasks = tasksMapByDate[dateKey] || [];
+
+                let tasksHtml = tasks.map(t => {
+                    const projectName = t.projects ? t.projects.name : '未知專案';
+                    const clientName = t.projects && t.projects.clients ? t.projects.clients.name : '';
+                    const completedClass = t.is_completed ? 'completed' : '';
+                    
+                    return `
+                        <div class="event-chip ${completedClass}" 
+                             title="客戶：${clientName}\n專案：${projectName}\n步驟：${t.task_name}" 
+                             onclick="jumpToProject('${t.project_id}')">
+                            📌 ${projectName} - ${t.task_name}
+                        </div>
+                    `;
+                }).join('');
+
+                html += `
+                    <div class="day-cell ${isToday ? 'today' : ''}">
+                        <div class="day-number">${i}</div>
+                        ${tasksHtml}
+                    </div>
+                `;
+            }
+
+            // 下個月的填充日期
+            const totalCellsSoFar = firstDayIndex + lastDay;
+            const remainingCells = (totalCellsSoFar % 7 === 0) ? 0 : 7 - (totalCellsSoFar % 7);
+            for (let j = 1; j <= remainingCells; j++) {
+                html += `<div class="day-cell other-month"><div class="day-number">${j}</div></div>`;
+            }
+
+            grid.innerHTML = html;
+        }
+
+        // 3. 跳轉至專案矩陣並開門見山顯示該專案
+        function jumpToProject(projectId) {
+            if (!projectId) return;
+            
+            const targetUrl = `page-matrix.html?openProjectId=${projectId}`;
+            if (window.parent && typeof window.parent.switchPage === 'function') {
+                window.parent.switchPage(targetUrl);
+            } else {
+                window.location.href = targetUrl;
+            }
+        }
+
+        // 4. 月曆月份切換邏輯
         function changeMonth(delta) {
             currentDate.setMonth(currentDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function resetToToday() {
+            currentDate = new Date();
             renderCalendar();
         }
     </script>
