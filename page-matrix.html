@@ -3,7 +3,7 @@
 ==========================================================================
 PearlFlow - 專案進度矩陣
 @file        page-matrix.html
-@description 專案進度矩陣，支援專案建立、進度即時勾選與專案編輯（獨立引用模板）
+@description 專案進度總覽矩陣，支援自動接收 openProjectId 開啟特定專案詳情 Modal
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -18,47 +18,44 @@ PearlFlow - 專案進度矩陣
     <style>
         * { box-sizing: border-box; }
         body { padding: 24px; font-family: system-ui, -apple-system, sans-serif; background: transparent; margin: 0; }
+        
         .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-primary { background: var(--primary-color); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; }
         .btn-primary:hover { background: var(--primary-hover); }
         .btn-secondary { background: #fff; color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
         .btn-secondary:hover { border-color: var(--primary-color); color: var(--primary-color); }
-        .btn-danger { background: #FFF0F2; color: #D32F2F; border: 1px solid #FFCDD2; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; transition: all 0.2s; }
-        .btn-danger:hover { background: #D32F2F; color: #FFFFFF; }
-        
+
         .matrix-table { width: 100%; border-collapse: separate; border-spacing: 0; background: rgba(255, 255, 255, 0.92); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; backdrop-filter: blur(8px); box-shadow: var(--shadow-soft); }
-        .matrix-table th, .matrix-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .matrix-table th, .matrix-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
         .matrix-table th { background: var(--primary-light); color: var(--primary-color); font-weight: 600; font-size: 0.92rem; }
-        .matrix-table tbody tr { cursor: pointer; transition: background 0.15s ease; }
-        .matrix-table tbody tr:hover { background: rgba(182, 40, 70, 0.04); }
+        .matrix-table tbody tr:hover { background: rgba(182, 40, 70, 0.03); }
+
+        .progress-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.82rem; font-weight: 600; display: inline-block; }
+        .status-active { background: #E3F2FD; color: #1565C0; }
+        .status-completed { background: #E8F5E9; color: #2E7D32; }
+
+        /* Modal 彈窗樣式 */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .modal-body { background: #fff; width: 680px; max-width: 92%; max-height: 85vh; overflow-y: auto; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 100; }
-        .modal-body { background: #fff; width: 680px; max-width: 92%; max-height: 85vh; overflow-y: auto; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+        .task-list { margin-top: 16px; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+        .task-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border-color); background: #fff; }
+        .task-item:last-child { border-bottom: none; }
+        .task-item.completed { background: #F9FBF9; text-decoration: line-through; color: #888; }
         
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: #444; }
         .form-control { width: 100%; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; }
-        
-        .dynamic-task-row { display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; margin-bottom: 8px; align-items: center; }
-        .progress-bar-bg { width: 100%; background: #E0E0E0; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 6px; }
-        .progress-bar-fill { background: var(--primary-color); height: 100%; width: 0%; transition: width 0.3s ease; }
-        
-        .task-detail-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 8px; background: #FAF9F9; }
-        .task-detail-item.completed { background: #F0FDF4; border-color: #BBF7D0; }
-        .task-detail-item.completed .task-text { text-decoration: line-through; color: #888; }
     </style>
 </head>
 <body>
 
     <div class="header-bar">
         <div style="display: flex; align-items: center; gap: 10px;">
-            <span data-pf-icon="list" data-size="22" style="color: var(--primary-color);"></span>
+            <span data-pf-icon="grid" data-size="22" style="color: var(--primary-color);"></span>
             <h2 style="margin: 0; color: var(--primary-color); font-size: 1.25rem;">專案進度矩陣</h2>
         </div>
         <div style="display: flex; gap: 10px;">
-            <button class="btn-secondary" onclick="navigateToTemplates()">
-                <span data-pf-icon="edit"></span> 管理專案模板
-            </button>
             <button class="btn-secondary" onclick="loadMatrixData()">
                 <span data-pf-icon="refresh"></span> 重新整理
             </button>
@@ -68,547 +65,287 @@ PearlFlow - 專案進度矩陣
         </div>
     </div>
 
+    <!-- 專案列表表格 -->
     <table class="matrix-table">
         <thead>
             <tr>
                 <th>客戶名稱</th>
                 <th>專案名稱</th>
-                <th>起始日期</th>
-                <th>執行進度</th>
+                <th>目前進度 (完成數/總數)</th>
+                <th>專案狀態</th>
+                <th>操作</th>
             </tr>
         </thead>
         <tbody id="matrix-tbody">
-            <tr><td colspan="4" style="text-align: center; color: #888;">資料載入中...</td></tr>
+            <tr><td colspan="5" style="text-align: center; color: #888;">專案資料載入中...</td></tr>
         </tbody>
     </table>
 
-    <!-- 1. 建立新專案 Modal -->
+    <!-- 1. 建立專案 Modal -->
     <div class="modal-overlay" id="createProjectModal">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="margin: 0; color: var(--primary-color); font-size: 1.15rem;">新增事務所服務專案</h3>
-                <span data-pf-icon="close" style="cursor: pointer; color: #888;" onclick="closeCreateProjectModal()"></span>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <div class="form-group">
-                    <label>選擇目標客戶</label>
-                    <select class="form-control" id="project-client-select" onchange="handleClientSelectChange(this.value)">
-                        <option value="">-- 請選擇客戶 --</option>
-                        <option value="NEW_CLIENT" style="color: var(--primary-color); font-weight: bold;">＋ 新增其他客戶...</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>專案起始日期 (補登/預約)</label>
-                    <input type="date" class="form-control" id="project-start-date">
-                </div>
+                <h3 style="margin: 0; color: var(--primary-color); font-size: 1.15rem;">建立新專案 (套用 SOP 模板)</h3>
+                <span data-pf-icon="close" style="cursor: pointer; color: #888;" onclick="closeModal('createProjectModal')"></span>
             </div>
 
             <div class="form-group">
-                <label>專案名稱</label>
-                <input type="text" class="form-control" id="project-name" placeholder="例：2026 員工內部稅務教育訓練">
+                <label>選擇客戶 *</label>
+                <select class="form-control" id="select-client-id"></select>
             </div>
 
             <div class="form-group">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <label style="margin: 0;">套用步驟模板</label>
-                    <a href="javascript:void(0)" onclick="navigateToTemplates()" style="font-size: 0.8rem; color: var(--primary-color); text-decoration: none;">⚙️ 管理模板庫</a>
-                </div>
-                <select class="form-control" id="project-template-select" onchange="applyTemplateTasks(this.value)">
-                    <option value="">-- 全自訂步驟 --</option>
-                </select>
+                <label>專案名稱 *</label>
+                <input type="text" class="form-control" id="project-name" placeholder="例：113年度營業稅申辦服務">
             </div>
 
             <div class="form-group">
-                <label style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>專案執行步驟</span>
-                    <button type="button" onclick="addCustomTaskRow()" style="color: var(--primary-color); border: none; background: none; cursor: pointer; font-size: 0.82rem; font-weight: 600;">＋ 新增步驟</button>
-                </label>
-                <div id="project-tasks-list"></div>
+                <label>選擇 SOP 專案模板 *</label>
+                <select class="form-control" id="select-template-id"></select>
+            </div>
+
+            <div class="form-group">
+                <label>專案啟動基準日</label>
+                <input type="date" class="form-control" id="project-start-date">
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-                <button type="button" class="btn-secondary" onclick="closeCreateProjectModal()">取消</button>
-                <button type="button" class="btn-primary" id="btn-submit-project" onclick="submitCreateProject()">確認建立並同步至雲端</button>
+                <button class="btn-secondary" onclick="closeModal('createProjectModal')">取消</button>
+                <button class="btn-primary" id="btn-save-project" onclick="submitCreateProject()">建立專案</button>
             </div>
         </div>
     </div>
 
-    <!-- 2. 查看專案詳情與勾選進度 Modal -->
+    <!-- 2. 專案內部詳情與步驟進度 Modal (跳轉後自動彈出此視窗) -->
     <div class="modal-overlay" id="detailProjectModal">
         <div class="modal-body">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <div>
-                    <h3 style="margin: 0; color: var(--primary-color); font-size: 1.2rem;" id="modal-detail-project-name">專案名稱</h3>
-                    <div style="font-size: 0.85rem; color: #666; margin-top: 4px;" id="modal-detail-client-name">客戶：-</div>
+                    <span id="detail-client-name" class="progress-badge status-active" style="margin-bottom: 4px;">-</span>
+                    <h3 id="detail-project-name" style="margin: 4px 0 0 0; color: var(--primary-color); font-size: 1.2rem;">專案詳情與步驟</h3>
                 </div>
-                <span data-pf-icon="close" style="cursor: pointer; color: #888;" onclick="closeDetailProjectModal()"></span>
+                <span data-pf-icon="close" style="cursor: pointer; color: #888;" onclick="closeModal('detailProjectModal')"></span>
             </div>
 
-            <div style="margin-bottom: 20px;">
-                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; font-weight: 600; color: #444;">
-                    <span>整體完成進度</span>
-                    <span id="modal-detail-progress-percent">0%</span>
-                </div>
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" id="modal-detail-progress-fill"></div>
-                </div>
+            <p style="font-size: 0.88rem; color: #666; margin-bottom: 16px;">點選勾選框可更新 SOP 步驟完成狀態，行事曆與 Dashboard 將同步更新：</p>
+
+            <div class="task-list" id="detail-task-list">
+                <div style="padding: 20px; text-align: center; color: #888;">步驟載入中...</div>
             </div>
 
-            <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; color: #333;">SOP 子任務清單 (勾選即時更新進度)</div>
-            <div id="modal-detail-tasks-container">
-                <div style="text-align: center; color: #888;">載入中...</div>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-                <button type="button" class="btn-danger" onclick="deleteCurrentProject()">
-                    <span data-pf-icon="delete"></span> 刪除此專案
-                </button>
-                <div style="display: flex; gap: 10px;">
-                    <button type="button" class="btn-secondary" onclick="openEditProjectModal()">
-                        <span data-pf-icon="edit"></span> 編輯內容/追加步驟
-                    </button>
-                    <button type="button" class="btn-secondary" onclick="closeDetailProjectModal()">關閉</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 3. 編輯既有專案 Modal -->
-    <div class="modal-overlay" id="editProjectModal">
-        <div class="modal-body">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="margin: 0; color: var(--primary-color); font-size: 1.15rem;">編輯專案與步驟內容</h3>
-                <span data-pf-icon="close" style="cursor: pointer; color: #888;" onclick="closeEditProjectModal()"></span>
-            </div>
-
-            <div class="form-group">
-                <label>專案名稱</label>
-                <input type="text" class="form-control" id="edit-project-name">
-            </div>
-
-            <div class="form-group">
-                <label>專案起始日期</label>
-                <input type="date" class="form-control" id="edit-project-start-date">
-            </div>
-
-            <div class="form-group">
-                <label style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>專案步驟（編輯或追加）</span>
-                    <button type="button" onclick="addEditTaskRow()" style="color: var(--primary-color); border: none; background: none; cursor: pointer; font-size: 0.82rem; font-weight: 600;">＋ 追加步驟</button>
-                </label>
-                <div id="edit-project-tasks-list"></div>
-            </div>
-
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-                <button type="button" class="btn-secondary" onclick="closeEditProjectModal()">取消</button>
-                <button type="button" class="btn-primary" id="btn-save-edit-project" onclick="saveProjectEdits()">儲存變更</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <button class="btn-secondary" style="color: red; border-color: #FFCDD2;" id="btn-delete-project">刪除此專案</button>
+                <button class="btn-primary" onclick="closeModal('detailProjectModal')">關閉視窗</button>
             </div>
         </div>
     </div>
 
     <script>
-        let cachedProjects = [];
-        let cachedTemplates = [];
-        let activeProjectId = null;
-
         document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('project-start-date').value = new Date().toISOString().split('T')[0];
             await loadClientsDropdown();
             await loadTemplatesDropdown();
             await loadMatrixData();
+
+            // 核心邏輯：自動解析 URL 參數，直接開啟對應專案的內部詳情 Modal
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetProjectId = urlParams.get('openProjectId');
+            if (targetProjectId) {
+                openDetailProjectModal(targetProjectId);
+            }
         });
 
-        // ----------------------------------------------------
-        // 頁面導航切換
-        // ----------------------------------------------------
-        function navigateToTemplates() {
-            if (window.parent && typeof window.parent.switchPage === 'function') {
-                window.parent.switchPage('page-templates.html');
-            } else {
-                window.location.href = 'page-templates.html';
-            }
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
         }
 
-        // ----------------------------------------------------
-        // A. 客戶與模板下拉選擇
-        // ----------------------------------------------------
         async function loadClientsDropdown() {
-            const select = document.getElementById('project-client-select');
             if (!window.supabase) return;
-
-            const { data: clients, error } = await window.supabase.from('clients').select('id, name').order('name');
-            if (error) return console.error('無法讀取客戶清單:', error);
-
-            select.innerHTML = '<option value="">-- 請選擇客戶 --</option>';
-            clients.forEach(c => { select.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
-            select.innerHTML += '<option value="NEW_CLIENT" style="color: var(--primary-color); font-weight: bold;">＋ 新增其他客戶...</option>';
-        }
-
-        async function handleClientSelectChange(val) {
-            if (val === 'NEW_CLIENT') {
-                const clientName = prompt('請輸入新客戶名稱（例：台積電股份有限公司）：');
-                if (!clientName) { document.getElementById('project-client-select').value = ''; return; }
-
-                const { data, error } = await window.supabase.from('clients').insert([{ name: clientName }]).select();
-                if (error) {
-                    alert('新增客戶失敗：' + error.message);
-                    document.getElementById('project-client-select').value = '';
-                    return;
-                }
-                alert(`客戶「${clientName}」已成功新增！`);
-                await loadClientsDropdown();
-                document.getElementById('project-client-select').value = data[0].id;
-            }
+            const { data: clients } = await window.supabase.from('clients').select('id, name').order('name');
+            const select = document.getElementById('select-client-id');
+            select.innerHTML = (clients || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         }
 
         async function loadTemplatesDropdown() {
-            const select = document.getElementById('project-template-select');
             if (!window.supabase) return;
-
-            const { data, error } = await window.supabase
-                .from('project_templates')
-                .select('id, name, project_template_tasks(task_name, days_required)')
-                .order('created_at');
-
-            if (error) return console.error('無法讀取模板清單:', error);
-
-            cachedTemplates = data || [];
-            select.innerHTML = '<option value="">-- 全自訂步驟 --</option>';
-            cachedTemplates.forEach(t => {
-                select.innerHTML += `<option value="${t.id}">${t.name}</option>`;
-            });
+            const { data: templates } = await window.supabase.from('templates').select('id, name').order('name');
+            const select = document.getElementById('select-template-id');
+            select.innerHTML = (templates || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
         }
 
-        function applyTemplateTasks(templateId) {
-            const container = document.getElementById('project-tasks-list');
-            container.innerHTML = '';
-            if (!templateId) { addCustomTaskRow(); return; }
-
-            const template = cachedTemplates.find(t => t.id === templateId);
-            if (template && template.project_template_tasks) {
-                template.project_template_tasks.forEach(task => {
-                    addTaskRowDOM(task.task_name, task.days_required);
-                });
-            }
-        }
-
-        // ----------------------------------------------------
-        // B. 建立專案 Modal Logic
-        // ----------------------------------------------------
-        function openCreateProjectModal() {
-            document.getElementById('createProjectModal').style.display = 'flex';
-            if (document.getElementById('project-tasks-list').children.length === 0) addCustomTaskRow();
-        }
-
-        function closeCreateProjectModal() {
-            document.getElementById('createProjectModal').style.display = 'none';
-        }
-
-        function addCustomTaskRow() { addTaskRowDOM('', 3); }
-
-        function addTaskRowDOM(name = '', days = 3) {
-            const div = document.createElement('div');
-            div.className = 'dynamic-task-row';
-            div.innerHTML = `
-                <input type="text" class="form-control task-name-input" placeholder="步驟名稱" value="${name}">
-                <input type="number" class="form-control task-days-input" placeholder="所需天數" value="${days}">
-                <button type="button" onclick="this.parentElement.remove()" style="color: #d32f2f; border: none; background: none; cursor: pointer; font-weight: bold;">✕</button>
-            `;
-            document.getElementById('project-tasks-list').appendChild(div);
-        }
-
-        async function submitCreateProject() {
-            const clientId = document.getElementById('project-client-select').value;
-            const projectName = document.getElementById('project-name').value.trim();
-            const startDateStr = document.getElementById('project-start-date').value;
-            const btn = document.getElementById('btn-submit-project');
-
-            if (!clientId || clientId === 'NEW_CLIENT') return alert('請選擇有效的目標客戶');
-            if (!projectName) return alert('請輸入專案名稱');
-            if (!startDateStr) return alert('請選擇專案起始日期');
-
-            btn.disabled = true;
-            btn.innerText = '寫入雲端中...';
-
-            try {
-                const { data: projectData, error: pError } = await window.supabase
-                    .from('projects')
-                    .insert([{ client_id: clientId, name: projectName, status: '進行中', start_date: startDateStr }])
-                    .select();
-
-                if (pError) throw pError;
-                const projectId = projectData[0].id;
-
-                const taskRows = document.querySelectorAll('#project-tasks-list .dynamic-task-row');
-                const tasksToInsert = [];
-                let currentDueDate = new Date(startDateStr);
-
-                taskRows.forEach((row, index) => {
-                    const tName = row.querySelector('.task-name-input').value.trim();
-                    const tDays = parseInt(row.querySelector('.task-days-input').value) || 1;
-                    
-                    if (tName) {
-                        currentDueDate.setDate(currentDueDate.getDate() + tDays);
-                        tasksToInsert.push({
-                            project_id: projectId,
-                            task_name: tName,
-                            days_required: tDays,
-                            due_date: currentDueDate.toISOString().split('T')[0],
-                            sort_order: index + 1,
-                            is_completed: false
-                        });
-                    }
-                });
-
-                if (tasksToInsert.length > 0) {
-                    const { error: tError } = await window.supabase.from('project_tasks').insert(tasksToInsert);
-                    if (tError) throw tError;
-                }
-
-                alert('專案已成功建立並同步至 Supabase！');
-                closeCreateProjectModal();
-                await loadMatrixData();
-            } catch (err) {
-                alert('寫入失敗：' + err.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = '確認建立並同步至雲端';
-            }
-        }
-
-        // ----------------------------------------------------
-        // C. 專案矩陣渲染與詳細 Modal
-        // ----------------------------------------------------
         async function loadMatrixData() {
             const tbody = document.getElementById('matrix-tbody');
             if (!window.supabase) return;
 
             const { data: projects, error } = await window.supabase
                 .from('projects')
-                .select('id, name, start_date, created_at, clients(name), project_tasks(id, task_name, due_date, is_completed, days_required)')
+                .select('id, name, status, clients(name), project_tasks(id, is_completed)')
                 .order('created_at', { ascending: false });
 
             if (error) {
-                tbody.innerHTML = `<tr><td colspan="4" style="color: red;">讀取失敗：${error.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" style="color: red;">載入失敗：${error.message}</td></tr>`;
                 return;
             }
 
-            cachedProjects = projects || [];
-
-            if (cachedProjects.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #888;">目前雲端資料庫尚無專案資料</td></tr>`;
+            if (!projects || projects.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888;">目前尚無專案資料，請點擊右上方「建立新專案」</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = cachedProjects.map(p => {
-                const clientName = p.clients ? p.clients.name : '未知客戶';
+            tbody.innerHTML = projects.map(p => {
                 const tasks = p.project_tasks || [];
-                const totalTasks = tasks.length;
-                const completedTasks = tasks.filter(t => t.is_completed).length;
-                const percent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
-                const startDate = p.start_date || p.created_at.split('T')[0];
+                const total = tasks.length;
+                const completed = tasks.filter(t => t.is_completed).length;
+                const clientName = p.clients ? p.clients.name : '未指定客戶';
+                const statusBadge = p.status === 'completed' 
+                    ? `<span class="progress-badge status-completed">已完成</span>` 
+                    : `<span class="progress-badge status-active">進行中</span>`;
 
                 return `
-                    <tr onclick="openDetailProjectModal('${p.id}')">
-                        <td style="font-weight: 600;">${clientName}</td>
-                        <td>${p.name}</td>
-                        <td style="color: #555; font-size: 0.88rem;">${startDate}</td>
-                        <td style="width: 200px;">
-                            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #666;">
-                                <span>${completedTasks} / ${totalTasks} 項完成</span>
-                                <span>${percent}%</span>
-                            </div>
-                            <div class="progress-bar-bg">
-                                <div class="progress-bar-fill" style="width: ${percent}%;"></div>
-                            </div>
+                    <tr>
+                        <td style="font-weight: 600; color: var(--text-primary);">${clientName}</td>
+                        <td style="font-weight: 600;">${p.name}</td>
+                        <td>${completed} / ${total} 步驟 (${total > 0 ? Math.round(completed/total*100) : 0}%)</td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <button class="btn-primary" style="padding: 5px 12px; font-size: 0.82rem;" onclick="openDetailProjectModal('${p.id}')">
+                                🔍 深入專案內部
+                            </button>
                         </td>
                     </tr>
                 `;
             }).join('');
         }
 
-        function openDetailProjectModal(projectId) {
-            activeProjectId = projectId;
-            const project = cachedProjects.find(p => p.id === projectId);
-            if (!project) return;
+        // 深入指定專案內部（開啟專案詳細步驟與勾選 Modal）
+        async function openDetailProjectModal(projectId) {
+            const modal = document.getElementById('detailProjectModal');
+            modal.style.display = 'flex';
 
-            document.getElementById('modal-detail-project-name').innerText = project.name;
-            document.getElementById('modal-detail-client-name').innerText = `客戶：${project.clients ? project.clients.name : '未知'}`;
+            const clientEl = document.getElementById('detail-client-name');
+            const projectEl = document.getElementById('detail-project-name');
+            const taskListEl = document.getElementById('detail-task-list');
+            const deleteBtn = document.getElementById('btn-delete-project');
 
-            renderModalTasks(project);
-            document.getElementById('detailProjectModal').style.display = 'flex';
-        }
+            deleteBtn.onclick = () => deleteProject(projectId);
 
-        function closeDetailProjectModal() {
-            document.getElementById('detailProjectModal').style.display = 'none';
-        }
+            // 抓取該專案與對應的 tasks 步驟
+            const { data: project, error } = await window.supabase
+                .from('projects')
+                .select('id, name, clients(name), project_tasks(id, task_name, due_date, is_completed, step_order)')
+                .eq('id', projectId)
+                .single();
 
-        function renderModalTasks(project) {
-            const container = document.getElementById('modal-detail-tasks-container');
-            const tasks = project.project_tasks || [];
-            
-            const completedCount = tasks.filter(t => t.is_completed).length;
-            const percent = tasks.length === 0 ? 0 : Math.round((completedCount / tasks.length) * 100);
-
-            document.getElementById('modal-detail-progress-percent').innerText = `${percent}%`;
-            document.getElementById('modal-detail-progress-fill').style.width = `${percent}%`;
-
-            if (tasks.length === 0) {
-                container.innerHTML = `<div style="text-align: center; color: #888; padding: 12px;">此專案無子任務步驟</div>`;
+            if (error || !project) {
+                taskListEl.innerHTML = `<div style="padding: 20px; color: red;">無法載入該專案細節：${error ? error.message : '專案不存在'}</div>`;
                 return;
             }
 
-            container.innerHTML = tasks.map(t => `
-                <div class="task-detail-item ${t.is_completed ? 'completed' : ''}">
+            clientEl.innerText = project.clients ? project.clients.name : '客戶';
+            projectEl.innerText = project.name;
+
+            const tasks = project.project_tasks || [];
+            tasks.sort((a, b) => (a.step_order || 0) - (b.step_order || 0));
+
+            if (tasks.length === 0) {
+                taskListEl.innerHTML = `<div style="padding: 20px; text-align: center; color: #888;">此專案尚未設定 SOP 步驟</div>`;
+                return;
+            }
+
+            taskListEl.innerHTML = tasks.map(t => `
+                <div class="task-item ${t.is_completed ? 'completed' : ''}">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1;">
-                        <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleTaskStatus('${project.id}', '${t.id}', this.checked)">
-                        <span class="task-text" style="font-size: 0.9rem; color: #333;">${t.task_name}</span>
+                        <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleTaskStatus('${t.id}', this.checked, '${projectId}')" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                        <span style="font-weight: 500;">${t.task_name}</span>
                     </label>
-                    <span style="font-size: 0.8rem; color: #888;">預計完成：${t.due_date || '未指定'}</span>
+                    <span style="font-size: 0.82rem; color: #777;">到期日：${t.due_date || '未設定'}</span>
                 </div>
             `).join('');
         }
 
-        async function toggleTaskStatus(projectId, taskId, isCompleted) {
-            const project = cachedProjects.find(p => p.id === projectId);
-            if (!project) return;
-
-            const task = project.project_tasks.find(t => t.id === taskId);
-            if (task) task.is_completed = isCompleted;
-
-            renderModalTasks(project);
-
-            const { error } = await window.supabase
+        // 切換步驟完成狀態
+        async function toggleTaskStatus(taskId, isCompleted, projectId) {
+            await window.supabase
                 .from('project_tasks')
                 .update({ is_completed: isCompleted })
                 .eq('id', taskId);
 
-            if (error) {
-                alert('更新狀態失敗：' + error.message);
-                task.is_completed = !isCompleted;
-                renderModalTasks(project);
-            } else {
-                await loadMatrixData();
-            }
+            // 重新載入 Modal 步驟狀態與外層 Table 進度數字
+            openDetailProjectModal(projectId);
+            loadMatrixData();
         }
 
-        async function deleteCurrentProject() {
-            const project = cachedProjects.find(p => p.id === activeProjectId);
-            if (!project) return;
-
-            if (confirm(`確定要刪除專案「${project.name}」嗎？\n此動作將同時刪除旗下所有子任務，無法復原。`)) {
-                const { error } = await window.supabase.from('projects').delete().eq('id', activeProjectId);
-                if (error) {
-                    alert('刪除專案失敗：' + error.message);
-                } else {
-                    alert('專案已成功刪除！');
-                    closeDetailProjectModal();
-                    await loadMatrixData();
-                }
-            }
+        function openCreateProjectModal() {
+            document.getElementById('createProjectModal').style.display = 'flex';
         }
 
-        // ----------------------------------------------------
-        // D. 編輯既有專案 Modal
-        // ----------------------------------------------------
-        function openEditProjectModal() {
-            const project = cachedProjects.find(p => p.id === activeProjectId);
-            if (!project) return;
+        // 套用 SOP 模板生成專案與子步驟
+        async function submitCreateProject() {
+            const clientId = document.getElementById('select-client-id').value;
+            const projectName = document.getElementById('project-name').value.trim();
+            const templateId = document.getElementById('select-template-id').value;
+            const startDateStr = document.getElementById('project-start-date').value;
+            const btn = document.getElementById('btn-save-project');
 
-            document.getElementById('edit-project-name').value = project.name;
-            document.getElementById('edit-project-start-date').value = project.start_date || project.created_at.split('T')[0];
-
-            const list = document.getElementById('edit-project-tasks-list');
-            list.innerHTML = '';
-
-            const tasks = project.project_tasks || [];
-            tasks.forEach(t => {
-                addEditTaskRowDOM(t.id, t.task_name, t.days_required || 3);
-            });
-
-            document.getElementById('editProjectModal').style.display = 'flex';
-        }
-
-        function closeEditProjectModal() {
-            document.getElementById('editProjectModal').style.display = 'none';
-        }
-
-        function addEditTaskRow() {
-            addEditTaskRowDOM(null, '', 3);
-        }
-
-        function addEditTaskRowDOM(id = null, name = '', days = 3) {
-            const div = document.createElement('div');
-            div.className = 'dynamic-edit-task-row';
-            div.dataset.taskId = id || '';
-            div.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; margin-bottom: 8px; align-items: center;';
-            div.innerHTML = `
-                <input type="text" class="form-control edit-task-name" placeholder="步驟名稱" value="${name}">
-                <input type="number" class="form-control edit-task-days" placeholder="所需天數" value="${days}">
-                <button type="button" onclick="this.parentElement.remove()" style="color: #d32f2f; border: none; background: none; cursor: pointer; font-weight: bold;">✕</button>
-            `;
-            document.getElementById('edit-project-tasks-list').appendChild(div);
-        }
-
-        async function saveProjectEdits() {
-            const project = cachedProjects.find(p => p.id === activeProjectId);
-            if (!project) return;
-
-            const newName = document.getElementById('edit-project-name').value.trim();
-            const newStartDate = document.getElementById('edit-project-start-date').value;
-            const btn = document.getElementById('btn-save-edit-project');
-
-            if (!newName || !newStartDate) return alert('專案名稱與起始日期不可為空');
+            if (!projectName) return alert('請輸入專案名稱');
 
             btn.disabled = true;
-            btn.innerText = '儲存中...';
+            btn.innerText = '建立中...';
 
-            try {
-                const { error: pErr } = await window.supabase
-                    .from('projects')
-                    .update({ name: newName, start_date: newStartDate })
-                    .eq('id', activeProjectId);
+            // 1. 建立專案主檔
+            const { data: newProject, error: pError } = await window.supabase
+                .from('projects')
+                .insert([{ client_id: clientId, name: projectName, template_id: templateId, status: 'active' }])
+                .select()
+                .single();
 
-                if (pErr) throw pErr;
+            if (pError) {
+                alert('專案建立失敗：' + pError.message);
+                btn.disabled = false;
+                btn.innerText = '建立專案';
+                return;
+            }
 
-                const { error: delErr } = await window.supabase.from('project_tasks').delete().eq('project_id', activeProjectId);
-                if (delErr) throw delErr;
+            // 2. 讀取模板步驟並轉換為專案任務 (加上基準日算出的到期日)
+            const { data: templateSteps } = await window.supabase
+                .from('template_steps')
+                .select('*')
+                .eq('template_id', templateId)
+                .order('step_order');
 
-                const editRows = document.querySelectorAll('.dynamic-edit-task-row');
-                const tasksToInsert = [];
-                let currentDueDate = new Date(newStartDate);
+            if (templateSteps && templateSteps.length > 0) {
+                const startDate = new Date(startDateStr);
+                const taskInserts = templateSteps.map(step => {
+                    const dueDate = new Date(startDate);
+                    dueDate.setDate(dueDate.getDate() + (step.days_offset || 0));
 
-                editRows.forEach((row, index) => {
-                    const tName = row.querySelector('.edit-task-name').value.trim();
-                    const tDays = parseInt(row.querySelector('.edit-task-days').value) || 1;
-                    if (tName) {
-                        currentDueDate.setDate(currentDueDate.getDate() + tDays);
-                        tasksToInsert.push({
-                            project_id: activeProjectId,
-                            task_name: tName,
-                            days_required: tDays,
-                            due_date: currentDueDate.toISOString().split('T')[0],
-                            sort_order: index + 1,
-                            is_completed: false
-                        });
-                    }
+                    return {
+                        project_id: newProject.id,
+                        task_name: step.step_name,
+                        due_date: dueDate.toISOString().split('T')[0],
+                        step_order: step.step_order,
+                        is_completed: false
+                    };
                 });
 
-                if (tasksToInsert.length > 0) {
-                    const { error: insErr } = await window.supabase.from('project_tasks').insert(tasksToInsert);
-                    if (insErr) throw insErr;
-                }
+                await window.supabase.from('project_tasks').insert(taskInserts);
+            }
 
-                alert('專案與步驟資訊已成功更新！');
-                closeEditProjectModal();
-                closeDetailProjectModal();
-                await loadMatrixData();
-            } catch (err) {
-                alert('更新失敗：' + err.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = '儲存變更';
+            btn.disabled = false;
+            btn.innerText = '建立專案';
+            alert('專案與 SOP 步驟建立成功！');
+            closeModal('createProjectModal');
+            loadMatrixData();
+            
+            // 建立完成後直接開啟該專案深入介面
+            openDetailProjectModal(newProject.id);
+        }
+
+        async function deleteProject(projectId) {
+            if (confirm('確定要刪除此專案及其所有步驟嗎？')) {
+                await window.supabase.from('projects').delete().eq('id', projectId);
+                closeModal('detailProjectModal');
+                loadMatrixData();
             }
         }
     </script>
