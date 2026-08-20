@@ -3,7 +3,6 @@
 ==========================================================================
 PearlFlow - 專案進度矩陣
 @file        page-matrix.html
-@description 專案進度總覽矩陣，支援自動接收 openProjectId 開啟特定專案詳情 Modal
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -26,15 +25,17 @@ PearlFlow - 專案進度矩陣
         .btn-secondary:hover { border-color: var(--primary-color); color: var(--primary-color); }
 
         .matrix-table { width: 100%; border-collapse: separate; border-spacing: 0; background: rgba(255, 255, 255, 0.92); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; backdrop-filter: blur(8px); box-shadow: var(--shadow-soft); }
-        .matrix-table th, .matrix-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        .matrix-table th, .matrix-table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
         .matrix-table th { background: var(--primary-light); color: var(--primary-color); font-weight: 600; font-size: 0.92rem; }
-        .matrix-table tbody tr:hover { background: rgba(182, 40, 70, 0.03); }
+        
+        /* 整條專案列變身為大按鈕 */
+        .clickable-row { cursor: pointer; transition: background 0.2s ease, transform 0.1s ease; }
+        .clickable-row:hover { background: rgba(182, 40, 70, 0.08) !important; }
 
         .progress-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.82rem; font-weight: 600; display: inline-block; }
         .status-active { background: #E3F2FD; color: #1565C0; }
         .status-completed { background: #E8F5E9; color: #2E7D32; }
 
-        /* Modal 彈窗樣式 */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 100; }
         .modal-body { background: #fff; width: 680px; max-width: 92%; max-height: 85vh; overflow-y: auto; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         
@@ -65,7 +66,6 @@ PearlFlow - 專案進度矩陣
         </div>
     </div>
 
-    <!-- 專案列表表格 -->
     <table class="matrix-table">
         <thead>
             <tr>
@@ -73,11 +73,10 @@ PearlFlow - 專案進度矩陣
                 <th>專案名稱</th>
                 <th>目前進度 (完成數/總數)</th>
                 <th>專案狀態</th>
-                <th>操作</th>
             </tr>
         </thead>
         <tbody id="matrix-tbody">
-            <tr><td colspan="5" style="text-align: center; color: #888;">專案資料載入中...</td></tr>
+            <tr><td colspan="4" style="text-align: center; color: #888;">專案資料載入中...</td></tr>
         </tbody>
     </table>
 
@@ -116,7 +115,7 @@ PearlFlow - 專案進度矩陣
         </div>
     </div>
 
-    <!-- 2. 專案內部詳情與步驟進度 Modal (跳轉後自動彈出此視窗) -->
+    <!-- 2. 專案內部詳情 Modal -->
     <div class="modal-overlay" id="detailProjectModal">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -147,7 +146,6 @@ PearlFlow - 專案進度矩陣
             await loadTemplatesDropdown();
             await loadMatrixData();
 
-            // 核心邏輯：自動解析 URL 參數，直接開啟對應專案的內部詳情 Modal
             const urlParams = new URLSearchParams(window.location.search);
             const targetProjectId = urlParams.get('openProjectId');
             if (targetProjectId) {
@@ -183,12 +181,12 @@ PearlFlow - 專案進度矩陣
                 .order('created_at', { ascending: false });
 
             if (error) {
-                tbody.innerHTML = `<tr><td colspan="5" style="color: red;">載入失敗：${error.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" style="color: red;">載入失敗：${error.message}</td></tr>`;
                 return;
             }
 
             if (!projects || projects.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888;">目前尚無專案資料，請點擊右上方「建立新專案」</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #888;">目前尚無專案資料，請點擊右上方「建立新專案」</td></tr>`;
                 return;
             }
 
@@ -201,23 +199,19 @@ PearlFlow - 專案進度矩陣
                     ? `<span class="progress-badge status-completed">已完成</span>` 
                     : `<span class="progress-badge status-active">進行中</span>`;
 
+                // 整列 TR 均可點擊，不再放置獨立按鈕
                 return `
-                    <tr>
+                    <tr class="clickable-row" onclick="openDetailProjectModal('${p.id}')">
                         <td style="font-weight: 600; color: var(--text-primary);">${clientName}</td>
                         <td style="font-weight: 600;">${p.name}</td>
                         <td>${completed} / ${total} 步驟 (${total > 0 ? Math.round(completed/total*100) : 0}%)</td>
                         <td>${statusBadge}</td>
-                        <td>
-                            <button class="btn-primary" style="padding: 5px 12px; font-size: 0.82rem;" onclick="openDetailProjectModal('${p.id}')">
-                                🔍 深入專案內部
-                            </button>
-                        </td>
                     </tr>
                 `;
             }).join('');
         }
 
-        // 深入指定專案內部（開啟專案詳細步驟與勾選 Modal）
+        // 已修正欄位：移除不存在的 step_order，改用 created_at 排序
         async function openDetailProjectModal(projectId) {
             const modal = document.getElementById('detailProjectModal');
             modal.style.display = 'flex';
@@ -229,10 +223,9 @@ PearlFlow - 專案進度矩陣
 
             deleteBtn.onclick = () => deleteProject(projectId);
 
-            // 抓取該專案與對應的 tasks 步驟
             const { data: project, error } = await window.supabase
                 .from('projects')
-                .select('id, name, clients(name), project_tasks(id, task_name, due_date, is_completed, step_order)')
+                .select('id, name, clients(name), project_tasks(id, task_name, due_date, is_completed, created_at)')
                 .eq('id', projectId)
                 .single();
 
@@ -245,7 +238,7 @@ PearlFlow - 專案進度矩陣
             projectEl.innerText = project.name;
 
             const tasks = project.project_tasks || [];
-            tasks.sort((a, b) => (a.step_order || 0) - (b.step_order || 0));
+            tasks.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
 
             if (tasks.length === 0) {
                 taskListEl.innerHTML = `<div style="padding: 20px; text-align: center; color: #888;">此專案尚未設定 SOP 步驟</div>`;
@@ -263,14 +256,12 @@ PearlFlow - 專案進度矩陣
             `).join('');
         }
 
-        // 切換步驟完成狀態
         async function toggleTaskStatus(taskId, isCompleted, projectId) {
             await window.supabase
                 .from('project_tasks')
                 .update({ is_completed: isCompleted })
                 .eq('id', taskId);
 
-            // 重新載入 Modal 步驟狀態與外層 Table 進度數字
             openDetailProjectModal(projectId);
             loadMatrixData();
         }
@@ -279,7 +270,6 @@ PearlFlow - 專案進度矩陣
             document.getElementById('createProjectModal').style.display = 'flex';
         }
 
-        // 套用 SOP 模板生成專案與子步驟
         async function submitCreateProject() {
             const clientId = document.getElementById('select-client-id').value;
             const projectName = document.getElementById('project-name').value.trim();
@@ -292,7 +282,6 @@ PearlFlow - 專案進度矩陣
             btn.disabled = true;
             btn.innerText = '建立中...';
 
-            // 1. 建立專案主檔
             const { data: newProject, error: pError } = await window.supabase
                 .from('projects')
                 .insert([{ client_id: clientId, name: projectName, template_id: templateId, status: 'active' }])
@@ -306,12 +295,10 @@ PearlFlow - 專案進度矩陣
                 return;
             }
 
-            // 2. 讀取模板步驟並轉換為專案任務 (加上基準日算出的到期日)
             const { data: templateSteps } = await window.supabase
                 .from('template_steps')
                 .select('*')
-                .eq('template_id', templateId)
-                .order('step_order');
+                .eq('template_id', templateId);
 
             if (templateSteps && templateSteps.length > 0) {
                 const startDate = new Date(startDateStr);
@@ -323,7 +310,6 @@ PearlFlow - 專案進度矩陣
                         project_id: newProject.id,
                         task_name: step.step_name,
                         due_date: dueDate.toISOString().split('T')[0],
-                        step_order: step.step_order,
                         is_completed: false
                     };
                 });
@@ -336,8 +322,6 @@ PearlFlow - 專案進度矩陣
             alert('專案與 SOP 步驟建立成功！');
             closeModal('createProjectModal');
             loadMatrixData();
-            
-            // 建立完成後直接開啟該專案深入介面
             openDetailProjectModal(newProject.id);
         }
 
