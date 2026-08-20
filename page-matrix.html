@@ -3,6 +3,7 @@
 ==========================================================================
 PearlFlow - 專案進度矩陣
 @file        page-matrix.html
+@version     1.1.0
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -28,8 +29,7 @@ PearlFlow - 專案進度矩陣
         .matrix-table th, .matrix-table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
         .matrix-table th { background: var(--primary-light); color: var(--primary-color); font-weight: 600; font-size: 0.92rem; }
         
-        /* 整條專案列變身為大按鈕 */
-        .clickable-row { cursor: pointer; transition: background 0.2s ease, transform 0.1s ease; }
+        .clickable-row { cursor: pointer; transition: background 0.2s ease; }
         .clickable-row:hover { background: rgba(182, 40, 70, 0.08) !important; }
 
         .progress-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.82rem; font-weight: 600; display: inline-block; }
@@ -37,12 +37,17 @@ PearlFlow - 專案進度矩陣
         .status-completed { background: #E8F5E9; color: #2E7D32; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 100; }
-        .modal-body { background: #fff; width: 680px; max-width: 92%; max-height: 85vh; overflow-y: auto; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal-body { background: #fff; width: 720px; max-width: 92%; max-height: 85vh; overflow-y: auto; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         
-        .task-list { margin-top: 16px; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+        .add-task-bar { display: flex; gap: 8px; margin-bottom: 16px; background: #F8F9FA; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .add-task-bar input { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.88rem; }
+
+        .task-list { border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
         .task-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border-color); background: #fff; }
         .task-item:last-child { border-bottom: none; }
         .task-item.completed { background: #F9FBF9; text-decoration: line-through; color: #888; }
+        .btn-del-task { border: none; background: transparent; color: #DC3545; cursor: pointer; font-size: 0.82rem; padding: 4px 8px; border-radius: 4px; }
+        .btn-del-task:hover { background: #FFE6E6; }
         
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: #444; }
@@ -57,12 +62,8 @@ PearlFlow - 專案進度矩陣
             <h2 style="margin: 0; color: var(--primary-color); font-size: 1.25rem;">專案進度矩陣</h2>
         </div>
         <div style="display: flex; gap: 10px;">
-            <button class="btn-secondary" onclick="loadMatrixData()">
-                <span data-pf-icon="refresh"></span> 重新整理
-            </button>
-            <button class="btn-primary" onclick="openCreateProjectModal()">
-                <span data-pf-icon="add"></span> 建立新專案
-            </button>
+            <button class="btn-secondary" onclick="loadMatrixData()">重新整理</button>
+            <button class="btn-primary" onclick="openCreateProjectModal()">建立新專案</button>
         </div>
     </div>
 
@@ -84,8 +85,8 @@ PearlFlow - 專案進度矩陣
     <div class="modal-overlay" id="createProjectModal">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="margin: 0; color: var(--primary-color); font-size: 1.15rem;">建立新專案 (套用 SOP 模板)</h3>
-                <span data-pf-icon="close" style="cursor: pointer; color: #888;" onclick="closeModal('createProjectModal')"></span>
+                <h3 style="margin: 0; color: var(--primary-color); font-size: 1.15rem;">建立新專案</h3>
+                <span style="cursor: pointer; color: #888; font-weight: bold;" onclick="closeModal('createProjectModal')">✕</span>
             </div>
 
             <div class="form-group">
@@ -99,8 +100,10 @@ PearlFlow - 專案進度矩陣
             </div>
 
             <div class="form-group">
-                <label>選擇 SOP 專案模板 *</label>
-                <select class="form-control" id="select-template-id"></select>
+                <label>選擇 SOP 專案模板 (可選)</label>
+                <select class="form-control" id="select-template-id">
+                    <option value="">-- 不套用模板 (自訂空白專案) --</option>
+                </select>
             </div>
 
             <div class="form-group">
@@ -115,7 +118,7 @@ PearlFlow - 專案進度矩陣
         </div>
     </div>
 
-    <!-- 2. 專案內部詳情 Modal -->
+    <!-- 2. 專案內部詳情 Modal (可新增/勾選/刪除步驟) -->
     <div class="modal-overlay" id="detailProjectModal">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -123,10 +126,15 @@ PearlFlow - 專案進度矩陣
                     <span id="detail-client-name" class="progress-badge status-active" style="margin-bottom: 4px;">-</span>
                     <h3 id="detail-project-name" style="margin: 4px 0 0 0; color: var(--primary-color); font-size: 1.2rem;">專案詳情與步驟</h3>
                 </div>
-                <span data-pf-icon="close" style="cursor: pointer; color: #888;" onclick="closeModal('detailProjectModal')"></span>
+                <span style="cursor: pointer; color: #888; font-weight: bold;" onclick="closeModal('detailProjectModal')">✕</span>
             </div>
 
-            <p style="font-size: 0.88rem; color: #666; margin-bottom: 16px;">點選勾選框可更新 SOP 步驟完成狀態，行事曆與 Dashboard 將同步更新：</p>
+            <!-- 新增步驟列 -->
+            <div class="add-task-bar">
+                <input type="text" id="new-task-name" placeholder="輸入新增步驟名稱..." style="flex: 1;">
+                <input type="date" id="new-task-due" style="width: 150px;">
+                <button class="btn-primary" style="padding: 6px 14px; font-size: 0.85rem;" id="btn-add-task">新增步驟</button>
+            </div>
 
             <div class="task-list" id="detail-task-list">
                 <div style="padding: 20px; text-align: center; color: #888;">步驟載入中...</div>
@@ -168,7 +176,8 @@ PearlFlow - 專案進度矩陣
             if (!window.supabase) return;
             const { data: templates } = await window.supabase.from('templates').select('id, name').order('name');
             const select = document.getElementById('select-template-id');
-            select.innerHTML = (templates || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            const templateOptions = (templates || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            select.innerHTML = `<option value="">-- 不套用模板 (自訂空白專案) --</option>` + templateOptions;
         }
 
         async function loadMatrixData() {
@@ -199,7 +208,6 @@ PearlFlow - 專案進度矩陣
                     ? `<span class="progress-badge status-completed">已完成</span>` 
                     : `<span class="progress-badge status-active">進行中</span>`;
 
-                // 整列 TR 均可點擊，不再放置獨立按鈕
                 return `
                     <tr class="clickable-row" onclick="openDetailProjectModal('${p.id}')">
                         <td style="font-weight: 600; color: var(--text-primary);">${clientName}</td>
@@ -211,7 +219,6 @@ PearlFlow - 專案進度矩陣
             }).join('');
         }
 
-        // 已修正欄位：移除不存在的 step_order，改用 created_at 排序
         async function openDetailProjectModal(projectId) {
             const modal = document.getElementById('detailProjectModal');
             modal.style.display = 'flex';
@@ -220,8 +227,10 @@ PearlFlow - 專案進度矩陣
             const projectEl = document.getElementById('detail-project-name');
             const taskListEl = document.getElementById('detail-task-list');
             const deleteBtn = document.getElementById('btn-delete-project');
+            const addTaskBtn = document.getElementById('btn-add-task');
 
             deleteBtn.onclick = () => deleteProject(projectId);
+            addTaskBtn.onclick = () => addNewTask(projectId);
 
             const { data: project, error } = await window.supabase
                 .from('projects')
@@ -241,7 +250,7 @@ PearlFlow - 專案進度矩陣
             tasks.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
 
             if (tasks.length === 0) {
-                taskListEl.innerHTML = `<div style="padding: 20px; text-align: center; color: #888;">此專案尚未設定 SOP 步驟</div>`;
+                taskListEl.innerHTML = `<div style="padding: 20px; text-align: center; color: #888;">此專案尚未設定步驟，可在上方直接新增步驟</div>`;
                 return;
             }
 
@@ -251,9 +260,41 @@ PearlFlow - 專案進度矩陣
                         <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleTaskStatus('${t.id}', this.checked, '${projectId}')" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
                         <span style="font-weight: 500;">${t.task_name}</span>
                     </label>
-                    <span style="font-size: 0.82rem; color: #777;">到期日：${t.due_date || '未設定'}</span>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 0.82rem; color: #777;">到期日：${t.due_date || '未設定'}</span>
+                        <button class="btn-del-task" onclick="deleteSingleTask('${t.id}', '${projectId}')">刪除</button>
+                    </div>
                 </div>
             `).join('');
+        }
+
+        async function addNewTask(projectId) {
+            const nameInput = document.getElementById('new-task-name');
+            const dueInput = document.getElementById('new-task-due');
+            const taskName = nameInput.value.trim();
+            const dueDate = dueInput.value;
+
+            if (!taskName) return alert('請輸入步驟名稱');
+
+            await window.supabase.from('project_tasks').insert([{
+                project_id: projectId,
+                task_name: taskName,
+                due_date: dueDate || null,
+                is_completed: false
+            }]);
+
+            nameInput.value = '';
+            dueInput.value = '';
+            openDetailProjectModal(projectId);
+            loadMatrixData();
+        }
+
+        async function deleteSingleTask(taskId, projectId) {
+            if (confirm('確定要刪除此步驟嗎？')) {
+                await window.supabase.from('project_tasks').delete().eq('id', taskId);
+                openDetailProjectModal(projectId);
+                loadMatrixData();
+            }
         }
 
         async function toggleTaskStatus(taskId, isCompleted, projectId) {
@@ -284,7 +325,7 @@ PearlFlow - 專案進度矩陣
 
             const { data: newProject, error: pError } = await window.supabase
                 .from('projects')
-                .insert([{ client_id: clientId, name: projectName, template_id: templateId, status: 'active' }])
+                .insert([{ client_id: clientId, name: projectName, template_id: templateId || null, status: 'active' }])
                 .select()
                 .single();
 
@@ -295,31 +336,33 @@ PearlFlow - 專案進度矩陣
                 return;
             }
 
-            const { data: templateSteps } = await window.supabase
-                .from('template_steps')
-                .select('*')
-                .eq('template_id', templateId);
+            if (templateId) {
+                const { data: templateSteps } = await window.supabase
+                    .from('template_steps')
+                    .select('*')
+                    .eq('template_id', templateId);
 
-            if (templateSteps && templateSteps.length > 0) {
-                const startDate = new Date(startDateStr);
-                const taskInserts = templateSteps.map(step => {
-                    const dueDate = new Date(startDate);
-                    dueDate.setDate(dueDate.getDate() + (step.days_offset || 0));
+                if (templateSteps && templateSteps.length > 0) {
+                    const startDate = new Date(startDateStr);
+                    const taskInserts = templateSteps.map(step => {
+                        const dueDate = new Date(startDate);
+                        dueDate.setDate(dueDate.getDate() + (step.days_offset || 0));
 
-                    return {
-                        project_id: newProject.id,
-                        task_name: step.step_name,
-                        due_date: dueDate.toISOString().split('T')[0],
-                        is_completed: false
-                    };
-                });
+                        return {
+                            project_id: newProject.id,
+                            task_name: step.step_name,
+                            due_date: dueDate.toISOString().split('T')[0],
+                            is_completed: false
+                        };
+                    });
 
-                await window.supabase.from('project_tasks').insert(taskInserts);
+                    await window.supabase.from('project_tasks').insert(taskInserts);
+                }
             }
 
             btn.disabled = false;
             btn.innerText = '建立專案';
-            alert('專案與 SOP 步驟建立成功！');
+            alert('專案建立成功！');
             closeModal('createProjectModal');
             loadMatrixData();
             openDetailProjectModal(newProject.id);
