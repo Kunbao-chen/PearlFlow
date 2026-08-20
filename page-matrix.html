@@ -3,7 +3,7 @@
 ==========================================================================
 PearlFlow - 專案進度矩陣
 @file        page-matrix.html
-@description 專案進度矩陣，支援自訂起始日、子任務進度追蹤、專案編輯/追加步驟與刪除功能
+@description 專案進度矩陣，內建動態模板管理、專案編輯與 Supabase 同步
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -11,7 +11,6 @@ PearlFlow - 專案進度矩陣
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>專案進度矩陣</title>
-    <!-- 不鎖版號引入 -->
     <link rel="stylesheet" href="css/theme.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/global-config.js"></script>
@@ -47,6 +46,8 @@ PearlFlow - 專案進度矩陣
         .task-detail-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 8px; background: #FAF9F9; }
         .task-detail-item.completed { background: #F0FDF4; border-color: #BBF7D0; }
         .task-detail-item.completed .task-text { text-decoration: line-through; color: #888; }
+        
+        .template-card { border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; background: #FAFAFA; }
     </style>
 </head>
 <body>
@@ -57,6 +58,9 @@ PearlFlow - 專案進度矩陣
             <h2 style="margin: 0; color: var(--primary-color); font-size: 1.25rem;">專案進度矩陣</h2>
         </div>
         <div style="display: flex; gap: 10px;">
+            <button class="btn-secondary" onclick="openTemplateManagerModal()">
+                <span data-pf-icon="edit"></span> 管理專案模板
+            </button>
             <button class="btn-secondary" onclick="loadMatrixData()">
                 <span data-pf-icon="refresh"></span> 重新整理
             </button>
@@ -108,11 +112,12 @@ PearlFlow - 專案進度矩陣
             </div>
 
             <div class="form-group">
-                <label>套用步驟模板</label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label style="margin: 0;">套用步驟模板</label>
+                    <a href="javascript:void(0)" onclick="openTemplateManagerModal()" style="font-size: 0.8rem; color: var(--primary-color); text-decoration: none;">⚙️ 管理模板庫</a>
+                </div>
                 <select class="form-control" id="project-template-select" onchange="applyTemplateTasks(this.value)">
                     <option value="">-- 全自訂步驟 --</option>
-                    <option value="tax">營業稅申報標準流程</option>
-                    <option value="training">客戶內部教育訓練</option>
                 </select>
             </div>
 
@@ -131,7 +136,7 @@ PearlFlow - 專案進度矩陣
         </div>
     </div>
 
-    <!-- 2. 查看專案內容與子任務 Modal -->
+    <!-- 2. 查看專案詳情與勾選進度 Modal -->
     <div class="modal-overlay" id="detailProjectModal">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
@@ -171,7 +176,51 @@ PearlFlow - 專案進度矩陣
         </div>
     </div>
 
-    <!-- 3. 編輯專案與追加步驟 Modal -->
+    <!-- 3. 專案模板管理 Modal (核心新增功能) -->
+    <div class="modal-overlay" id="templateManagerModal">
+        <div class="modal-body" style="width: 720px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="margin: 0; color: var(--primary-color); font-size: 1.15rem;">SOP 專案模板庫管理</h3>
+                <span data-pf-icon="close" style="cursor: pointer; color: #888;" onclick="closeTemplateManagerModal()"></span>
+            </div>
+
+            <!-- 新增/編輯模板區塊 -->
+            <div style="background: #FAF9F9; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 0.95rem; color: #333;" id="template-editor-title">新增專案模板</h4>
+                <input type="hidden" id="editing-template-id" value="">
+                
+                <div class="form-group">
+                    <label>模板名稱</label>
+                    <input type="text" class="form-control" id="template-name-input" placeholder="例：扣繳申報標準 Sop">
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>預設步驟與所需天數</span>
+                        <button type="button" onclick="addTemplateTaskRow()" style="color: var(--primary-color); border: none; background: none; cursor: pointer; font-size: 0.82rem; font-weight: 600;">＋ 新增步驟</button>
+                    </label>
+                    <div id="template-task-rows"></div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <button type="button" class="btn-secondary" onclick="resetTemplateForm()">清空欄位</button>
+                    <button type="button" class="btn-primary" onclick="saveTemplate()">儲存模板</button>
+                </div>
+            </div>
+
+            <!-- 既有模板清單 -->
+            <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; color: #444;">既有模板列表</div>
+            <div id="template-list-container">
+                <div style="text-align: center; color: #888;">載入模板中...</div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <button type="button" class="btn-secondary" onclick="closeTemplateManagerModal()">完成並關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 編輯既有專案 Modal -->
     <div class="modal-overlay" id="editProjectModal">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -205,21 +254,20 @@ PearlFlow - 專案進度矩陣
     </div>
 
     <script>
-        const templateLibrary = {
-            'tax': [ { name: '蒐集發票憑證', days: 3 }, { name: '登錄進銷項資料', days: 5 }, { name: '完成網路關貿申報', days: 10 } ],
-            'training': [ { name: '訪談客戶確定大綱', days: 2 }, { name: '撰寫講義教材', days: 7 }, { name: '現場授課與 Q&A', days: 10 } ]
-        };
-
         let cachedProjects = [];
+        let cachedTemplates = [];
         let activeProjectId = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('project-start-date').value = new Date().toISOString().split('T')[0];
             await loadClientsDropdown();
+            await loadTemplatesDropdown();
             await loadMatrixData();
         });
 
-        // 1. 讀取 Supabase 客戶清單
+        // ----------------------------------------------------
+        // A. 客戶與模板下拉選擇
+        // ----------------------------------------------------
         async function loadClientsDropdown() {
             const select = document.getElementById('project-client-select');
             if (!window.supabase) return;
@@ -249,6 +297,40 @@ PearlFlow - 專案進度矩陣
             }
         }
 
+        async function loadTemplatesDropdown() {
+            const select = document.getElementById('project-template-select');
+            if (!window.supabase) return;
+
+            const { data, error } = await window.supabase
+                .from('project_templates')
+                .select('id, name, project_template_tasks(task_name, days_required)')
+                .order('created_at');
+
+            if (error) return console.error('無法讀取模板清單:', error);
+
+            cachedTemplates = data || [];
+            select.innerHTML = '<option value="">-- 全自訂步驟 --</option>';
+            cachedTemplates.forEach(t => {
+                select.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+            });
+        }
+
+        function applyTemplateTasks(templateId) {
+            const container = document.getElementById('project-tasks-list');
+            container.innerHTML = '';
+            if (!templateId) { addCustomTaskRow(); return; }
+
+            const template = cachedTemplates.find(t => t.id === templateId);
+            if (template && template.project_template_tasks) {
+                template.project_template_tasks.forEach(task => {
+                    addTaskRowDOM(task.task_name, task.days_required);
+                });
+            }
+        }
+
+        // ----------------------------------------------------
+        // B. 建立專案 Modal Logic
+        // ----------------------------------------------------
         function openCreateProjectModal() {
             document.getElementById('createProjectModal').style.display = 'flex';
             if (document.getElementById('project-tasks-list').children.length === 0) addCustomTaskRow();
@@ -256,13 +338,6 @@ PearlFlow - 專案進度矩陣
 
         function closeCreateProjectModal() {
             document.getElementById('createProjectModal').style.display = 'none';
-        }
-
-        function applyTemplateTasks(key) {
-            const container = document.getElementById('project-tasks-list');
-            container.innerHTML = '';
-            if (!key || !templateLibrary[key]) { addCustomTaskRow(); return; }
-            templateLibrary[key].forEach(t => addTaskRowDOM(t.name, t.days));
         }
 
         function addCustomTaskRow() { addTaskRowDOM('', 3); }
@@ -278,7 +353,6 @@ PearlFlow - 專案進度矩陣
             document.getElementById('project-tasks-list').appendChild(div);
         }
 
-        // 2. 建立專案
         async function submitCreateProject() {
             const clientId = document.getElementById('project-client-select').value;
             const projectName = document.getElementById('project-name').value.trim();
@@ -338,7 +412,146 @@ PearlFlow - 專案進度矩陣
             }
         }
 
-        // 3. 讀取與渲染主矩陣
+        // ----------------------------------------------------
+        // C. 專案模板庫管理 Modal (CRUD)
+        // ----------------------------------------------------
+        async function openTemplateManagerModal() {
+            document.getElementById('templateManagerModal').style.display = 'flex';
+            resetTemplateForm();
+            await renderTemplatesList();
+        }
+
+        function closeTemplateManagerModal() {
+            document.getElementById('templateManagerModal').style.display = 'none';
+            loadTemplatesDropdown(); // 關閉時同步更新主建立畫面選單
+        }
+
+        function resetTemplateForm() {
+            document.getElementById('editing-template-id').value = '';
+            document.getElementById('template-name-input').value = '';
+            document.getElementById('template-editor-title').innerText = '新增專案模板';
+            const container = document.getElementById('template-task-rows');
+            container.innerHTML = '';
+            addTemplateTaskRow('發票蒐集與對齊', 3);
+            addTemplateTaskRow('資料輸入與申報', 5);
+        }
+
+        function addTemplateTaskRow(name = '', days = 3) {
+            const div = document.createElement('div');
+            div.className = 'dynamic-task-row template-task-input-row';
+            div.innerHTML = `
+                <input type="text" class="form-control t-task-name" placeholder="步驟名稱" value="${name}">
+                <input type="number" class="form-control t-task-days" placeholder="天數" value="${days}">
+                <button type="button" onclick="this.parentElement.remove()" style="color: #d32f2f; border: none; background: none; cursor: pointer; font-weight: bold;">✕</button>
+            `;
+            document.getElementById('template-task-rows').appendChild(div);
+        }
+
+        async function renderTemplatesList() {
+            const container = document.getElementById('template-list-container');
+            const { data: templates, error } = await window.supabase
+                .from('project_templates')
+                .select('id, name, project_template_tasks(id, task_name, days_required)')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                container.innerHTML = `<div style="color: red;">載入失敗：${error.message}</div>`;
+                return;
+            }
+
+            if (!templates || templates.length === 0) {
+                container.innerHTML = `<div style="text-align: center; color: #888;">目前尚無設定任何模板</div>`;
+                return;
+            }
+
+            container.innerHTML = templates.map(t => `
+                <div class="template-card">
+                    <div>
+                        <strong style="color: var(--primary-color); font-size: 0.95rem;">${t.name}</strong>
+                        <div style="font-size: 0.82rem; color: #666; margin-top: 4px;">
+                            ${(t.project_template_tasks || []).map(k => `${k.task_name} (${k.days_required}天)`).join(' ➔ ') || '無子步驟'}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;" onclick="editTemplate('${t.id}')">編輯</button>
+                        <button class="btn-danger" style="padding: 4px 10px; font-size: 0.8rem;" onclick="deleteTemplate('${t.id}', '${t.name}')">刪除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function saveTemplate() {
+            const templateId = document.getElementById('editing-template-id').value;
+            const name = document.getElementById('template-name-input').value.trim();
+
+            if (!name) return alert('請輸入模板名稱');
+
+            const rows = document.querySelectorAll('.template-task-input-row');
+            const tasks = [];
+            rows.forEach((row, idx) => {
+                const taskName = row.querySelector('.t-task-name').value.trim();
+                const days = parseInt(row.querySelector('.t-task-days').value) || 1;
+                if (taskName) tasks.push({ task_name: taskName, days_required: days, sort_order: idx + 1 });
+            });
+
+            try {
+                let targetId = templateId;
+                if (targetId) {
+                    // 更新名稱與重新寫入步驟
+                    await window.supabase.from('project_templates').update({ name }).eq('id', targetId);
+                    await window.supabase.from('project_template_tasks').delete().eq('template_id', targetId);
+                } else {
+                    // 新增模板
+                    const { data, error } = await window.supabase.from('project_templates').insert([{ name }]).select();
+                    if (error) throw error;
+                    targetId = data[0].id;
+                }
+
+                if (tasks.length > 0) {
+                    const tasksWithId = tasks.map(t => ({ ...t, template_id: targetId }));
+                    const { error: taskErr } = await window.supabase.from('project_template_tasks').insert(tasksWithId);
+                    if (taskErr) throw taskErr;
+                }
+
+                alert('模板儲存成功！');
+                resetTemplateForm();
+                await renderTemplatesList();
+            } catch (err) {
+                alert('儲存失敗：' + err.message);
+            }
+        }
+
+        async function editTemplate(id) {
+            const { data: template, error } = await window.supabase
+                .from('project_templates')
+                .select('id, name, project_template_tasks(task_name, days_required)')
+                .eq('id', id)
+                .single();
+
+            if (error || !template) return alert('讀取模板資料失敗');
+
+            document.getElementById('editing-template-id').value = template.id;
+            document.getElementById('template-name-input').value = template.name;
+            document.getElementById('template-editor-title').innerText = `編輯模板：${template.name}`;
+
+            const container = document.getElementById('template-task-rows');
+            container.innerHTML = '';
+            (template.project_template_tasks || []).forEach(t => {
+                addTemplateTaskRow(t.task_name, t.days_required);
+            });
+        }
+
+        async function deleteTemplate(id, name) {
+            if (confirm(`確定要刪除模板「${name}」嗎？`)) {
+                const { error } = await window.supabase.from('project_templates').delete().eq('id', id);
+                if (error) alert('刪除失敗：' + error.message);
+                else await renderTemplatesList();
+            }
+        }
+
+        // ----------------------------------------------------
+        // D. 專案矩陣渲染與詳細 Modal
+        // ----------------------------------------------------
         async function loadMatrixData() {
             const tbody = document.getElementById('matrix-tbody');
             if (!window.supabase) return;
@@ -387,7 +600,6 @@ PearlFlow - 專案進度矩陣
             }).join('');
         }
 
-        // 4. 開啟與維護專案詳細畫面
         function openDetailProjectModal(projectId) {
             activeProjectId = projectId;
             const project = cachedProjects.find(p => p.id === projectId);
@@ -453,7 +665,6 @@ PearlFlow - 專案進度矩陣
             }
         }
 
-        // 5. 刪除專案（ON DELETE CASCADE）
         async function deleteCurrentProject() {
             const project = cachedProjects.find(p => p.id === activeProjectId);
             if (!project) return;
@@ -470,7 +681,9 @@ PearlFlow - 專案進度矩陣
             }
         }
 
-        // 6. 編輯專案與追加步驟 Modal
+        // ----------------------------------------------------
+        // E. 編輯既有專案 Modal
+        // ----------------------------------------------------
         function openEditProjectModal() {
             const project = cachedProjects.find(p => p.id === activeProjectId);
             if (!project) return;
@@ -510,7 +723,6 @@ PearlFlow - 專案進度矩陣
             document.getElementById('edit-project-tasks-list').appendChild(div);
         }
 
-        // 7. 儲存編輯後專案資訊並重新計算 Due Date
         async function saveProjectEdits() {
             const project = cachedProjects.find(p => p.id === activeProjectId);
             if (!project) return;
@@ -525,7 +737,6 @@ PearlFlow - 專案進度矩陣
             btn.innerText = '儲存中...';
 
             try {
-                // A. 更新專案主表
                 const { error: pErr } = await window.supabase
                     .from('projects')
                     .update({ name: newName, start_date: newStartDate })
@@ -533,7 +744,6 @@ PearlFlow - 專案進度矩陣
 
                 if (pErr) throw pErr;
 
-                // B. 先刪除原有任務，再整批重建（重新推算每項子任務 due_date）
                 const { error: delErr } = await window.supabase.from('project_tasks').delete().eq('project_id', activeProjectId);
                 if (delErr) throw delErr;
 
