@@ -3,6 +3,7 @@
 ==========================================================================
 PearlFlow - 主頁面與導航框架
 @file        index.html
+@version     1.1.0
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -26,6 +27,7 @@ PearlFlow - 主頁面與導航框架
         .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 24px; color: var(--text-primary); text-decoration: none; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
         .nav-item:hover { background: rgba(182, 40, 70, 0.05); color: var(--primary-color); }
         .nav-item.active { background: var(--primary-light); color: var(--primary-color); font-weight: 600; border-right: 4px solid var(--primary-color); }
+        .nav-icon { width: 18px; height: 18px; stroke-width: 2; stroke: currentColor; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
         .user-area { padding: 16px 20px; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: #666; }
         .btn-logout { width: 100%; margin-top: 10px; padding: 8px; border: 1px solid var(--border-color); background: #fff; border-radius: 6px; cursor: pointer; color: var(--primary-color); font-weight: 600; transition: all 0.2s; }
@@ -38,18 +40,41 @@ PearlFlow - 主頁面與導航框架
 
     <div class="sidebar">
         <div>
-            <!-- 已移除副標題文字，只留 Logo -->
             <div class="logo-area">
                 <img src="logo.png" alt="PearlFlow" onerror="this.style.display='none'">
             </div>
 
-            <!-- 補齊全部圖示 -->
             <ul class="nav-menu">
-                <li><a class="nav-item active" onclick="switchPage('page-dashboard.html', this)"><span data-pf-icon="dashboard"></span> Dashboard 儀表板</a></li>
-                <li><a class="nav-item" onclick="switchPage('page-matrix.html', this)"><span data-pf-icon="grid"></span> 專案進度矩陣</a></li>
-                <li><a class="nav-item" onclick="switchPage('page-calendar.html', this)"><span data-pf-icon="calendar"></span> 事務所行事曆</a></li>
-                <li><a class="nav-item" onclick="switchPage('page-crm.html', this)"><span data-pf-icon="users"></span> 客戶管理 (CRM)</a></li>
-                <li><a class="nav-item" onclick="switchPage('page-reports.html', this)"><span data-pf-icon="chart"></span> 管理分析報表</a></li>
+                <li>
+                    <a class="nav-item active" onclick="switchPage('page-dashboard.html', this)">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        Dashboard 儀表板
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-item" onclick="switchPage('page-matrix.html', this)">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M3 15h18M9 3v18M15 3v18"></path></svg>
+                        專案進度矩陣
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-item" onclick="switchPage('page-calendar.html', this)">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        事務所行事曆
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-item" onclick="switchPage('page-crm.html', this)">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        客戶管理 (CRM)
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-item" onclick="switchPage('page-reports.html', this)">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                        管理分析報表
+                    </a>
+                </li>
             </ul>
         </div>
 
@@ -72,14 +97,9 @@ PearlFlow - 主頁面與導航框架
             if (targetNavElement) {
                 targetNavElement.classList.add('active');
             } else {
-                if (pageUrl.includes('page-templates.html')) {
-                    const crmNav = document.querySelector('.nav-item[onclick*="page-crm.html"]');
-                    if (crmNav) crmNav.classList.add('active');
-                } else {
-                    const cleanUrl = pageUrl.split('?')[0];
-                    const matchNav = document.querySelector(`.nav-item[onclick*="${cleanUrl}"]`);
-                    if (matchNav) matchNav.classList.add('active');
-                }
+                const cleanUrl = pageUrl.split('?')[0];
+                const matchNav = document.querySelector(`.nav-item[onclick*="${cleanUrl}"]`);
+                if (matchNav) matchNav.classList.add('active');
             }
         }
 
