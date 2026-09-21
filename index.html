@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 主頁面與導航框架
+PearlFlow - 主幹入口外殼 (Shell)
 @file        index.html
 ==========================================================================
 -->
@@ -9,7 +9,7 @@ PearlFlow - 主頁面與導航框架
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PearlFlow</title>
+    <title>PearlFlow - 珍珠聯合會計師事務所</title>
     <link rel="stylesheet" href="css/theme.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/global-config.js"></script>
@@ -17,104 +17,99 @@ PearlFlow - 主頁面與導航框架
     <script src="js/auth-guard.js"></script>
     <style>
         * { box-sizing: border-box; }
-        body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; display: flex; height: 100vh; overflow: hidden; background: var(--bg-color); }
+        body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; height: 100vh; display: flex; overflow: hidden; background: #F4F6F8; }
         
-        .sidebar { width: 240px; background: #fff; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; padding: 20px 0; flex-shrink: 0; }
-        .logo-area { padding: 0 20px 20px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; }
-        .logo-area img { height: 42px; width: auto; object-fit: contain; }
+        .sidebar { width: 240px; background: #fff; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0; }
+        .sidebar-brand { padding: 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-color); }
+        .sidebar-brand img { height: 32px; }
+        .brand-title { font-size: 1.05rem; font-weight: 700; color: var(--primary-color); line-height: 1.2; }
+        .brand-subtitle { font-size: 0.72rem; color: #888; letter-spacing: 0.5px; }
 
-        .nav-menu { list-style: none; padding: 16px 0; margin: 0; flex: 1; }
-        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 24px; color: var(--text-primary); text-decoration: none; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
-        .nav-item:hover { background: rgba(182, 40, 70, 0.05); color: var(--primary-color); }
-        .nav-item.active { background: var(--primary-light); color: var(--primary-color); font-weight: 600; border-right: 4px solid var(--primary-color); }
-        .nav-icon { width: 18px; height: 18px; stroke-width: 2; stroke: currentColor; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+        .sidebar-menu { padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+        .menu-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; color: var(--text-primary); text-decoration: none; font-size: 0.92rem; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .menu-item:hover { background: var(--primary-light); color: var(--primary-color); }
+        .menu-item.active { background: var(--primary-light); color: var(--primary-color); font-weight: 600; border-left: 4px solid var(--primary-color); }
 
-        .user-area { padding: 16px 20px; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: #666; }
-        .role-selector { width: 100%; padding: 6px; margin-top: 8px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.8rem; background: #fff; cursor: pointer; }
-        
-        .main-content { flex: 1; height: 100vh; border: none; background: transparent; }
+        .sidebar-footer { padding: 16px; border-top: 1px solid var(--border-color); background: #FAFAFA; }
+        .role-switcher-label { font-size: 0.75rem; color: #777; margin-bottom: 6px; display: block; }
+        .role-select { width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.82rem; background: #fff; }
+
+        .main-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .content-iframe { width: 100%; height: 100%; border: none; background: transparent; }
     </style>
 </head>
 <body>
 
-    <div class="sidebar">
+    <!-- 左側側邊欄 -->
+    <aside class="sidebar">
         <div>
-            <!-- 已移除副標題文字，只保留純 Logo -->
-            <div class="logo-area">
-                <img src="logo.png" alt="PearlFlow" onerror="this.style.display='none'">
+            <div class="sidebar-brand">
+                <span data-pf-icon="logo" data-size="32" style="color: var(--primary-color);"></span>
+                <div>
+                    <div class="brand-title">珍珠聯合會計師事務所</div>
+                    <div class="brand-subtitle">Pearl Certified Public Accountants Firm</div>
+                </div>
             </div>
 
-            <!-- 選單項目與圖示（根據角色自動過濾顯示） -->
-            <ul class="nav-menu">
-                <li>
-                    <a class="nav-item active" onclick="switchPage('page-dashboard.html', this)">
-                        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                        Dashboard 儀表板
-                    </a>
-                </li>
-                <li>
-                    <a class="nav-item" onclick="switchPage('page-matrix.html', this)">
-                        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M3 15h18M9 3v18M15 3v18"></path></svg>
-                        專案進度矩陣
-                    </a>
-                </li>
-                <li>
-                    <a class="nav-item" onclick="switchPage('page-calendar.html', this)">
-                        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                        事務所行事曆
-                    </a>
-                </li>
-                <li data-pf-role="boss,hr,pm">
-                    <a class="nav-item" onclick="switchPage('page-crm.html', this)">
-                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                        客戶管理 (CRM)
-                    </a>
-                </li>
-                <li data-pf-role="boss,hr">
-                    <a class="nav-item" onclick="switchPage('page-reports.html', this)">
-                        <svg class="nav-icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                        管理分析報表
-                    </a>
-                </li>
-            </ul>
+            <nav class="sidebar-menu">
+                <a class="menu-item active" onclick="switchPage('page-matrix.html', this)">
+                    <span data-pf-icon="grid" data-size="18"></span>
+                    <span>專案進度矩陣</span>
+                </a>
+                <a class="menu-item" onclick="switchPage('page-dashboard.html', this)">
+                    <span data-pf-icon="dashboard" data-size="18"></span>
+                    <span>Dashboard 儀表板</span>
+                </a>
+                <a class="menu-item" onclick="switchPage('page-calendar.html', this)">
+                    <span data-pf-icon="calendar" data-size="18"></span>
+                    <span>事務所行事曆</span>
+                </a>
+                <a class="menu-item" onclick="switchPage('page-crm.html', this)">
+                    <span data-pf-icon="users" data-size="18"></span>
+                    <span>客戶管理 (CRM)</span>
+                </a>
+                <!-- 新增：成員與權限管理選單 (僅 Boss / HR 可見) -->
+                <a class="menu-item" data-pf-role="boss,hr" onclick="switchPage('page-members.html', this)">
+                    <span data-pf-icon="user-check" data-size="18"></span>
+                    <span>成員與權限管理</span>
+                </a>
+            </nav>
         </div>
 
-        <div class="user-area">
-            <div>目前模擬身分 (測試用)：</div>
-            <select class="role-selector" id="mock-role-select" onchange="changeMockRole(this.value)">
-                <option value="boss">👑 最高管理者 (Boss)</option>
-                <option value="pm">💼 研發/專案主管 (PM)</option>
-                <option value="hr">📋 人事主管 (HR)</option>
+        <!-- 測試用模擬角色切換器 (生產環境只需隱藏此區塊) -->
+        <div class="sidebar-footer">
+            <label class="role-switcher-label">目前模擬身分 (測試用)：</label>
+            <select class="role-select" id="demo-role-selector" onchange="changeDemoRole(this.value)">
+                <option value="boss">💼 最高管理者 (Boss)</option>
+                <option value="pm" selected>💼 研發/專案主管 (PM)</option>
+                <option value="hr">💼 人事主管 (HR)</option>
                 <option value="staff">👤 一般執行人員 (Staff)</option>
             </select>
         </div>
-    </div>
+    </aside>
 
-    <iframe class="main-content" id="content-frame" src="page-dashboard.html"></iframe>
+    <!-- 主頁面載入區 -->
+    <main class="main-container">
+        <iframe id="main-frame" class="content-iframe" src="page-matrix.html"></iframe>
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const currentMock = localStorage.getItem('pf_mock_role') || 'boss';
-            document.getElementById('mock-role-select').value = currentMock;
+            const currentRole = PearlAuth.getRole();
+            document.getElementById('demo-role-selector').value = currentRole;
         });
 
-        function changeMockRole(roleKey) {
-            localStorage.setItem('pf_mock_role', roleKey);
-            location.reload();
+        function switchPage(pageUrl, element) {
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            if (element) element.classList.add('active');
+            document.getElementById('main-frame').src = pageUrl;
         }
 
-        function switchPage(pageUrl, targetNavElement = null) {
-            const iframe = document.getElementById('content-frame');
-            iframe.src = pageUrl;
-
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-
-            if (targetNavElement) {
-                targetNavElement.classList.add('active');
-            } else {
-                const cleanUrl = pageUrl.split('?')[0];
-                const matchNav = document.querySelector(`.nav-item[onclick*="${cleanUrl}"]`);
-                if (matchNav) matchNav.classList.add('active');
+        function changeDemoRole(role) {
+            PearlAuth.setRole(role);
+            const iframe = document.getElementById('main-frame');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.location.reload();
             }
         }
     </script>
