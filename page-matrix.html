@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 專案進度矩陣 (事務所專業作業卡片版)
+PearlFlow - 專案進度矩陣 (相容性修正版)
 @file        page-matrix.html
 ==========================================================================
 -->
@@ -133,7 +133,7 @@ PearlFlow - 專案進度矩陣 (事務所專業作業卡片版)
         </div>
     </div>
 
-    <!-- 2. 專案內部詳情 Modal (事務所專業卡片控制) -->
+    <!-- 2. 專案內部詳情 Modal -->
     <div class="modal-overlay" id="detailProjectModal">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -144,7 +144,6 @@ PearlFlow - 專案進度矩陣 (事務所專業作業卡片版)
                 <span style="cursor: pointer; color: #888; font-weight: bold;" onclick="closeModal('detailProjectModal')">✕</span>
             </div>
 
-            <!-- 追加步驟介面 (僅 Boss/PM 可用) -->
             <div class="add-task-bar" data-pf-role="boss,pm">
                 <input type="text" id="new-task-name" placeholder="輸入新增步驟名稱..." style="flex: 1;">
                 <select id="new-task-assignee" style="width: 130px;">
@@ -254,11 +253,31 @@ PearlFlow - 專案進度矩陣 (事務所專業作業卡片版)
             deleteBtn.onclick = () => deleteProject(projectId);
             addTaskBtn.onclick = () => addNewTask(projectId);
 
-            const { data: project, error } = await window.supabase
+            // 安全查詢：先查基礎欄位，避免特定欄位缺失導致全錯
+            let { data: project, error } = await window.supabase
                 .from('projects')
-                .select('id, name, clients(name), project_tasks(id, task_name, due_date, is_completed, assignee, notes, created_at)')
+                .select('id, name, clients(name), project_tasks(id, task_name, due_date, is_completed, created_at)')
                 .eq('id', projectId)
                 .single();
+
+            // 若基礎查詢成功，嘗試補充讀取延伸欄位 (assignee, notes)
+            if (!error && project) {
+                const { data: extTasks } = await window.supabase
+                    .from('project_tasks')
+                    .select('id, assignee, notes')
+                    .eq('project_id', projectId);
+
+                if (extTasks && extTasks.length > 0) {
+                    const extMap = {};
+                    extTasks.forEach(item => extMap[item.id] = item);
+                    (project.project_tasks || []).forEach(t => {
+                        if (extMap[t.id]) {
+                            t.assignee = extMap[t.id].assignee;
+                            t.notes = extMap[t.id].notes;
+                        }
+                    });
+                }
+            }
 
             if (error || !project) {
                 taskListEl.innerHTML = `<div style="padding: 20px; color: red;">無法載入該專案細節：${error ? error.message : '專案不存在'}</div>`;
@@ -289,28 +308,21 @@ PearlFlow - 專案進度矩陣 (事務所專業作業卡片版)
                         <div class="task-main-row">
                             <div style="display: flex; align-items: center; gap: 10px; flex: 1; overflow: hidden;">
                                 <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleTaskStatus('${t.id}', this.checked, '${projectId}')" style="width: 18px; height: 18px; accent-color: var(--primary-color); flex-shrink: 0;">
-                                <span class="task-title-text" title="點擊可修改步驟名稱" onclick="editTaskName('${t.id}', '${t.task_name.replace(/'/g, "\\'")}', '${projectId}')">${t.task_name}</span>
+                                <span class="task-title-text" title="點擊可修改步驟名稱" onclick="editTaskName('${t.id}', '${(t.task_name || '').replace(/'/g, "\\'")}', '${projectId}')">${t.task_name}</span>
                             </div>
 
                             <div class="task-control-group">
-                                <!-- 1. 人員指派 -->
                                 <select class="task-select-sm" onchange="updateTaskField('${t.id}', 'assignee', this.value, '${projectId}')">
                                     <option value="">👤 指派人員...</option>
                                     ${assigneeOptionsHtml}
                                 </select>
 
-                                <!-- 2. 到期日修改 -->
                                 <input type="date" class="task-date-sm" value="${t.due_date || ''}" onchange="updateTaskField('${t.id}', 'due_date', this.value, '${projectId}')">
-
-                                <!-- 3. 展開備註視窗 -->
                                 <button class="btn-icon-sm" title="編輯備註" onclick="toggleNotesPanel('${t.id}')">💬</button>
-
-                                <!-- 4. 刪除按鈕 -->
                                 ${canManageTask ? `<button class="btn-icon-sm btn-del-task" title="刪除步驟" onclick="deleteSingleTask('${t.id}', '${projectId}')">🗑</button>` : ''}
                             </div>
                         </div>
 
-                        <!-- 隱藏備註面板 -->
                         <div class="task-notes-panel" id="notes-panel-${t.id}">
                             <input type="text" class="task-notes-input" placeholder="輸入此步驟的客戶備註或注意事項..." value="${t.notes || ''}" onchange="updateTaskField('${t.id}', 'notes', this.value, '${projectId}')">
                         </div>
@@ -319,7 +331,6 @@ PearlFlow - 專案進度矩陣 (事務所專業作業卡片版)
             }).join('');
         }
 
-        // 切換備註顯示面板
         function toggleNotesPanel(taskId) {
             const panel = document.getElementById(`notes-panel-${taskId}`);
             if (panel) {
@@ -327,7 +338,6 @@ PearlFlow - 專案進度矩陣 (事務所專業作業卡片版)
             }
         }
 
-        // 行內直接點擊編輯步驟名稱
         async function editTaskName(taskId, oldName, projectId) {
             const newName = prompt('請輸入新的步驟名稱：', oldName);
             if (newName && newName.trim() !== '' && newName !== oldName) {
@@ -335,15 +345,18 @@ PearlFlow - 專案進度矩陣 (事務所專業作業卡片版)
             }
         }
 
-        // 動態更新單一欄位 (assignee, due_date, notes, task_name)
         async function updateTaskField(taskId, fieldName, fieldValue, projectId) {
             const updatePayload = {};
             updatePayload[fieldName] = fieldValue || null;
 
-            await window.supabase
+            const { error } = await window.supabase
                 .from('project_tasks')
                 .update(updatePayload)
                 .eq('id', taskId);
+
+            if (error) {
+                console.warn(`欄位 ${fieldName} 更新失敗，請確保 Supabase 已新增對應欄位:`, error.message);
+            }
 
             openDetailProjectModal(projectId);
         }
@@ -359,13 +372,21 @@ PearlFlow - 專案進度矩陣 (事務所專業作業卡片版)
 
             if (!taskName) return alert('請輸入步驟名稱');
 
-            await window.supabase.from('project_tasks').insert([{
+            const insertPayload = {
                 project_id: projectId,
                 task_name: taskName,
-                assignee: assignee || null,
                 due_date: dueDate || null,
                 is_completed: false
-            }]);
+            };
+
+            if (assignee) insertPayload.assignee = assignee;
+
+            const { error } = await window.supabase.from('project_tasks').insert([insertPayload]);
+
+            if (error && error.message.includes('assignee')) {
+                delete insertPayload.assignee;
+                await window.supabase.from('project_tasks').insert([insertPayload]);
+            }
 
             nameInput.value = '';
             dueInput.value = '';
