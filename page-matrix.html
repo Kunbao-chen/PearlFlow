@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 專案進度矩陣
+PearlFlow - 專案進度矩陣 (事務所專業作業卡片版)
 @file        page-matrix.html
 ==========================================================================
 -->
@@ -37,18 +37,33 @@ PearlFlow - 專案進度矩陣
         .status-completed { background: #E8F5E9; color: #2E7D32; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 100; }
-        .modal-body { background: #fff; width: 720px; max-width: 92%; max-height: 85vh; overflow-y: auto; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal-body { background: #fff; width: 780px; max-width: 95%; max-height: 88vh; overflow-y: auto; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         
         .add-task-bar { display: flex; gap: 8px; margin-bottom: 16px; background: #F8F9FA; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); }
-        .add-task-bar input { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.88rem; }
+        .add-task-bar input, .add-task-bar select { padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.88rem; background: #fff; }
 
         .task-list { border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
-        .task-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border-color); background: #fff; }
+        .task-item { border-bottom: 1px solid var(--border-color); background: #fff; transition: background 0.2s; }
         .task-item:last-child { border-bottom: none; }
-        .task-item.completed { background: #F9FBF9; text-decoration: line-through; color: #888; }
-        .btn-del-task { border: none; background: transparent; color: #DC3545; cursor: pointer; font-size: 0.82rem; padding: 4px 8px; border-radius: 4px; }
-        .btn-del-task:hover { background: #FFE6E6; }
+        .task-item.completed { background: #F9FBF9; color: #888; }
+        .task-item.completed .task-title-text { text-decoration: line-through; }
         
+        .task-main-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; gap: 10px; }
+        .task-title-text { font-weight: 500; font-size: 0.92rem; cursor: pointer; border-bottom: 1px dashed transparent; }
+        .task-title-text:hover { border-bottom-color: var(--primary-color); color: var(--primary-color); }
+
+        .task-control-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .task-select-sm { padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.8rem; background: #fff; }
+        .task-date-sm { padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.8rem; }
+        
+        .btn-icon-sm { border: none; background: transparent; cursor: pointer; padding: 4px; border-radius: 4px; color: #666; display: inline-flex; align-items: center; justify-content: center; }
+        .btn-icon-sm:hover { background: #F0F0F0; color: var(--primary-color); }
+        .btn-del-task { color: #DC3545; }
+        .btn-del-task:hover { background: #FFE6E6; }
+
+        .task-notes-panel { display: none; padding: 10px 14px 12px 42px; background: #FAFAFA; border-top: 1px dashed var(--border-color); }
+        .task-notes-input { width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.83rem; }
+
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: #444; }
         .form-control { width: 100%; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; }
@@ -118,7 +133,7 @@ PearlFlow - 專案進度矩陣
         </div>
     </div>
 
-    <!-- 2. 專案內部詳情 Modal (內含步驟新增與獨立刪除) -->
+    <!-- 2. 專案內部詳情 Modal (事務所專業卡片控制) -->
     <div class="modal-overlay" id="detailProjectModal">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -132,7 +147,14 @@ PearlFlow - 專案進度矩陣
             <!-- 追加步驟介面 (僅 Boss/PM 可用) -->
             <div class="add-task-bar" data-pf-role="boss,pm">
                 <input type="text" id="new-task-name" placeholder="輸入新增步驟名稱..." style="flex: 1;">
-                <input type="date" id="new-task-due" style="width: 150px;">
+                <select id="new-task-assignee" style="width: 130px;">
+                    <option value="">指派人員...</option>
+                    <option value="張會計師">張會計師</option>
+                    <option value="林組長">林組長</option>
+                    <option value="陳記帳員">陳記帳員</option>
+                    <option value="黃助理">黃助理</option>
+                </select>
+                <input type="date" id="new-task-due" style="width: 140px;">
                 <button class="btn-primary" style="padding: 6px 14px; font-size: 0.85rem;" id="btn-add-task">新增步驟</button>
             </div>
 
@@ -234,7 +256,7 @@ PearlFlow - 專案進度矩陣
 
             const { data: project, error } = await window.supabase
                 .from('projects')
-                .select('id, name, clients(name), project_tasks(id, task_name, due_date, is_completed, created_at)')
+                .select('id, name, clients(name), project_tasks(id, task_name, due_date, is_completed, assignee, notes, created_at)')
                 .eq('id', projectId)
                 .single();
 
@@ -254,26 +276,85 @@ PearlFlow - 專案進度矩陣
                 return;
             }
 
-            const canDeleteTask = PearlAuth.hasRole(['boss', 'pm']);
+            const canManageTask = PearlAuth.hasRole(['boss', 'pm']);
+            const memberOptions = ['張會計師', '林組長', '陳記帳員', '黃助理'];
 
-            taskListEl.innerHTML = tasks.map(t => `
-                <div class="task-item ${t.is_completed ? 'completed' : ''}">
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1;">
-                        <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleTaskStatus('${t.id}', this.checked, '${projectId}')" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                        <span style="font-weight: 500;">${t.task_name}</span>
-                    </label>
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <span style="font-size: 0.82rem; color: #777;">到期日：${t.due_date || '未設定'}</span>
-                        ${canDeleteTask ? `<button class="btn-del-task" onclick="deleteSingleTask('${t.id}', '${projectId}')">刪除</button>` : ''}
+            taskListEl.innerHTML = tasks.map(t => {
+                const assigneeOptionsHtml = memberOptions.map(m => 
+                    `<option value="${m}" ${t.assignee === m ? 'selected' : ''}>👤 ${m}</option>`
+                ).join('');
+
+                return `
+                    <div class="task-item ${t.is_completed ? 'completed' : ''}" id="task-item-${t.id}">
+                        <div class="task-main-row">
+                            <div style="display: flex; align-items: center; gap: 10px; flex: 1; overflow: hidden;">
+                                <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleTaskStatus('${t.id}', this.checked, '${projectId}')" style="width: 18px; height: 18px; accent-color: var(--primary-color); flex-shrink: 0;">
+                                <span class="task-title-text" title="點擊可修改步驟名稱" onclick="editTaskName('${t.id}', '${t.task_name.replace(/'/g, "\\'")}', '${projectId}')">${t.task_name}</span>
+                            </div>
+
+                            <div class="task-control-group">
+                                <!-- 1. 人員指派 -->
+                                <select class="task-select-sm" onchange="updateTaskField('${t.id}', 'assignee', this.value, '${projectId}')">
+                                    <option value="">👤 指派人員...</option>
+                                    ${assigneeOptionsHtml}
+                                </select>
+
+                                <!-- 2. 到期日修改 -->
+                                <input type="date" class="task-date-sm" value="${t.due_date || ''}" onchange="updateTaskField('${t.id}', 'due_date', this.value, '${projectId}')">
+
+                                <!-- 3. 展開備註視窗 -->
+                                <button class="btn-icon-sm" title="編輯備註" onclick="toggleNotesPanel('${t.id}')">💬</button>
+
+                                <!-- 4. 刪除按鈕 -->
+                                ${canManageTask ? `<button class="btn-icon-sm btn-del-task" title="刪除步驟" onclick="deleteSingleTask('${t.id}', '${projectId}')">🗑</button>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- 隱藏備註面板 -->
+                        <div class="task-notes-panel" id="notes-panel-${t.id}">
+                            <input type="text" class="task-notes-input" placeholder="輸入此步驟的客戶備註或注意事項..." value="${t.notes || ''}" onchange="updateTaskField('${t.id}', 'notes', this.value, '${projectId}')">
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
+        }
+
+        // 切換備註顯示面板
+        function toggleNotesPanel(taskId) {
+            const panel = document.getElementById(`notes-panel-${taskId}`);
+            if (panel) {
+                panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+            }
+        }
+
+        // 行內直接點擊編輯步驟名稱
+        async function editTaskName(taskId, oldName, projectId) {
+            const newName = prompt('請輸入新的步驟名稱：', oldName);
+            if (newName && newName.trim() !== '' && newName !== oldName) {
+                await updateTaskField(taskId, 'task_name', newName.trim(), projectId);
+            }
+        }
+
+        // 動態更新單一欄位 (assignee, due_date, notes, task_name)
+        async function updateTaskField(taskId, fieldName, fieldValue, projectId) {
+            const updatePayload = {};
+            updatePayload[fieldName] = fieldValue || null;
+
+            await window.supabase
+                .from('project_tasks')
+                .update(updatePayload)
+                .eq('id', taskId);
+
+            openDetailProjectModal(projectId);
         }
 
         async function addNewTask(projectId) {
             const nameInput = document.getElementById('new-task-name');
+            const assigneeSelect = document.getElementById('new-task-assignee');
             const dueInput = document.getElementById('new-task-due');
+            
             const taskName = nameInput.value.trim();
+            const assignee = assigneeSelect.value;
             const dueDate = dueInput.value;
 
             if (!taskName) return alert('請輸入步驟名稱');
@@ -281,12 +362,14 @@ PearlFlow - 專案進度矩陣
             await window.supabase.from('project_tasks').insert([{
                 project_id: projectId,
                 task_name: taskName,
+                assignee: assignee || null,
                 due_date: dueDate || null,
                 is_completed: false
             }]);
 
             nameInput.value = '';
             dueInput.value = '';
+            assigneeSelect.value = '';
             openDetailProjectModal(projectId);
             loadMatrixData();
         }
