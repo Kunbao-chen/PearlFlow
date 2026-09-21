@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 專案進度矩陣 (動態連動 Supabase 成員選單版)
+PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
 @file        page-matrix.html
 ==========================================================================
 -->
@@ -144,10 +144,10 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase 成員選單版)
                 <span style="cursor: pointer; color: #888; font-weight: bold;" onclick="closeModal('detailProjectModal')">✕</span>
             </div>
 
-            <!-- 新增步驟列 (指派人員動態連動) -->
+            <!-- 新增步驟列 -->
             <div class="add-task-bar" data-pf-role="boss,pm">
                 <input type="text" id="new-task-name" placeholder="輸入新增步驟名稱..." style="flex: 1;">
-                <select id="new-task-assignee" style="width: 140px;">
+                <select id="new-task-assignee" style="width: 150px;">
                     <option value="">指派人員...</option>
                 </select>
                 <input type="date" id="new-task-due" style="width: 140px;">
@@ -166,11 +166,11 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase 成員選單版)
     </div>
 
     <script>
-        let dbMembersCache = []; // 全域快取 Supabase 成員清單
+        let dbMembersCache = []; // 快取 Supabase 成員資料
 
         document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('project-start-date').value = new Date().toISOString().split('T')[0];
-            await loadMembersData(); // 優先讀取 Supabase 成員
+            await loadMembersData(); // 1. 先讀取 members 資料表
             await loadClientsDropdown();
             await loadTemplatesDropdown();
             await loadMatrixData();
@@ -186,24 +186,21 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase 成員選單版)
             document.getElementById(modalId).style.display = 'none';
         }
 
-        // 動態連動 Supabase 讀取成員資料表
+        // 從 Supabase 讀取真實成員清單
         async function loadMembersData() {
             if (!window.supabase) return;
             const { data: members, error } = await window.supabase
                 .from('members')
                 .select('id, name, role_name')
-                .order('created_at');
+                .order('created_at', { ascending: true });
 
             if (!error && members && members.length > 0) {
                 dbMembersCache = members;
             } else {
-                // 若資料庫尚未建 members 表，備用降級預設值
-                dbMembersCache = [
-                    { name: '張會計師' }, { name: '林組長' }, { name: '陳記帳員' }, { name: '黃助理' }
-                ];
+                dbMembersCache = [];
             }
 
-            // 渲染「新增步驟」列的指派選單
+            // 渲染新增步驟欄位中的選單
             const assigneeSelect = document.getElementById('new-task-assignee');
             if (assigneeSelect) {
                 assigneeSelect.innerHTML = `<option value="">指派人員...</option>` + 
@@ -280,27 +277,9 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase 成員選單版)
 
             let { data: project, error } = await window.supabase
                 .from('projects')
-                .select('id, name, clients(name), project_tasks(id, task_name, due_date, is_completed, created_at)')
+                .select('id, name, clients(name), project_tasks(id, task_name, due_date, is_completed, created_at, assignee, notes)')
                 .eq('id', projectId)
                 .single();
-
-            if (!error && project) {
-                const { data: extTasks } = await window.supabase
-                    .from('project_tasks')
-                    .select('id, assignee, notes')
-                    .eq('project_id', projectId);
-
-                if (extTasks && extTasks.length > 0) {
-                    const extMap = {};
-                    extTasks.forEach(item => extMap[item.id] = item);
-                    (project.project_tasks || []).forEach(t => {
-                        if (extMap[t.id]) {
-                            t.assignee = extMap[t.id].assignee;
-                            t.notes = extMap[t.id].notes;
-                        }
-                    });
-                }
-            }
 
             if (error || !project) {
                 taskListEl.innerHTML = `<div style="padding: 20px; color: red;">無法載入該專案細節：${error ? error.message : '專案不存在'}</div>`;
@@ -321,7 +300,7 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase 成員選單版)
             const canManageTask = PearlAuth.hasRole(['boss', 'pm']);
 
             taskListEl.innerHTML = tasks.map(t => {
-                // 動態從 Supabase 快取名單產生下拉選單
+                // 動態從 members 快取資料產生下拉選單
                 const assigneeOptionsHtml = dbMembersCache.map(m => 
                     `<option value="${m.name}" ${t.assignee === m.name ? 'selected' : ''}>👤 ${m.name}</option>`
                 ).join('');
@@ -395,10 +374,9 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase 成員選單版)
                 project_id: projectId,
                 task_name: taskName,
                 due_date: dueDate || null,
-                is_completed: false
+                is_completed: false,
+                assignee: assignee || null
             };
-
-            if (assignee) insertPayload.assignee = assignee;
 
             await window.supabase.from('project_tasks').insert([insertPayload]);
 
