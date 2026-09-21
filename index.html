@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 主頁面與導航框架
-@file        index.html
+PearlFlow - 專案進度矩陣 (事務所專業作業卡片版)
+@file        page-matrix.html
 ==========================================================================
 -->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PearlFlow</title>
+    <title>專案進度矩陣</title>
     <link rel="stylesheet" href="css/theme.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/global-config.js"></script>
@@ -17,104 +17,447 @@ PearlFlow - 主頁面與導航框架
     <script src="js/auth-guard.js"></script>
     <style>
         * { box-sizing: border-box; }
-        body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; display: flex; height: 100vh; overflow: hidden; background: var(--bg-color); }
+        body { padding: 24px; font-family: system-ui, -apple-system, sans-serif; background: transparent; margin: 0; }
         
-        .sidebar { width: 240px; background: #fff; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; padding: 20px 0; flex-shrink: 0; }
-        .logo-area { padding: 0 20px 20px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; }
-        .logo-area img { height: 42px; width: auto; object-fit: contain; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-primary { background: var(--primary-color); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-secondary { background: #fff; color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+        .btn-secondary:hover { border-color: var(--primary-color); color: var(--primary-color); }
 
-        .nav-menu { list-style: none; padding: 16px 0; margin: 0; flex: 1; }
-        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 24px; color: var(--text-primary); text-decoration: none; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
-        .nav-item:hover { background: rgba(182, 40, 70, 0.05); color: var(--primary-color); }
-        .nav-item.active { background: var(--primary-light); color: var(--primary-color); font-weight: 600; border-right: 4px solid var(--primary-color); }
-        .nav-icon { width: 18px; height: 18px; stroke-width: 2; stroke: currentColor; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-
-        .user-area { padding: 16px 20px; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: #666; }
-        .role-selector { width: 100%; padding: 6px; margin-top: 8px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.8rem; background: #fff; cursor: pointer; }
+        .matrix-table { width: 100%; border-collapse: separate; border-spacing: 0; background: rgba(255, 255, 255, 0.92); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; backdrop-filter: blur(8px); box-shadow: var(--shadow-soft); }
+        .matrix-table th, .matrix-table td { padding: 16px 20px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        .matrix-table th { background: var(--primary-light); color: var(--primary-color); font-weight: 600; font-size: 0.92rem; }
         
-        .main-content { flex: 1; height: 100vh; border: none; background: transparent; }
+        .clickable-row { cursor: pointer; transition: background 0.2s ease; }
+        .clickable-row:hover { background: rgba(182, 40, 70, 0.08) !important; }
+
+        .progress-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.82rem; font-weight: 600; display: inline-block; }
+        .status-active { background: #E3F2FD; color: #1565C0; }
+        .status-completed { background: #E8F5E9; color: #2E7D32; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .modal-body { background: #fff; width: 780px; max-width: 95%; max-height: 88vh; overflow-y: auto; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        
+        .add-task-bar { display: flex; gap: 8px; margin-bottom: 16px; background: #F8F9FA; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .add-task-bar input, .add-task-bar select { padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.88rem; background: #fff; }
+
+        .task-list { border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+        .task-item { border-bottom: 1px solid var(--border-color); background: #fff; transition: background 0.2s; }
+        .task-item:last-child { border-bottom: none; }
+        .task-item.completed { background: #F9FBF9; color: #888; }
+        .task-item.completed .task-title-text { text-decoration: line-through; }
+        
+        .task-main-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; gap: 10px; }
+        .task-title-text { font-weight: 500; font-size: 0.92rem; cursor: pointer; border-bottom: 1px dashed transparent; }
+        .task-title-text:hover { border-bottom-color: var(--primary-color); color: var(--primary-color); }
+
+        .task-control-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .task-select-sm { padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.8rem; background: #fff; }
+        .task-date-sm { padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.8rem; }
+        
+        .btn-icon-sm { border: none; background: transparent; cursor: pointer; padding: 4px; border-radius: 4px; color: #666; display: inline-flex; align-items: center; justify-content: center; }
+        .btn-icon-sm:hover { background: #F0F0F0; color: var(--primary-color); }
+        .btn-del-task { color: #DC3545; }
+        .btn-del-task:hover { background: #FFE6E6; }
+
+        .task-notes-panel { display: none; padding: 10px 14px 12px 42px; background: #FAFAFA; border-top: 1px dashed var(--border-color); }
+        .task-notes-input { width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.83rem; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: #444; }
+        .form-control { width: 100%; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
-    <div class="sidebar">
-        <div>
-            <!-- 已移除副標題文字，只保留純 Logo -->
-            <div class="logo-area">
-                <img src="logo.png" alt="PearlFlow" onerror="this.style.display='none'">
-            </div>
-
-            <!-- 選單項目與圖示（根據角色自動過濾顯示） -->
-            <ul class="nav-menu">
-                <li>
-                    <a class="nav-item active" onclick="switchPage('page-dashboard.html', this)">
-                        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                        Dashboard 儀表板
-                    </a>
-                </li>
-                <li>
-                    <a class="nav-item" onclick="switchPage('page-matrix.html', this)">
-                        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M3 15h18M9 3v18M15 3v18"></path></svg>
-                        專案進度矩陣
-                    </a>
-                </li>
-                <li>
-                    <a class="nav-item" onclick="switchPage('page-calendar.html', this)">
-                        <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                        事務所行事曆
-                    </a>
-                </li>
-                <li data-pf-role="boss,hr,pm">
-                    <a class="nav-item" onclick="switchPage('page-crm.html', this)">
-                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                        客戶管理 (CRM)
-                    </a>
-                </li>
-                <li data-pf-role="boss,hr">
-                    <a class="nav-item" onclick="switchPage('page-reports.html', this)">
-                        <svg class="nav-icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                        管理分析報表
-                    </a>
-                </li>
-            </ul>
+    <div class="header-bar">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span data-pf-icon="grid" data-size="22" style="color: var(--primary-color);"></span>
+            <h2 style="margin: 0; color: var(--primary-color); font-size: 1.25rem;">專案進度矩陣</h2>
         </div>
-
-        <div class="user-area">
-            <div>目前模擬身分 (測試用)：</div>
-            <select class="role-selector" id="mock-role-select" onchange="changeMockRole(this.value)">
-                <option value="boss">👑 最高管理者 (Boss)</option>
-                <option value="pm">💼 研發/專案主管 (PM)</option>
-                <option value="hr">📋 人事主管 (HR)</option>
-                <option value="staff">👤 一般執行人員 (Staff)</option>
-            </select>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-secondary" onclick="loadMatrixData()">重新整理</button>
+            <button class="btn-primary" data-pf-role="boss,pm" onclick="openCreateProjectModal()">建立新專案</button>
         </div>
     </div>
 
-    <iframe class="main-content" id="content-frame" src="page-dashboard.html"></iframe>
+    <table class="matrix-table">
+        <thead>
+            <tr>
+                <th>客戶名稱</th>
+                <th>專案名稱</th>
+                <th>目前進度 (完成數/總數)</th>
+                <th>專案狀態</th>
+            </tr>
+        </thead>
+        <tbody id="matrix-tbody">
+            <tr><td colspan="4" style="text-align: center; color: #888;">專案資料載入中...</td></tr>
+        </tbody>
+    </table>
+
+    <!-- 1. 建立專案 Modal -->
+    <div class="modal-overlay" id="createProjectModal">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="margin: 0; color: var(--primary-color); font-size: 1.15rem;">建立新專案</h3>
+                <span style="cursor: pointer; color: #888; font-weight: bold;" onclick="closeModal('createProjectModal')">✕</span>
+            </div>
+
+            <div class="form-group">
+                <label>選擇客戶 *</label>
+                <select class="form-control" id="select-client-id"></select>
+            </div>
+
+            <div class="form-group">
+                <label>專案名稱 *</label>
+                <input type="text" class="form-control" id="project-name" placeholder="例：113年度營業稅申辦服務">
+            </div>
+
+            <div class="form-group">
+                <label>選擇 SOP 專案模板 (可選)</label>
+                <select class="form-control" id="select-template-id">
+                    <option value="">-- 不套用模板 (自訂空白專案) --</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>專案啟動基準日</label>
+                <input type="date" class="form-control" id="project-start-date">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <button class="btn-secondary" onclick="closeModal('createProjectModal')">取消</button>
+                <button class="btn-primary" id="btn-save-project" onclick="submitCreateProject()">建立專案</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 專案內部詳情 Modal (事務所專業卡片控制) -->
+    <div class="modal-overlay" id="detailProjectModal">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div>
+                    <span id="detail-client-name" class="progress-badge status-active" style="margin-bottom: 4px;">-</span>
+                    <h3 id="detail-project-name" style="margin: 4px 0 0 0; color: var(--primary-color); font-size: 1.2rem;">專案詳情與步驟</h3>
+                </div>
+                <span style="cursor: pointer; color: #888; font-weight: bold;" onclick="closeModal('detailProjectModal')">✕</span>
+            </div>
+
+            <!-- 追加步驟介面 (僅 Boss/PM 可用) -->
+            <div class="add-task-bar" data-pf-role="boss,pm">
+                <input type="text" id="new-task-name" placeholder="輸入新增步驟名稱..." style="flex: 1;">
+                <select id="new-task-assignee" style="width: 130px;">
+                    <option value="">指派人員...</option>
+                    <option value="張會計師">張會計師</option>
+                    <option value="林組長">林組長</option>
+                    <option value="陳記帳員">陳記帳員</option>
+                    <option value="黃助理">黃助理</option>
+                </select>
+                <input type="date" id="new-task-due" style="width: 140px;">
+                <button class="btn-primary" style="padding: 6px 14px; font-size: 0.85rem;" id="btn-add-task">新增步驟</button>
+            </div>
+
+            <div class="task-list" id="detail-task-list">
+                <div style="padding: 20px; text-align: center; color: #888;">步驟載入中...</div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <button class="btn-secondary" style="color: red; border-color: #FFCDD2;" id="btn-delete-project" data-pf-role="boss">刪除此專案</button>
+                <button class="btn-primary" onclick="closeModal('detailProjectModal')">關閉視窗</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const currentMock = localStorage.getItem('pf_mock_role') || 'boss';
-            document.getElementById('mock-role-select').value = currentMock;
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.getElementById('project-start-date').value = new Date().toISOString().split('T')[0];
+            await loadClientsDropdown();
+            await loadTemplatesDropdown();
+            await loadMatrixData();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetProjectId = urlParams.get('openProjectId');
+            if (targetProjectId) {
+                openDetailProjectModal(targetProjectId);
+            }
         });
 
-        function changeMockRole(roleKey) {
-            localStorage.setItem('pf_mock_role', roleKey);
-            location.reload();
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
         }
 
-        function switchPage(pageUrl, targetNavElement = null) {
-            const iframe = document.getElementById('content-frame');
-            iframe.src = pageUrl;
+        async function loadClientsDropdown() {
+            if (!window.supabase) return;
+            const { data: clients } = await window.supabase.from('clients').select('id, name').order('name');
+            const select = document.getElementById('select-client-id');
+            select.innerHTML = (clients || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
 
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        async function loadTemplatesDropdown() {
+            if (!window.supabase) return;
+            const { data: templates } = await window.supabase.from('templates').select('id, name').order('name');
+            const select = document.getElementById('select-template-id');
+            const templateOptions = (templates || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            select.innerHTML = `<option value="">-- 不套用模板 (自訂空白專案) --</option>` + templateOptions;
+        }
 
-            if (targetNavElement) {
-                targetNavElement.classList.add('active');
-            } else {
-                const cleanUrl = pageUrl.split('?')[0];
-                const matchNav = document.querySelector(`.nav-item[onclick*="${cleanUrl}"]`);
-                if (matchNav) matchNav.classList.add('active');
+        async function loadMatrixData() {
+            const tbody = document.getElementById('matrix-tbody');
+            if (!window.supabase) return;
+
+            const { data: projects, error } = await window.supabase
+                .from('projects')
+                .select('id, name, status, clients(name), project_tasks(id, is_completed)')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="4" style="color: red;">載入失敗：${error.message}</td></tr>`;
+                return;
+            }
+
+            if (!projects || projects.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #888;">目前尚無專案資料，請點擊右上方「建立新專案」</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = projects.map(p => {
+                const tasks = p.project_tasks || [];
+                const total = tasks.length;
+                const completed = tasks.filter(t => t.is_completed).length;
+                const clientName = p.clients ? p.clients.name : '未指定客戶';
+                const statusBadge = p.status === 'completed' 
+                    ? `<span class="progress-badge status-completed">已完成</span>` 
+                    : `<span class="progress-badge status-active">進行中</span>`;
+
+                return `
+                    <tr class="clickable-row" onclick="openDetailProjectModal('${p.id}')">
+                        <td style="font-weight: 600; color: var(--text-primary);">${clientName}</td>
+                        <td style="font-weight: 600;">${p.name}</td>
+                        <td>${completed} / ${total} 步驟 (${total > 0 ? Math.round(completed/total*100) : 0}%)</td>
+                        <td>${statusBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function openDetailProjectModal(projectId) {
+            const modal = document.getElementById('detailProjectModal');
+            modal.style.display = 'flex';
+
+            const clientEl = document.getElementById('detail-client-name');
+            const projectEl = document.getElementById('detail-project-name');
+            const taskListEl = document.getElementById('detail-task-list');
+            const deleteBtn = document.getElementById('btn-delete-project');
+            const addTaskBtn = document.getElementById('btn-add-task');
+
+            deleteBtn.onclick = () => deleteProject(projectId);
+            addTaskBtn.onclick = () => addNewTask(projectId);
+
+            const { data: project, error } = await window.supabase
+                .from('projects')
+                .select('id, name, clients(name), project_tasks(id, task_name, due_date, is_completed, assignee, notes, created_at)')
+                .eq('id', projectId)
+                .single();
+
+            if (error || !project) {
+                taskListEl.innerHTML = `<div style="padding: 20px; color: red;">無法載入該專案細節：${error ? error.message : '專案不存在'}</div>`;
+                return;
+            }
+
+            clientEl.innerText = project.clients ? project.clients.name : '客戶';
+            projectEl.innerText = project.name;
+
+            const tasks = project.project_tasks || [];
+            tasks.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+
+            if (tasks.length === 0) {
+                taskListEl.innerHTML = `<div style="padding: 20px; text-align: center; color: #888;">此專案尚未設定步驟，可在上方直接新增步驟</div>`;
+                return;
+            }
+
+            const canManageTask = PearlAuth.hasRole(['boss', 'pm']);
+            const memberOptions = ['張會計師', '林組長', '陳記帳員', '黃助理'];
+
+            taskListEl.innerHTML = tasks.map(t => {
+                const assigneeOptionsHtml = memberOptions.map(m => 
+                    `<option value="${m}" ${t.assignee === m ? 'selected' : ''}>👤 ${m}</option>`
+                ).join('');
+
+                return `
+                    <div class="task-item ${t.is_completed ? 'completed' : ''}" id="task-item-${t.id}">
+                        <div class="task-main-row">
+                            <div style="display: flex; align-items: center; gap: 10px; flex: 1; overflow: hidden;">
+                                <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleTaskStatus('${t.id}', this.checked, '${projectId}')" style="width: 18px; height: 18px; accent-color: var(--primary-color); flex-shrink: 0;">
+                                <span class="task-title-text" title="點擊可修改步驟名稱" onclick="editTaskName('${t.id}', '${t.task_name.replace(/'/g, "\\'")}', '${projectId}')">${t.task_name}</span>
+                            </div>
+
+                            <div class="task-control-group">
+                                <!-- 1. 人員指派 -->
+                                <select class="task-select-sm" onchange="updateTaskField('${t.id}', 'assignee', this.value, '${projectId}')">
+                                    <option value="">👤 指派人員...</option>
+                                    ${assigneeOptionsHtml}
+                                </select>
+
+                                <!-- 2. 到期日修改 -->
+                                <input type="date" class="task-date-sm" value="${t.due_date || ''}" onchange="updateTaskField('${t.id}', 'due_date', this.value, '${projectId}')">
+
+                                <!-- 3. 展開備註視窗 -->
+                                <button class="btn-icon-sm" title="編輯備註" onclick="toggleNotesPanel('${t.id}')">💬</button>
+
+                                <!-- 4. 刪除按鈕 -->
+                                ${canManageTask ? `<button class="btn-icon-sm btn-del-task" title="刪除步驟" onclick="deleteSingleTask('${t.id}', '${projectId}')">🗑</button>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- 隱藏備註面板 -->
+                        <div class="task-notes-panel" id="notes-panel-${t.id}">
+                            <input type="text" class="task-notes-input" placeholder="輸入此步驟的客戶備註或注意事項..." value="${t.notes || ''}" onchange="updateTaskField('${t.id}', 'notes', this.value, '${projectId}')">
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 切換備註顯示面板
+        function toggleNotesPanel(taskId) {
+            const panel = document.getElementById(`notes-panel-${taskId}`);
+            if (panel) {
+                panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+            }
+        }
+
+        // 行內直接點擊編輯步驟名稱
+        async function editTaskName(taskId, oldName, projectId) {
+            const newName = prompt('請輸入新的步驟名稱：', oldName);
+            if (newName && newName.trim() !== '' && newName !== oldName) {
+                await updateTaskField(taskId, 'task_name', newName.trim(), projectId);
+            }
+        }
+
+        // 動態更新單一欄位 (assignee, due_date, notes, task_name)
+        async function updateTaskField(taskId, fieldName, fieldValue, projectId) {
+            const updatePayload = {};
+            updatePayload[fieldName] = fieldValue || null;
+
+            await window.supabase
+                .from('project_tasks')
+                .update(updatePayload)
+                .eq('id', taskId);
+
+            openDetailProjectModal(projectId);
+        }
+
+        async function addNewTask(projectId) {
+            const nameInput = document.getElementById('new-task-name');
+            const assigneeSelect = document.getElementById('new-task-assignee');
+            const dueInput = document.getElementById('new-task-due');
+            
+            const taskName = nameInput.value.trim();
+            const assignee = assigneeSelect.value;
+            const dueDate = dueInput.value;
+
+            if (!taskName) return alert('請輸入步驟名稱');
+
+            await window.supabase.from('project_tasks').insert([{
+                project_id: projectId,
+                task_name: taskName,
+                assignee: assignee || null,
+                due_date: dueDate || null,
+                is_completed: false
+            }]);
+
+            nameInput.value = '';
+            dueInput.value = '';
+            assigneeSelect.value = '';
+            openDetailProjectModal(projectId);
+            loadMatrixData();
+        }
+
+        async function deleteSingleTask(taskId, projectId) {
+            if (confirm('確定要刪除此步驟嗎？')) {
+                await window.supabase.from('project_tasks').delete().eq('id', taskId);
+                openDetailProjectModal(projectId);
+                loadMatrixData();
+            }
+        }
+
+        async function toggleTaskStatus(taskId, isCompleted, projectId) {
+            await window.supabase
+                .from('project_tasks')
+                .update({ is_completed: isCompleted })
+                .eq('id', taskId);
+
+            openDetailProjectModal(projectId);
+            loadMatrixData();
+        }
+
+        function openCreateProjectModal() {
+            document.getElementById('createProjectModal').style.display = 'flex';
+        }
+
+        async function submitCreateProject() {
+            const clientId = document.getElementById('select-client-id').value;
+            const projectName = document.getElementById('project-name').value.trim();
+            const templateId = document.getElementById('select-template-id').value;
+            const startDateStr = document.getElementById('project-start-date').value;
+            const btn = document.getElementById('btn-save-project');
+
+            if (!projectName) return alert('請輸入專案名稱');
+
+            btn.disabled = true;
+            btn.innerText = '建立中...';
+
+            const { data: newProject, error: pError } = await window.supabase
+                .from('projects')
+                .insert([{ client_id: clientId, name: projectName, template_id: templateId || null, status: 'active' }])
+                .select()
+                .single();
+
+            if (pError) {
+                alert('專案建立失敗：' + pError.message);
+                btn.disabled = false;
+                btn.innerText = '建立專案';
+                return;
+            }
+
+            if (templateId) {
+                const { data: templateSteps } = await window.supabase
+                    .from('template_steps')
+                    .select('*')
+                    .eq('template_id', templateId);
+
+                if (templateSteps && templateSteps.length > 0) {
+                    const startDate = new Date(startDateStr);
+                    const taskInserts = templateSteps.map(step => {
+                        const dueDate = new Date(startDate);
+                        dueDate.setDate(dueDate.getDate() + (step.days_offset || 0));
+
+                        return {
+                            project_id: newProject.id,
+                            task_name: step.step_name,
+                            due_date: dueDate.toISOString().split('T')[0],
+                            is_completed: false
+                        };
+                    });
+
+                    await window.supabase.from('project_tasks').insert(taskInserts);
+                }
+            }
+
+            btn.disabled = false;
+            btn.innerText = '建立專案';
+            alert('專案建立成功！');
+            closeModal('createProjectModal');
+            loadMatrixData();
+            openDetailProjectModal(newProject.id);
+        }
+
+        async function deleteProject(projectId) {
+            if (confirm('確定要刪除此專案及其所有步驟嗎？')) {
+                await window.supabase.from('projects').delete().eq('id', projectId);
+                closeModal('detailProjectModal');
+                loadMatrixData();
             }
         }
     </script>
