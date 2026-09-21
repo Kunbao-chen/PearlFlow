@@ -3,7 +3,6 @@
 ==========================================================================
 PearlFlow - 專案進度矩陣
 @file        page-matrix.html
-@version     1.1.0
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -15,6 +14,7 @@ PearlFlow - 專案進度矩陣
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/global-config.js"></script>
     <script src="js/icons.js"></script>
+    <script src="js/auth-guard.js"></script>
     <style>
         * { box-sizing: border-box; }
         body { padding: 24px; font-family: system-ui, -apple-system, sans-serif; background: transparent; margin: 0; }
@@ -63,7 +63,7 @@ PearlFlow - 專案進度矩陣
         </div>
         <div style="display: flex; gap: 10px;">
             <button class="btn-secondary" onclick="loadMatrixData()">重新整理</button>
-            <button class="btn-primary" onclick="openCreateProjectModal()">建立新專案</button>
+            <button class="btn-primary" data-pf-role="boss,pm" onclick="openCreateProjectModal()">建立新專案</button>
         </div>
     </div>
 
@@ -118,7 +118,7 @@ PearlFlow - 專案進度矩陣
         </div>
     </div>
 
-    <!-- 2. 專案內部詳情 Modal (可新增/勾選/刪除步驟) -->
+    <!-- 2. 專案內部詳情 Modal (內含步驟新增與獨立刪除) -->
     <div class="modal-overlay" id="detailProjectModal">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -129,8 +129,8 @@ PearlFlow - 專案進度矩陣
                 <span style="cursor: pointer; color: #888; font-weight: bold;" onclick="closeModal('detailProjectModal')">✕</span>
             </div>
 
-            <!-- 新增步驟列 -->
-            <div class="add-task-bar">
+            <!-- 追加步驟介面 (僅 Boss/PM 可用) -->
+            <div class="add-task-bar" data-pf-role="boss,pm">
                 <input type="text" id="new-task-name" placeholder="輸入新增步驟名稱..." style="flex: 1;">
                 <input type="date" id="new-task-due" style="width: 150px;">
                 <button class="btn-primary" style="padding: 6px 14px; font-size: 0.85rem;" id="btn-add-task">新增步驟</button>
@@ -141,7 +141,7 @@ PearlFlow - 專案進度矩陣
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-                <button class="btn-secondary" style="color: red; border-color: #FFCDD2;" id="btn-delete-project">刪除此專案</button>
+                <button class="btn-secondary" style="color: red; border-color: #FFCDD2;" id="btn-delete-project" data-pf-role="boss">刪除此專案</button>
                 <button class="btn-primary" onclick="closeModal('detailProjectModal')">關閉視窗</button>
             </div>
         </div>
@@ -254,6 +254,8 @@ PearlFlow - 專案進度矩陣
                 return;
             }
 
+            const canDeleteTask = PearlAuth.hasRole(['boss', 'pm']);
+
             taskListEl.innerHTML = tasks.map(t => `
                 <div class="task-item ${t.is_completed ? 'completed' : ''}">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1;">
@@ -262,7 +264,7 @@ PearlFlow - 專案進度矩陣
                     </label>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <span style="font-size: 0.82rem; color: #777;">到期日：${t.due_date || '未設定'}</span>
-                        <button class="btn-del-task" onclick="deleteSingleTask('${t.id}', '${projectId}')">刪除</button>
+                        ${canDeleteTask ? `<button class="btn-del-task" onclick="deleteSingleTask('${t.id}', '${projectId}')">刪除</button>` : ''}
                     </div>
                 </div>
             `).join('');
