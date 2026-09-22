@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 客戶管理 (CRM)
+PearlFlow - 客戶管理 (CRM) 專業升級版 (支援完整欄位與編輯更新)
 @file        page-crm.html
-@description 客戶列表與維護，支援顯示進行中專案並快速跳轉至專案進度矩陣
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -14,30 +13,32 @@ PearlFlow - 客戶管理 (CRM)
     <link rel="stylesheet" href="css/theme.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/global-config.js"></script>
-    <script src="js/icons.js"></script>
+    <script src="js/auth-guard.js"></script>
     <style>
         * { box-sizing: border-box; }
         body { padding: 24px; font-family: system-ui, -apple-system, sans-serif; background: transparent; margin: 0; }
+        
         .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-primary { background: var(--primary-color); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; }
         .btn-primary:hover { background: var(--primary-hover); }
-        .btn-secondary { background: #fff; color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
-        .btn-secondary:hover { border-color: var(--primary-color); color: var(--primary-color); }
-        
-        .crm-table { width: 100%; border-collapse: separate; border-spacing: 0; background: rgba(255, 255, 255, 0.92); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; backdrop-filter: blur(8px); box-shadow: var(--shadow-soft); }
-        .crm-table th, .crm-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
-        .crm-table th { background: var(--primary-light); color: var(--primary-color); font-weight: 600; font-size: 0.92rem; }
-        .crm-table tbody tr:hover { background: rgba(182, 40, 70, 0.03); }
+        .btn-secondary { background: #fff; color: var(--text-primary); border: 1px solid var(--border-color); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px; }
 
-        .project-select { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; color: var(--primary-color); font-weight: 600; background: #fff; cursor: pointer; max-width: 220px; outline: none; }
-        .project-select:hover { border-color: var(--primary-color); }
-        .badge-none { font-size: 0.85rem; color: #999; font-style: italic; }
+        .data-table { width: 100%; border-collapse: separate; border-spacing: 0; background: rgba(255, 255, 255, 0.92); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; backdrop-filter: blur(8px); box-shadow: var(--shadow-soft); }
+        .data-table th, .data-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        .data-table th { background: var(--primary-light); color: var(--primary-color); font-weight: 600; font-size: 0.92rem; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 100; }
-        .modal-body { background: #fff; width: 480px; max-width: 92%; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
-        .form-group { margin-bottom: 16px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .modal-body { background: #fff; width: 680px; max-width: 95%; max-height: 90vh; overflow-y: auto; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+
+        .form-row { display: flex; gap: 16px; }
+        .form-group { flex: 1; margin-bottom: 16px; }
         .form-group label { display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: #444; }
         .form-control { width: 100%; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; }
+
+        .btn-sm { padding: 5px 10px; font-size: 0.82rem; border-radius: 4px; border: 1px solid var(--border-color); background: #fff; cursor: pointer; }
+        .btn-sm:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .btn-danger-sm { color: #DC3545; border-color: #FFCDD2; }
+        .btn-danger-sm:hover { background: #FFE6E6; }
     </style>
 </head>
 <body>
@@ -48,181 +49,241 @@ PearlFlow - 客戶管理 (CRM)
             <h2 style="margin: 0; color: var(--primary-color); font-size: 1.25rem;">客戶管理 (CRM)</h2>
         </div>
         <div style="display: flex; gap: 10px;">
-            <!-- 整合之專案模板管理入口 -->
-            <button class="btn-secondary" onclick="navigateToTemplates()">
-                <span data-pf-icon="edit"></span> ⚙️ 專案模板管理
-            </button>
-            <button class="btn-secondary" onclick="loadClientsData()">
-                <span data-pf-icon="refresh"></span> 重新整理
-            </button>
-            <button class="btn-primary" onclick="openCreateClientModal()">
-                <span data-pf-icon="add"></span> 新增客戶
-            </button>
+            <button class="btn-secondary" onclick="loadClients()">重新整理</button>
+            <button class="btn-primary" data-pf-role="boss,pm,hr" onclick="openClientModal()">＋ 新增客戶</button>
         </div>
     </div>
 
-    <table class="crm-table">
+    <table class="data-table">
         <thead>
             <tr>
+                <th>統一編號</th>
                 <th>客戶名稱</th>
-                <th>聯絡人</th>
-                <th>聯絡電話 / Email</th>
-                <th>進行中專案 (快速跳轉)</th>
+                <th>負責人</th>
+                <th>主要聯絡人 / 電話</th>
+                <th>主辦人員</th>
                 <th>操作</th>
             </tr>
         </thead>
         <tbody id="crm-tbody">
-            <tr><td colspan="5" style="text-align: center; color: #888;">客戶資料載入中...</td></tr>
+            <tr><td colspan="6" style="text-align: center; color: #888;">客戶資料載入中...</td></tr>
         </tbody>
     </table>
 
-    <!-- 新增客戶 Modal -->
-    <div class="modal-overlay" id="createClientModal">
+    <!-- 新增 / 編輯客戶 Modal -->
+    <div class="modal-overlay" id="clientModal">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="margin: 0; color: var(--primary-color); font-size: 1.15rem;">新增客戶資料</h3>
-                <span data-pf-icon="close" style="cursor: pointer; color: #888;" onclick="closeCreateClientModal()"></span>
+                <h3 id="modal-title" style="margin: 0; color: var(--primary-color); font-size: 1.15rem;">新增客戶資料</h3>
+                <span style="cursor: pointer; color: #888; font-weight: bold;" onclick="closeModal('clientModal')">✕</span>
+            </div>
+
+            <input type="hidden" id="client-id">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>統一編號 (8碼) *</label>
+                    <input type="text" class="form-control" id="client-tax-id" placeholder="例：12345678">
+                </div>
+                <div class="form-group">
+                    <label>客戶名稱 (公司全銜) *</label>
+                    <input type="text" class="form-control" id="client-name" placeholder="例：珍珠科技股份有限公司">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>公司負責人</label>
+                    <input type="text" class="form-control" id="client-owner" placeholder="例：張董事長">
+                </div>
+                <div class="form-group">
+                    <label>主辦人員 (事務所對應窗口)</label>
+                    <select class="form-control" id="client-manager"></select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>主要聯絡人</label>
+                    <input type="text" class="form-control" id="client-contact" placeholder="例：陳會計經理">
+                </div>
+                <div class="form-group">
+                    <label>聯絡電話 / 手機</label>
+                    <input type="text" class="form-control" id="client-phone" placeholder="例：02-2345-6789">
+                </div>
             </div>
 
             <div class="form-group">
-                <label>客戶/企業名稱 *</label>
-                <input type="text" class="form-control" id="new-client-name" placeholder="例：台積電股份有限公司">
+                <label>聯絡人 Email</label>
+                <input type="email" class="form-control" id="client-email" placeholder="例：finance@client.com">
             </div>
 
             <div class="form-group">
-                <label>主要聯絡人</label>
-                <input type="text" class="form-control" id="new-client-contact" placeholder="例：王小明 經理">
+                <label>通訊 / 寄單地址</label>
+                <input type="text" class="form-control" id="client-address" placeholder="例：台北市信義區信義路五段7號">
             </div>
 
             <div class="form-group">
-                <label>聯絡電話</label>
-                <input type="text" class="form-control" id="new-client-phone" placeholder="例：02-23456789">
+                <label>重要備註 (特殊稅務或服務需求)</label>
+                <textarea class="form-control" id="client-notes" rows="3" placeholder="註記客戶發票開立偏好、結帳週期或重要備忘..."></textarea>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-                <button type="button" class="btn-secondary" onclick="closeCreateClientModal()">取消</button>
-                <button type="button" class="btn-primary" id="btn-save-client" onclick="submitCreateClient()">確認儲存</button>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <button class="btn-secondary" onclick="closeModal('clientModal')">取消</button>
+                <button class="btn-primary" id="btn-save-client" onclick="submitClientForm()">儲存客戶資料</button>
             </div>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            loadClientsData();
+        let dbMembersCache = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadMembersDropdown();
+            await loadClients();
         });
 
-        function navigateToTemplates() {
-            if (window.parent && typeof window.parent.switchPage === 'function') {
-                window.parent.switchPage('page-templates.html');
-            } else {
-                window.location.href = 'page-templates.html';
-            }
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
         }
 
-        async function loadClientsData() {
+        async function loadMembersDropdown() {
+            if (!window.supabase) return;
+            const { data } = await window.supabase.from('members').select('name').eq('is_active', true);
+            dbMembersCache = data || [];
+            const select = document.getElementById('client-manager');
+            select.innerHTML = `<option value="">-- 指定主辦人員 --</option>` + 
+                dbMembersCache.map(m => `<option value="${m.name}">👤 ${m.name}</option>`).join('');
+        }
+
+        async function loadClients() {
             const tbody = document.getElementById('crm-tbody');
             if (!window.supabase) return;
 
-            // 雙向關聯查詢：讀取客戶及該客戶旗下的所有專案
             const { data: clients, error } = await window.supabase
                 .from('clients')
-                .select('id, name, contact_person, phone, projects(id, name, status)')
-                .order('name');
+                .select('*')
+                .order('created_at', { ascending: false });
 
             if (error) {
-                tbody.innerHTML = `<tr><td colspan="5" style="color: red;">載入失敗：${error.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="color: red;">載入失敗：${error.message}</td></tr>`;
                 return;
             }
 
             if (!clients || clients.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888;">目前尚無客戶資料</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #888;">目前尚無客戶資料，請點擊右上方「＋ 新增客戶」</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = clients.map(client => {
-                const projects = client.projects || [];
-                let projectDropdownHtml = '';
+            const canManage = PearlAuth.hasRole(['boss', 'pm', 'hr']);
 
-                if (projects.length === 0) {
-                    projectDropdownHtml = `<span class="badge-none">無進行中專案</span>`;
-                } else {
-                    const options = projects.map(p => `<option value="${p.id}">📌 ${p.name}</option>`).join('');
-                    projectDropdownHtml = `
-                        <select class="project-select" onchange="jumpToProject(this.value)">
-                            <option value="">-- 選擇專案前往 (${projects.length}) --</option>
-                            ${options}
-                        </select>
-                    `;
-                }
-
-                return `
-                    <tr>
-                        <td style="font-weight: 600; color: var(--text-primary);">${client.name}</td>
-                        <td>${client.contact_person || '-'}</td>
-                        <td>${client.phone || '-'}</td>
-                        <td>${projectDropdownHtml}</td>
-                        <td>
-                            <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="deleteClient('${client.id}', '${client.name}')">
-                                刪除
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+            tbody.innerHTML = clients.map(c => `
+                <tr>
+                    <td style="font-family: monospace; font-weight: 600;">${c.tax_id || '-'}</td>
+                    <td style="font-weight: 600; color: var(--primary-color);">${c.name}</td>
+                    <td>${c.owner || '-'}</td>
+                    <td>
+                        <div>${c.contact_person || '-'}</div>
+                        <div style="font-size: 0.8rem; color: #777;">${c.phone || c.email || ''}</div>
+                    </td>
+                    <td>${c.manager ? '👤 ' + c.manager : '-'}</td>
+                    <td>
+                        <button class="btn-sm" onclick="openClientModal('${c.id}')">✏️ 編輯 / 詳情</button>
+                        ${canManage ? `<button class="btn-sm btn-danger-sm" onclick="deleteClient('${c.id}', '${c.name}')">🗑 刪除</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
         }
 
-        // 跳轉至專案進度矩陣並傳參開啟對應專案Modal
-        function jumpToProject(projectId) {
-            if (!projectId) return;
+        async function openClientModal(clientId = null) {
+            const modal = document.getElementById('clientModal');
+            const titleEl = document.getElementById('modal-title');
             
-            const targetUrl = `page-matrix.html?openProjectId=${projectId}`;
-            if (window.parent && typeof window.parent.switchPage === 'function') {
-                window.parent.switchPage(targetUrl);
+            if (clientId) {
+                titleEl.innerText = '編輯客戶資料';
+                const { data: c } = await window.supabase.from('clients').select('*').eq('id', clientId).single();
+                if (c) {
+                    document.getElementById('client-id').value = c.id;
+                    document.getElementById('client-tax-id').value = c.tax_id || '';
+                    document.getElementById('client-name').value = c.name || '';
+                    document.getElementById('client-owner').value = c.owner || '';
+                    document.getElementById('client-manager').value = c.manager || '';
+                    document.getElementById('client-contact').value = c.contact_person || '';
+                    document.getElementById('client-phone').value = c.phone || '';
+                    document.getElementById('client-email').value = c.email || '';
+                    document.getElementById('client-address').value = c.address || '';
+                    document.getElementById('client-notes').value = c.notes || '';
+                }
             } else {
-                window.location.href = targetUrl;
+                titleEl.innerText = '新增客戶資料';
+                document.getElementById('client-id').value = '';
+                document.getElementById('client-tax-id').value = '';
+                document.getElementById('client-name').value = '';
+                document.getElementById('client-owner').value = '';
+                document.getElementById('client-manager').value = '';
+                document.getElementById('client-contact').value = '';
+                document.getElementById('client-phone').value = '';
+                document.getElementById('client-email').value = '';
+                document.getElementById('client-address').value = '';
+                document.getElementById('client-notes').value = '';
             }
+
+            modal.style.display = 'flex';
         }
 
-        function openCreateClientModal() {
-            document.getElementById('createClientModal').style.display = 'flex';
-        }
+        async function submitClientForm() {
+            const clientId = document.getElementById('client-id').value;
+            const name = document.getElementById('client-name').value.trim();
+            const taxId = document.getElementById('client-tax-id').value.trim();
+            const owner = document.getElementById('client-owner').value.trim();
+            const manager = document.getElementById('client-manager').value;
+            const contact = document.getElementById('client-contact').value.trim();
+            const phone = document.getElementById('client-phone').value.trim();
+            const email = document.getElementById('client-email').value.trim();
+            const address = document.getElementById('client-address').value.trim();
+            const notes = document.getElementById('client-notes').value.trim();
 
-        function closeCreateClientModal() {
-            document.getElementById('createClientModal').style.display = 'none';
-        }
+            if (!name) return alert('請填寫客戶名稱');
 
-        async function submitCreateClient() {
-            const name = document.getElementById('new-client-name').value.trim();
-            const contact = document.getElementById('new-client-contact').value.trim();
-            const phone = document.getElementById('new-client-phone').value.trim();
+            const payload = {
+                name: name,
+                tax_id: taxId || null,
+                owner: owner || null,
+                manager: manager || null,
+                contact_person: contact || null,
+                phone: phone || null,
+                email: email || null,
+                address: address || null,
+                notes: notes || null
+            };
+
             const btn = document.getElementById('btn-save-client');
-
-            if (!name) return alert('請輸入客戶名稱');
-
             btn.disabled = true;
             btn.innerText = '儲存中...';
 
-            const { error } = await window.supabase
-                .from('clients')
-                .insert([{ name, contact_person: contact, phone }]);
+            let res;
+            if (clientId) {
+                res = await window.supabase.from('clients').update(payload).eq('id', clientId);
+            } else {
+                res = await window.supabase.from('clients').insert([payload]);
+            }
 
             btn.disabled = false;
-            btn.innerText = '確認儲存';
+            btn.innerText = '儲存客戶資料';
 
-            if (error) {
-                alert('新增失敗：' + error.message);
+            if (res.error) {
+                alert('儲存失敗：' + res.error.message);
             } else {
-                alert('客戶新增成功！');
-                closeCreateClientModal();
-                loadClientsData();
+                alert('客戶資料已成功儲存！');
+                closeModal('clientModal');
+                loadClients();
             }
         }
 
-        async function deleteClient(id, name) {
-            if (confirm(`確定要刪除客戶「${name}」嗎？`)) {
-                const { error } = await window.supabase.from('clients').delete().eq('id', id);
-                if (error) alert('刪除失敗：' + error.message);
-                else loadClientsData();
+        async function deleteClient(clientId, clientName) {
+            if (confirm(`確定要刪除客戶「${clientName}」嗎？相關的專案紀錄可能會受影響。`)) {
+                await window.supabase.from('clients').delete().eq('id', clientId);
+                loadClients();
             }
         }
     </script>
