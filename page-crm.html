@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 客戶管理 (CRM) v1.2.1
+PearlFlow - 客戶管理 (CRM) v1.3.0
 @file        page-crm.html
-@description 恢復原始專案關聯選單與連動邏輯，支援 Supabase 資料庫同步與完整編輯
+@description 建立與 Supabase projects 資料表之真實連結，動態渲染專案下拉選單
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -41,7 +41,9 @@ PearlFlow - 客戶管理 (CRM) v1.2.1
         .btn-danger-sm { color: #DC3545; border-color: #FFCDD2; }
         .btn-danger-sm:hover { background: #FFE6E6; }
 
-        .project-select { width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: #fff; color: var(--text-primary); }
+        /* 專案下拉選單樣式 */
+        .project-dropdown { width: 100%; padding: 7px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: #fff; color: var(--text-primary); outline: none; transition: border-color 0.2s; }
+        .project-dropdown:focus { border-color: var(--primary-color); }
     </style>
 </head>
 <body>
@@ -64,12 +66,12 @@ PearlFlow - 客戶管理 (CRM) v1.2.1
                 <th style="width: 180px;">客戶名稱</th>
                 <th style="width: 160px;">主要聯絡人 / 電話</th>
                 <th style="width: 120px;">主辦人員</th>
-                <th>進行中專案 (快速跳轉)</th>
+                <th>進行中專案 (資料庫連結下拉選單)</th>
                 <th style="width: 150px;">操作</th>
             </tr>
         </thead>
         <tbody id="crm-tbody">
-            <tr><td colspan="6" style="text-align: center; color: #888;">客戶資料載入中...</td></tr>
+            <tr><td colspan="6" style="text-align: center; color: #888;">客戶資料與資料庫專案連結中...</td></tr>
         </tbody>
     </table>
 
@@ -160,18 +162,19 @@ PearlFlow - 客戶管理 (CRM) v1.2.1
                 dbMembersCache.map(m => `<option value="${m.name}">👤 ${m.name}</option>`).join('');
         }
 
+        // 核心：從 Supabase 正式撈取客戶與專案資料庫，並建構下拉選單
         async function loadClients() {
             const tbody = document.getElementById('crm-tbody');
             if (!window.supabase) return;
 
-            // 讀取客戶與專案
+            // 1. 同時向資料庫發出 clients 與 projects 資料表請求
             const [clientsRes, projectsRes] = await Promise.all([
                 window.supabase.from('clients').select('*').order('created_at', { ascending: false }),
                 window.supabase.from('projects').select('*')
             ]);
 
             if (clientsRes.error) {
-                tbody.innerHTML = `<tr><td colspan="6" style="color: red;">載入失敗：${clientsRes.error.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="color: red;">客戶資料庫讀取失敗：${clientsRes.error.message}</td></tr>`;
                 return;
             }
 
@@ -185,20 +188,27 @@ PearlFlow - 客戶管理 (CRM) v1.2.1
 
             const canManage = PearlAuth.hasRole(['boss', 'pm', 'hr']);
 
+            // 2. 將專案資料庫與客戶進行關聯匹配，並生成 HTML 下拉選單
             tbody.innerHTML = clients.map(c => {
-                // 恢復原版簡單直接的比對方式：p.client_name === c.name
-                const clientProjects = dbProjectsCache.filter(p => p.client_name === c.name);
+                // 從 projects 資料庫陣列中，找到與此客戶 ID 或名稱相符的專案
+                const matchedProjects = dbProjectsCache.filter(p => 
+                    (p.client_id && String(p.client_id) === String(c.id)) ||
+                    (p.client_name && p.client_name.trim() === c.name.trim()) ||
+                    (p.client && p.client.trim() === c.name.trim())
+                );
                 
                 let projectSelectHtml = '';
-                if (clientProjects.length > 0) {
+                if (matchedProjects.length > 0) {
                     projectSelectHtml = `
-                        <select class="project-select" onchange="jumpToProject(this.value)">
-                            <option value="">-- 關聯專案 (${clientProjects.length}) --</option>
-                            ${clientProjects.map(p => `<option value="${p.id}">📌 ${p.name}</option>`).join('')}
+                        <select class="project-dropdown" onchange="jumpToProject(this.value)">
+                            <option value="">-- 選擇專案前往 (${matchedProjects.length}) --</option>
+                            ${matchedProjects.map(p => `
+                                <option value="${p.id}">📌 ${p.name \vert{}\vert{} p.title \vert{}\vert{} '未命名專案'} [${p.status || '進行中'}]</option>
+                            `).join('')}
                         </select>
                     `;
                 } else {
-                    projectSelectHtml = `<span style="color: #aaa; font-size: 0.85rem;">尚無進行中專案</span>`;
+                    projectSelectHtml = `<span style="color: #aaa; font-size: 0.85rem;">資料庫中無此客戶專案</span>`;
                 }
 
                 return `
