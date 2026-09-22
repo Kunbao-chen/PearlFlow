@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 主幹入口外殼 (Shell - 身分持久化與動態選單修正版)
+PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
 @file        index.html
 ==========================================================================
 -->
@@ -15,6 +15,7 @@ PearlFlow - 主幹入口外殼 (Shell - 身分持久化與動態選單修正版)
     <script src="js/global-config.js"></script>
     <script src="js/icons.js"></script>
     <script src="js/auth-guard.js"></script>
+    <script src="js/menu-config.js"></script>
     <style>
         * { box-sizing: border-box; }
         body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; height: 100vh; display: flex; overflow: hidden; background: #F4F6F8; }
@@ -51,29 +52,8 @@ PearlFlow - 主幹入口外殼 (Shell - 身分持久化與動態選單修正版)
                 </div>
             </div>
 
-            <nav class="sidebar-menu">
-                <a class="menu-item active" onclick="switchPage('page-matrix.html', this)">
-                    <span data-pf-icon="grid" data-size="18"></span>
-                    <span>專案進度矩陣</span>
-                </a>
-                <a class="menu-item" onclick="switchPage('page-dashboard.html', this)">
-                    <span data-pf-icon="dashboard" data-size="18"></span>
-                    <span>Dashboard 儀表板</span>
-                </a>
-                <a class="menu-item" onclick="switchPage('page-calendar.html', this)">
-                    <span data-pf-icon="calendar" data-size="18"></span>
-                    <span>事務所行事曆</span>
-                </a>
-                <a class="menu-item" onclick="switchPage('page-crm.html', this)">
-                    <span data-pf-icon="users" data-size="18"></span>
-                    <span>客戶管理 (CRM)</span>
-                </a>
-                <!-- 成員與權限管理選單 (僅 Boss 與 HR 可見) -->
-                <a class="menu-item" data-pf-role="boss,hr" onclick="switchPage('page-members.html', this)">
-                    <span data-pf-icon="user-check" data-size="18"></span>
-                    <span>成員與權限管理</span>
-                </a>
-            </nav>
+            <!-- 動態導覽列容器 -->
+            <nav class="sidebar-menu" id="sidebar-menu-nav"></nav>
         </div>
 
         <!-- 測試用模擬角色切換器 -->
@@ -95,16 +75,12 @@ PearlFlow - 主幹入口外殼 (Shell - 身分持久化與動態選單修正版)
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // 讀取既有身分 (優先抓 localStorage，預設為 boss)
             const savedRole = localStorage.getItem('pf_demo_role') || PearlAuth.getRole() || 'boss';
-            
-            // 套用並同步下拉選單
             PearlAuth.setRole(savedRole);
-            localStorage.setItem('pf_demo_role', savedRole);
             document.getElementById('demo-role-selector').value = savedRole;
             
-            // 執行UI選單權限過濾
-            PearlAuth.applyRolePermissions();
+            // 根據目前角色，動態渲染導覽列
+            renderDynamicSidebarMenu();
         });
 
         function switchPage(pageUrl, element) {
@@ -114,14 +90,13 @@ PearlFlow - 主幹入口外殼 (Shell - 身分持久化與動態選單修正版)
         }
 
         function changeDemoRole(role) {
-            // 1. 持久化儲存至 localStorage
             localStorage.setItem('pf_demo_role', role);
             PearlAuth.setRole(role);
 
-            // 2. 即時更新主視窗選單控制 (例如顯示/隱藏 成員管理)
-            PearlAuth.applyRolePermissions();
+            // 1. 重新渲染導覽列選單與 Icon
+            renderDynamicSidebarMenu();
 
-            // 3. 通知右側 iframe 頁面重新整理以套用新身分
+            // 2. 重新載入內嵌 iframe 頁面
             const iframe = document.getElementById('main-frame');
             if (iframe && iframe.contentWindow) {
                 iframe.contentWindow.location.reload();
