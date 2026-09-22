@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 客戶管理 (CRM) v1.3.0
+PearlFlow - 客戶管理 (CRM) v1.3.1 (修復全域依賴與初始化卡死問題)
 @file        page-crm.html
-@description 建立與 Supabase projects 資料表之真實連結，動態渲染專案下拉選單
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -12,6 +11,7 @@ PearlFlow - 客戶管理 (CRM) v1.3.0
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>客戶管理 (CRM)</title>
     <link rel="stylesheet" href="css/theme.css">
+    <!-- 補齊完整 Supabase 與全域設定檔引用 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/global-config.js"></script>
     <script src="js/auth-guard.js"></script>
@@ -41,7 +41,6 @@ PearlFlow - 客戶管理 (CRM) v1.3.0
         .btn-danger-sm { color: #DC3545; border-color: #FFCDD2; }
         .btn-danger-sm:hover { background: #FFE6E6; }
 
-        /* 專案下拉選單樣式 */
         .project-dropdown { width: 100%; padding: 7px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: #fff; color: var(--text-primary); outline: none; transition: border-color 0.2s; }
         .project-dropdown:focus { border-color: var(--primary-color); }
     </style>
@@ -66,12 +65,12 @@ PearlFlow - 客戶管理 (CRM) v1.3.0
                 <th style="width: 180px;">客戶名稱</th>
                 <th style="width: 160px;">主要聯絡人 / 電話</th>
                 <th style="width: 120px;">主辦人員</th>
-                <th>進行中專案 (資料庫連結下拉選單)</th>
+                <th>進行中專案 (快速跳轉)</th>
                 <th style="width: 150px;">操作</th>
             </tr>
         </thead>
         <tbody id="crm-tbody">
-            <tr><td colspan="6" style="text-align: center; color: #888;">客戶資料與資料庫專案連結中...</td></tr>
+            <tr><td colspan="6" style="text-align: center; color: #888;">資料載入中...</td></tr>
         </tbody>
     </table>
 
@@ -153,81 +152,107 @@ PearlFlow - 客戶管理 (CRM) v1.3.0
             document.getElementById(modalId).style.display = 'none';
         }
 
-        async function loadMembersDropdown() {
-            if (!window.supabase) return;
-            const { data } = await window.supabase.from('members').select('name').eq('is_active', true);
-            dbMembersCache = data || [];
-            const select = document.getElementById('client-manager');
-            select.innerHTML = `<option value="">-- 指定主辦人員 --</option>` + 
-                dbMembersCache.map(m => `<option value="${m.name}">👤 ${m.name}</option>`).join('');
+        // 取得 Supabase Client 安全實例
+        function getSupabaseClient() {
+            return window.supabase || window._supabaseClient || null;
         }
 
-        // 核心：從 Supabase 正式撈取客戶與專案資料庫，並建構下拉選單
+        async function loadMembersDropdown() {
+            const client = getSupabaseClient();
+            if (!client) return;
+            try {
+                const { data } = await client.from('members').select('name').eq('is_active', true);
+                dbMembersCache = data || [];
+                const select = document.getElementById('client-manager');
+                if (select) {
+                    select.innerHTML = `<option value="">-- 指定主辦人員 --</option>` + 
+                        dbMembersCache.map(m => `<option value="${m.name}">👤 ${m.name}</option>`).join('');
+                }
+            } catch (err) {
+                console.error("Members 載入失敗:", err);
+            }
+        }
+
         async function loadClients() {
             const tbody = document.getElementById('crm-tbody');
-            if (!window.supabase) return;
+            const client = getSupabaseClient();
 
-            // 1. 同時向資料庫發出 clients 與 projects 資料表請求
-            const [clientsRes, projectsRes] = await Promise.all([
-                window.supabase.from('clients').select('*').order('created_at', { ascending: false }),
-                window.supabase.from('projects').select('*')
-            ]);
-
-            if (clientsRes.error) {
-                tbody.innerHTML = `<tr><td colspan="6" style="color: red;">客戶資料庫讀取失敗：${clientsRes.error.message}</td></tr>`;
+            if (!client) {
+                tbody.innerHTML = `<tr><td colspan="6" style="color: red; text-align: center;">Supabase 連線失敗，請檢查 global-config.js 引用</td></tr>`;
                 return;
             }
 
-            const clients = clientsRes.data || [];
-            dbProjectsCache = projectsRes.data || [];
+            try {
+                // 1. 先讀取客戶資料（核心）
+                const clientsRes = await client.from('clients').select('*').order('created_at', { ascending: false });
 
-            if (clients.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #888;">目前尚無客戶資料，請點擊右上方「＋ 新增客戶」</td></tr>`;
-                return;
-            }
-
-            const canManage = PearlAuth.hasRole(['boss', 'pm', 'hr']);
-
-            // 2. 將專案資料庫與客戶進行關聯匹配，並生成 HTML 下拉選單
-            tbody.innerHTML = clients.map(c => {
-                // 從 projects 資料庫陣列中，找到與此客戶 ID 或名稱相符的專案
-                const matchedProjects = dbProjectsCache.filter(p => 
-                    (p.client_id && String(p.client_id) === String(c.id)) ||
-                    (p.client_name && p.client_name.trim() === c.name.trim()) ||
-                    (p.client && p.client.trim() === c.name.trim())
-                );
-                
-                let projectSelectHtml = '';
-                if (matchedProjects.length > 0) {
-                    projectSelectHtml = `
-                        <select class="project-dropdown" onchange="jumpToProject(this.value)">
-                            <option value="">-- 選擇專案前往 (${matchedProjects.length}) --</option>
-                            ${matchedProjects.map(p => `
-                                <option value="${p.id}">📌 ${p.name \vert{}\vert{} p.title \vert{}\vert{} '未命名專案'} [${p.status || '進行中'}]</option>
-                            `).join('')}
-                        </select>
-                    `;
-                } else {
-                    projectSelectHtml = `<span style="color: #aaa; font-size: 0.85rem;">資料庫中無此客戶專案</span>`;
+                if (clientsRes.error) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="color: red; text-align: center;">客戶資料讀取失敗：${clientsRes.error.message}</td></tr>`;
+                    return;
                 }
 
-                return `
-                    <tr>
-                        <td style="font-family: monospace; font-weight: 600;">${c.tax_id || '-'}</td>
-                        <td style="font-weight: 600; color: var(--primary-color);">${c.name}</td>
-                        <td>
-                            <div>${c.contact_person || '-'}</div>
-                            <div style="font-size: 0.8rem; color: #777;">${c.phone || c.email || ''}</div>
-                        </td>
-                        <td>${c.manager ? '👤 ' + c.manager : '-'}</td>
-                        <td>${projectSelectHtml}</td>
-                        <td>
-                            <button class="btn-sm" onclick="openClientModal('${c.id}')">✏️ 編輯 / 詳情</button>
-                            ${canManage ? `<button class="btn-sm btn-danger-sm" onclick="deleteClient('${c.id}', '${c.name}')">🗑</button>` : ''}
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+                const clients = clientsRes.data || [];
+
+                if (clients.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #888;">目前尚無客戶資料，請點擊右上方「＋ 新增客戶」</td></tr>`;
+                    return;
+                }
+
+                // 2. 獨立容錯讀取專案資料（即使專案讀取失敗也不影響客戶呈現）
+                try {
+                    const projectsRes = await client.from('projects').select('*');
+                    dbProjectsCache = projectsRes.data || [];
+                } catch (pErr) {
+                    console.warn("Projects 資料讀取受阻:", pErr);
+                    dbProjectsCache = [];
+                }
+
+                const canManage = PearlAuth.hasRole(['boss', 'pm', 'hr']);
+
+                // 3. 渲染客戶表格與專案下拉選單
+                tbody.innerHTML = clients.map(c => {
+                    const matchedProjects = dbProjectsCache.filter(p => 
+                        (p.client_id && String(p.client_id) === String(c.id)) ||
+                        (p.client_name && p.client_name.trim() === c.name.trim()) ||
+                        (p.client && p.client.trim() === c.name.trim())
+                    );
+                    
+                    let projectSelectHtml = '';
+                    if (matchedProjects.length > 0) {
+                        projectSelectHtml = `
+                            <select class="project-dropdown" onchange="jumpToProject(this.value)">
+                                <option value="">-- 選擇專案前往 (${matchedProjects.length}) --</option>
+                                ${matchedProjects.map(p => `
+                                    <option value="${p.id}">📌 ${p.name || p.title || '未命名專案'}</option>
+                                `).join('')}
+                            </select>
+                        `;
+                    } else {
+                        projectSelectHtml = `<span style="color: #aaa; font-size: 0.85rem;">尚無進行中專案</span>`;
+                    }
+
+                    return `
+                        <tr>
+                            <td style="font-family: monospace; font-weight: 600;">${c.tax_id || '-'}</td>
+                            <td style="font-weight: 600; color: var(--primary-color);">${c.name}</td>
+                            <td>
+                                <div>${c.contact_person || '-'}</div>
+                                <div style="font-size: 0.8rem; color: #777;">${c.phone || c.email || ''}</div>
+                            </td>
+                            <td>${c.manager ? '👤 ' + c.manager : '-'}</td>
+                            <td>${projectSelectHtml}</td>
+                            <td>
+                                <button class="btn-sm" onclick="openClientModal('${c.id}')">✏️ 編輯 / 詳情</button>
+                                ${canManage ? `<button class="btn-sm btn-danger-sm" onclick="deleteClient('${c.id}', '${c.name}')">🗑</button>` : ''}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error("CRM 載入異常:", err);
+                tbody.innerHTML = `<tr><td colspan="6" style="color: red; text-align: center;">系統執行異常：${err.message}</td></tr>`;
+            }
         }
 
         function jumpToProject(projectId) {
@@ -242,10 +267,11 @@ PearlFlow - 客戶管理 (CRM) v1.3.0
         async function openClientModal(clientId = null) {
             const modal = document.getElementById('clientModal');
             const titleEl = document.getElementById('modal-title');
+            const client = getSupabaseClient();
             
-            if (clientId) {
+            if (clientId && client) {
                 titleEl.innerText = '編輯客戶資料';
-                const { data: c } = await window.supabase.from('clients').select('*').eq('id', clientId).single();
+                const { data: c } = await client.from('clients').select('*').eq('id', clientId).single();
                 if (c) {
                     document.getElementById('client-id').value = c.id;
                     document.getElementById('client-tax-id').value = c.tax_id || '';
@@ -276,6 +302,9 @@ PearlFlow - 客戶管理 (CRM) v1.3.0
         }
 
         async function submitClientForm() {
+            const client = getSupabaseClient();
+            if (!client) return alert('Supabase 連線失敗');
+
             const clientId = document.getElementById('client-id').value;
             const name = document.getElementById('client-name').value.trim();
             const taxId = document.getElementById('client-tax-id').value.trim();
@@ -307,9 +336,9 @@ PearlFlow - 客戶管理 (CRM) v1.3.0
 
             let res;
             if (clientId) {
-                res = await window.supabase.from('clients').update(payload).eq('id', clientId);
+                res = await client.from('clients').update(payload).eq('id', clientId);
             } else {
-                res = await window.supabase.from('clients').insert([payload]);
+                res = await client.from('clients').insert([payload]);
             }
 
             btn.disabled = false;
@@ -325,8 +354,11 @@ PearlFlow - 客戶管理 (CRM) v1.3.0
         }
 
         async function deleteClient(clientId, clientName) {
-            if (confirm(`確定要刪除客戶「${clientName}」嗎？相關的專案紀錄可能會受影響。`)) {
-                await window.supabase.from('clients').delete().eq('id', clientId);
+            const client = getSupabaseClient();
+            if (!client) return;
+
+            if (confirm(`確定要刪除客戶「${clientName}」嗎？`)) {
+                await client.from('clients').delete().eq('id', clientId);
                 loadClients();
             }
         }
