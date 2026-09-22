@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 成員與權限管理頁面 (密碼可視圖示優化版)
+PearlFlow - 成員與權限管理頁面 (預設值調整版)
 @file        page-members.html
 ==========================================================================
 -->
@@ -83,7 +83,7 @@ PearlFlow - 成員與權限管理頁面 (密碼可視圖示優化版)
 
             <div class="form-group">
                 <label>同仁姓名 *</label>
-                <input type="text" class="form-control" id="new-member-name" placeholder="例：王小明">
+                <input type="text" class="form-control" id="new-member-name" placeholder="New Employee">
             </div>
 
             <div class="form-group">
@@ -91,11 +91,11 @@ PearlFlow - 成員與權限管理頁面 (密碼可視圖示優化版)
                 <input type="email" class="form-control" id="new-member-email" placeholder="例：ming@pearl.com">
             </div>
 
-            <!-- 預設密碼 + 壓住看明碼眼睛 -->
+            <!-- 預設密碼 000000 + 壓住看明碼眼睛 -->
             <div class="form-group">
                 <label>預設密碼 *</label>
                 <div class="pwd-input-wrapper">
-                    <input type="password" class="form-control" id="new-member-password" placeholder="至少 6 位數密碼">
+                    <input type="password" class="form-control" id="new-member-password" value="000000" placeholder="000000">
                     <button type="button" class="pwd-eye-btn" id="pwd-toggle-btn" title="按住可顯示密碼">👁️</button>
                 </div>
             </div>
@@ -128,6 +128,9 @@ PearlFlow - 成員與權限管理頁面 (密碼可視圖示優化版)
         }
 
         function openAddMemberModal() {
+            document.getElementById('new-member-name').value = '';
+            document.getElementById('new-member-email').value = '';
+            document.getElementById('new-member-password').value = '000000';
             document.getElementById('addMemberModal').style.display = 'flex';
         }
 
@@ -148,12 +151,10 @@ PearlFlow - 成員與權限管理頁面 (密碼可視圖示優化版)
                 pwdInput.type = 'password';
             };
 
-            // 滑鼠長按控制
             eyeBtn.addEventListener('mousedown', showPassword);
             eyeBtn.addEventListener('mouseup', hidePassword);
             eyeBtn.addEventListener('mouseleave', hidePassword);
 
-            // 行動裝置觸控長按控制
             eyeBtn.addEventListener('touchstart', showPassword);
             eyeBtn.addEventListener('touchend', hidePassword);
         }
@@ -206,14 +207,17 @@ PearlFlow - 成員與權限管理頁面 (密碼可視圖示優化版)
 
         // 前端新增成員，連動 Supabase Auth + Trigger
         async function submitAddMember() {
-            const name = document.getElementById('new-member-name').value.trim();
+            const nameInput = document.getElementById('new-member-name');
             const email = document.getElementById('new-member-email').value.trim();
             const password = document.getElementById('new-member-password').value;
             const role = document.getElementById('new-member-role').value;
             const btn = document.getElementById('btn-save-member');
 
-            if (!name || !email || !password) {
-                return alert('請填寫完整姓名、Email 與密碼');
+            // 如果名字空白，預設帶入 New Employee
+            const name = nameInput.value.trim() || 'New Employee';
+
+            if (!email || !password) {
+                return alert('請填寫公務 Email 與預設密碼');
             }
 
             btn.disabled = true;
@@ -239,7 +243,7 @@ PearlFlow - 成員與權限管理頁面 (密碼可視圖示優化版)
 
             btn.disabled = false;
             btn.innerText = '建立帳號';
-            alert(`同仁 ${name} 帳號建立成功！Trigger 已自動同步設定角色。`);
+            alert(`同仁 ${name} 帳號建立成功！預設密碼為 ${password}`);
             closeModal('addMemberModal');
             loadMembers();
         }
