@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 客戶管理 (CRM) 專業升級版 (含專案快速跳轉與完整編輯)
+PearlFlow - 客戶管理 (CRM) v1.2.1
 @file        page-crm.html
+@description 恢復原始專案關聯選單與連動邏輯，支援 Supabase 資料庫同步與完整編輯
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -163,10 +164,10 @@ PearlFlow - 客戶管理 (CRM) 專業升級版 (含專案快速跳轉與完整�
             const tbody = document.getElementById('crm-tbody');
             if (!window.supabase) return;
 
-            // 平行載入客戶與專案資料
+            // 讀取客戶與專案
             const [clientsRes, projectsRes] = await Promise.all([
                 window.supabase.from('clients').select('*').order('created_at', { ascending: false }),
-                window.supabase.from('projects').select('id, name, client_name, status')
+                window.supabase.from('projects').select('*')
             ]);
 
             if (clientsRes.error) {
@@ -185,7 +186,7 @@ PearlFlow - 客戶管理 (CRM) 專業升級版 (含專案快速跳轉與完整�
             const canManage = PearlAuth.hasRole(['boss', 'pm', 'hr']);
 
             tbody.innerHTML = clients.map(c => {
-                // 過濾出屬於該客戶的進行中專案
+                // 恢復原版簡單直接的比對方式：p.client_name === c.name
                 const clientProjects = dbProjectsCache.filter(p => p.client_name === c.name);
                 
                 let projectSelectHtml = '';
@@ -219,10 +220,8 @@ PearlFlow - 客戶管理 (CRM) 專業升級版 (含專案快速跳轉與完整�
             }).join('');
         }
 
-        // 快速跳轉至專案矩陣頁面
         function jumpToProject(projectId) {
             if (!projectId) return;
-            // 通知上層父框架 switchPage 到專案矩陣
             if (window.parent && window.parent.switchPage) {
                 window.parent.switchPage('page-matrix.html');
             } else {
