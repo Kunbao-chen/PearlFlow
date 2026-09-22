@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 成員與權限管理頁面
+PearlFlow - 成員與權限管理頁面 (密碼可視圖示優化版)
 @file        page-members.html
 ==========================================================================
 -->
@@ -13,7 +13,6 @@ PearlFlow - 成員與權限管理頁面
     <link rel="stylesheet" href="css/theme.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/global-config.js"></script>
-    <script src="js/icons.js"></script>
     <script src="js/auth-guard.js"></script>
     <style>
         * { box-sizing: border-box; }
@@ -38,6 +37,12 @@ PearlFlow - 成員與權限管理頁面
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: #444; }
         .form-control { width: 100%; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; }
+
+        /* 密碼眼睛輸入框容器樣式 */
+        .pwd-input-wrapper { position: relative; display: flex; align-items: center; }
+        .pwd-input-wrapper .form-control { padding-right: 40px; }
+        .pwd-eye-btn { position: absolute; right: 10px; border: none; background: transparent; cursor: pointer; font-size: 1.1rem; opacity: 0.6; user-select: none; transition: opacity 0.2s; padding: 4px; }
+        .pwd-eye-btn:hover { opacity: 1; }
     </style>
 </head>
 <body>
@@ -86,9 +91,13 @@ PearlFlow - 成員與權限管理頁面
                 <input type="email" class="form-control" id="new-member-email" placeholder="例：ming@pearl.com">
             </div>
 
+            <!-- 預設密碼 + 壓住看明碼眼睛 -->
             <div class="form-group">
                 <label>預設密碼 *</label>
-                <input type="password" class="form-control" id="new-member-password" placeholder="至少 6 位數密碼">
+                <div class="pwd-input-wrapper">
+                    <input type="password" class="form-control" id="new-member-password" placeholder="至少 6 位數密碼">
+                    <button type="button" class="pwd-eye-btn" id="pwd-toggle-btn" title="按住可顯示密碼">👁️</button>
+                </div>
             </div>
 
             <div class="form-group">
@@ -111,6 +120,7 @@ PearlFlow - 成員與權限管理頁面
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             loadMembers();
+            setupPasswordEyeToggle();
         });
 
         function closeModal(modalId) {
@@ -119,6 +129,33 @@ PearlFlow - 成員與權限管理頁面
 
         function openAddMemberModal() {
             document.getElementById('addMemberModal').style.display = 'flex';
+        }
+
+        // 綁定「按住顯示密碼，放開恢復隱藏」的事件 handler
+        function setupPasswordEyeToggle() {
+            const pwdInput = document.getElementById('new-member-password');
+            const eyeBtn = document.getElementById('pwd-toggle-btn');
+
+            if (!pwdInput || !eyeBtn) return;
+
+            const showPassword = (e) => {
+                e.preventDefault();
+                pwdInput.type = 'text';
+            };
+
+            const hidePassword = (e) => {
+                e.preventDefault();
+                pwdInput.type = 'password';
+            };
+
+            // 滑鼠長按控制
+            eyeBtn.addEventListener('mousedown', showPassword);
+            eyeBtn.addEventListener('mouseup', hidePassword);
+            eyeBtn.addEventListener('mouseleave', hidePassword);
+
+            // 行動裝置觸控長按控制
+            eyeBtn.addEventListener('touchstart', showPassword);
+            eyeBtn.addEventListener('touchend', hidePassword);
         }
 
         // 載入成員列表
@@ -144,7 +181,7 @@ PearlFlow - 成員與權限管理頁面
             const canManage = PearlAuth.hasRole(['boss', 'hr']);
 
             tbody.innerHTML = members.map(m => {
-                const isActive = m.is_active !== false; // 預設為 true
+                const isActive = m.is_active !== false;
                 const statusBadge = isActive 
                     ? `<span class="status-badge status-active">在職</span>`
                     : `<span class="status-badge status-inactive">已停用/離職</span>`;
@@ -182,7 +219,6 @@ PearlFlow - 成員與權限管理頁面
             btn.disabled = true;
             btn.innerText = '建立中...';
 
-            // 呼叫 Supabase Auth API
             const { data, error } = await window.supabase.auth.signUp({
                 email: email,
                 password: password,
