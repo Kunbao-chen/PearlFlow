@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 專案進度矩陣 v1.0.5 (修復指派人員選單與全資料庫即時連動)
+PearlFlow - 專案進度矩陣 v1.0.6 (取消更新時重新渲染，徹底修復步驟跳動問題)
 @file        page-matrix.html
 ==========================================================================
 -->
@@ -191,9 +191,9 @@ PearlFlow - 專案進度矩陣 v1.0.5 (修復指派人員選單與全資料庫�
 
         function closeModal(modalId) {
             document.getElementById(modalId).style.display = 'none';
+            loadMatrixData(); // 關閉 Modal 時更新背景表格進度條
         }
 
-        // 從 Supabase 讀取真實成員清單，強化相容性與備援
         async function loadMembersData() {
             const client = getDbClient();
             if (!client) return;
@@ -210,15 +210,10 @@ PearlFlow - 專案進度矩陣 v1.0.5 (修復指派人員選單與全資料庫�
                         name: m.name || m.full_name || m.email || '未命名同仁'
                     }));
                 } else {
-                    // 若無資料，提供預設選項備援
-                    dbMembersCache = [
-                        { name: '陳珍珠' },
-                        { name: '王會計' },
-                        { name: '張專員' }
-                    ];
+                    dbMembersCache = [{ name: '陳珍珠' }, { name: '王會計' }, { name: '張專員' }];
                 }
             } catch (err) {
-                console.warn("Members 讀取失敗，使用備援列表:", err);
+                console.warn("Members 讀用備援:", err);
                 dbMembersCache = [{ name: '陳珍珠' }, { name: '王會計' }, { name: '張專員' }];
             }
 
@@ -325,7 +320,8 @@ PearlFlow - 專案進度矩陣 v1.0.5 (修復指派人員選單與全資料庫�
             projectEl.innerText = project.name;
 
             const tasks = project.project_tasks || [];
-            tasks.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+            // 採用穩定主鍵 ID / 建立時間排序，固定順序
+            tasks.sort((a, b) => (a.id > b.id ? 1 : -1));
 
             if (tasks.length === 0) {
                 taskListEl.innerHTML = `<div style="padding: 20px; text-align: center; color: #888;">此專案尚未設定步驟，可在上方直接新增步驟</div>`;
@@ -343,24 +339,24 @@ PearlFlow - 專案進度矩陣 v1.0.5 (修復指派人員選單與全資料庫�
                     <div class="task-item ${t.is_completed ? 'completed' : ''}" id="task-item-${t.id}">
                         <div class="task-main-row">
                             <div style="display: flex; align-items: center; gap: 10px; flex: 1; overflow: hidden;">
-                                <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleTaskStatus('${t.id}', this.checked, '${projectId}')" style="width: 18px; height: 18px; accent-color: var(--primary-color); flex-shrink: 0;">
-                                <span class="task-title-text" title="點擊可修改步驟名稱" onclick="editTaskName('${t.id}', '${(t.task_name || '').replace(/'/g, "\\'")}', '${projectId}')">${t.task_name}</span>
+                                <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleTaskStatus('${t.id}', this.checked)" style="width: 18px; height: 18px; accent-color: var(--primary-color); flex-shrink: 0;">
+                                <span class="task-title-text" id="task-title-${t.id}" title="點擊可修改步驟名稱" onclick="editTaskName('${t.id}', '${(t.task_name || '').replace(/'/g, "\\'")}')">${t.task_name}</span>
                             </div>
 
                             <div class="task-control-group">
-                                <select class="task-select-sm" onchange="updateTaskField('${t.id}', 'assignee', this.value, '${projectId}')">
+                                <select class="task-select-sm" onchange="updateTaskField('${t.id}', 'assignee', this.value)">
                                     <option value="">👤 指派人員...</option>
                                     ${assigneeOptionsHtml}
                                 </select>
 
-                                <input type="date" class="task-date-sm" value="${t.due_date || ''}" onchange="updateTaskField('${t.id}', 'due_date', this.value, '${projectId}')">
+                                <input type="date" class="task-date-sm" value="${t.due_date || ''}" onchange="updateTaskField('${t.id}', 'due_date', this.value)">
                                 <button class="btn-icon-sm" title="編輯備註" onclick="toggleNotesPanel('${t.id}')">💬</button>
                                 ${canManageTask ? `<button class="btn-icon-sm btn-del-task" title="刪除步驟" onclick="deleteSingleTask('${t.id}', '${projectId}')">🗑</button>` : ''}
                             </div>
                         </div>
 
                         <div class="task-notes-panel" id="notes-panel-${t.id}">
-                            <input type="text" class="task-notes-input" placeholder="輸入此步驟的客戶備註或注意事項..." value="${t.notes || ''}" onchange="updateTaskField('${t.id}', 'notes', this.value, '${projectId}')">
+                            <input type="text" class="task-notes-input" placeholder="輸入此步驟的客戶備註或注意事項..." value="${t.notes || ''}" onchange="updateTaskField('${t.id}', 'notes', this.value)">
                         </div>
                     </div>
                 `;
@@ -374,14 +370,17 @@ PearlFlow - 專案進度矩陣 v1.0.5 (修復指派人員選單與全資料庫�
             }
         }
 
-        async function editTaskName(taskId, oldName, projectId) {
+        async function editTaskName(taskId, oldName) {
             const newName = prompt('請輸入新的步驟名稱：', oldName);
             if (newName && newName.trim() !== '' && newName !== oldName) {
-                await updateTaskField(taskId, 'task_name', newName.trim(), projectId);
+                const titleEl = document.getElementById(`task-title-${taskId}`);
+                if (titleEl) titleEl.innerText = newName.trim();
+                await updateTaskField(taskId, 'task_name', newName.trim());
             }
         }
 
-        async function updateTaskField(taskId, fieldName, fieldValue, projectId) {
+        // 背景靜默更新，完全不重繪 Modal，順序保持固定
+        async function updateTaskField(taskId, fieldName, fieldValue) {
             const client = getDbClient();
             if (!client) return;
 
@@ -392,8 +391,15 @@ PearlFlow - 專案進度矩陣 v1.0.5 (修復指派人員選單與全資料庫�
                 .from('project_tasks')
                 .update(updatePayload)
                 .eq('id', taskId);
+        }
 
-            openDetailProjectModal(projectId);
+        async function toggleTaskStatus(taskId, isCompleted) {
+            const itemEl = document.getElementById(`task-item-${taskId}`);
+            if (itemEl) {
+                if (isCompleted) itemEl.classList.add('completed');
+                else itemEl.classList.remove('completed');
+            }
+            await updateTaskField(taskId, 'is_completed', isCompleted);
         }
 
         async function addNewTask(projectId) {
@@ -424,7 +430,6 @@ PearlFlow - 專案進度矩陣 v1.0.5 (修復指派人員選單與全資料庫�
             dueInput.value = '';
             assigneeSelect.value = '';
             openDetailProjectModal(projectId);
-            loadMatrixData();
         }
 
         async function deleteSingleTask(taskId, projectId) {
@@ -434,21 +439,7 @@ PearlFlow - 專案進度矩陣 v1.0.5 (修復指派人員選單與全資料庫�
             if (confirm('確定要刪除此步驟嗎？')) {
                 await client.from('project_tasks').delete().eq('id', taskId);
                 openDetailProjectModal(projectId);
-                loadMatrixData();
             }
-        }
-
-        async function toggleTaskStatus(taskId, isCompleted, projectId) {
-            const client = getDbClient();
-            if (!client) return;
-
-            await client
-                .from('project_tasks')
-                .update({ is_completed: isCompleted })
-                .eq('id', taskId);
-
-            openDetailProjectModal(projectId);
-            loadMatrixData();
         }
 
         function openCreateProjectModal() {
