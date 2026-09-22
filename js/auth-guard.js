@@ -1,65 +1,52 @@
-/**
- * PearlFlow - 全域權限控管模組
- * @file js/auth-guard.js
- * @description 負責讀取使用者角色（boss / hr / pm / staff）並進行 UI 權限過濾
- */
+/*
+==========================================================================
+PearlFlow - 全域權限守衛與角色管理模組 (修復測試模擬身分連動)
+@file        js/auth-guard.js
+==========================================================================
+*/
 
 const PearlAuth = {
-    currentUser: null,
-    currentRole: 'boss', // 預設角色: 'boss' | 'hr' | 'pm' | 'staff'
-
-    // 初始化權限設定
-    async init() {
-        if (!window.supabase) return;
-
-        // 取得 Supabase 登入 Session
-        const { data: { session } } = await window.supabase.auth.getSession();
-        if (session && session.user) {
-            this.currentUser = session.user;
-            const { data, error } = await window.supabase
-                .from('user_roles')
-                .select('role_id')
-                .eq('user_id', this.currentUser.id)
-                .single();
-
-            if (!error && data) {
-                this.currentRole = data.role_id;
-            }
-        } else {
-            // 測試/訪客模式：允許經由 localStorage 模擬切換角色
-            const mockRole = localStorage.getItem('pf_mock_role');
-            if (mockRole) {
-                this.currentRole = mockRole;
-            } else {
-                this.currentRole = 'boss';
-            }
-        }
-
-        this.applyUIPermissions();
+    // 取得當前角色 (優先讀取測試模擬器的 pf_demo_role)
+    getRole: function() {
+        const demoRole = localStorage.getItem('pf_demo_role');
+        if (demoRole) return demoRole;
+        return localStorage.getItem('pf_user_role') || 'boss';
     },
 
-    // 檢查目前角色是否具備指定權限
-    hasRole(requiredRoles) {
-        if (typeof requiredRoles === 'string') {
-            requiredRoles = [requiredRoles];
-        }
-        if (this.currentRole === 'boss') return true; // 最高管理者擁有全權限
-        return requiredRoles.includes(this.currentRole);
+    // 設定角色
+    setRole: function(role) {
+        localStorage.setItem('pf_demo_role', role);
+        localStorage.setItem('pf_user_role', role);
     },
 
-    // 根據 HTML 標籤屬性 [data-pf-role] 自動隱藏/顯示 UI 元件
-    applyUIPermissions() {
-        document.querySelectorAll('[data-pf-role]').forEach(el => {
-            const allowedRoles = el.getAttribute('data-pf-role').split(',');
-            if (this.hasRole(allowedRoles)) {
-                el.style.display = '';
+    // 檢查是否有權限
+    hasRole: function(allowedRoles) {
+        const currentRole = this.getRole();
+        if (currentRole === 'boss') return true; // Boss 擁有最高權限
+        if (typeof allowedRoles === 'string') {
+            allowedRoles = allowedRoles.split(',').map(r => r.trim());
+        }
+        return allowedRoles.includes(currentRole);
+    },
+
+    // 掃描頁面並執行 DOM 顯示/隱藏過濾
+    applyRolePermissions: function() {
+        const currentRole = this.getRole();
+        const roleElements = document.querySelectorAll('[data-pf-role]');
+
+        roleElements.forEach(el => {
+            const requiredRoles = el.getAttribute('data-pf-role').split(',').map(r => r.trim());
+            // 如果當前是 boss，或是包含在許可角色名單內，則顯示
+            if (currentRole === 'boss' || requiredRoles.includes(currentRole)) {
+                el.style.display = ''; // 恢復預設顯示 (Flex/Block)
             } else {
-                el.style.display = 'none';
+                el.style.display = 'none'; // 隱藏
             }
         });
     }
 };
 
+// 頁面載入後自動執行權限掃描
 document.addEventListener('DOMContentLoaded', () => {
-    PearlAuth.init();
+    PearlAuth.applyRolePermissions();
 });
