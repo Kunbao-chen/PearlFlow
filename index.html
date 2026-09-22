@@ -21,7 +21,7 @@ PearlFlow - 主幹入口外殼 (Shell)
         
         .sidebar { width: 240px; background: #fff; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0; }
         .sidebar-brand { padding: 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-color); }
-        .sidebar-brand img { height: 32px; }
+        .sidebar-brand img { height: 36px; width: auto; }
         .brand-title { font-size: 1.05rem; font-weight: 700; color: var(--primary-color); line-height: 1.2; }
         .brand-subtitle { font-size: 0.72rem; color: #888; letter-spacing: 0.5px; }
 
@@ -44,7 +44,7 @@ PearlFlow - 主幹入口外殼 (Shell)
     <aside class="sidebar">
         <div>
             <div class="sidebar-brand">
-                <span data-pf-icon="logo" data-size="32" style="color: var(--primary-color);"></span>
+                <img src="logo.png" alt="PearlFlow Logo" onerror="this.style.display='none'">
                 <div>
                     <div class="brand-title">珍珠聯合會計師事務所</div>
                     <div class="brand-subtitle">Pearl Certified Public Accountants Firm</div>
@@ -68,7 +68,7 @@ PearlFlow - 主幹入口外殼 (Shell)
                     <span data-pf-icon="users" data-size="18"></span>
                     <span>客戶管理 (CRM)</span>
                 </a>
-                <!-- 新增：成員與權限管理選單 (僅 Boss / HR 可見) -->
+                <!-- 成員與權限管理選單 (開放給 Boss 與 HR) -->
                 <a class="menu-item" data-pf-role="boss,hr" onclick="switchPage('page-members.html', this)">
                     <span data-pf-icon="user-check" data-size="18"></span>
                     <span>成員與權限管理</span>
@@ -76,12 +76,12 @@ PearlFlow - 主幹入口外殼 (Shell)
             </nav>
         </div>
 
-        <!-- 測試用模擬角色切換器 (生產環境只需隱藏此區塊) -->
+        <!-- 測試用模擬角色切換器 -->
         <div class="sidebar-footer">
             <label class="role-switcher-label">目前模擬身分 (測試用)：</label>
             <select class="role-select" id="demo-role-selector" onchange="changeDemoRole(this.value)">
-                <option value="boss">💼 最高管理者 (Boss)</option>
-                <option value="pm" selected>💼 研發/專案主管 (PM)</option>
+                <option value="boss" selected>💼 最高管理者 (Boss)</option>
+                <option value="pm">💼 研發/專案主管 (PM)</option>
                 <option value="hr">💼 人事主管 (HR)</option>
                 <option value="staff">👤 一般執行人員 (Staff)</option>
             </select>
@@ -97,6 +97,7 @@ PearlFlow - 主幹入口外殼 (Shell)
         document.addEventListener('DOMContentLoaded', () => {
             const currentRole = PearlAuth.getRole();
             document.getElementById('demo-role-selector').value = currentRole;
+            PearlAuth.applyRolePermissions();
         });
 
         function switchPage(pageUrl, element) {
@@ -107,6 +108,7 @@ PearlFlow - 主幹入口外殼 (Shell)
 
         function changeDemoRole(role) {
             PearlAuth.setRole(role);
+            PearlAuth.applyRolePermissions();
             const iframe = document.getElementById('main-frame');
             if (iframe && iframe.contentWindow) {
                 iframe.contentWindow.location.reload();
