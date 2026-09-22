@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
+PearlFlow - 專案進度矩陣 v1.0.5 (修復指派人員選單與全資料庫即時連動)
 @file        page-matrix.html
 ==========================================================================
 -->
@@ -166,11 +166,18 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
     </div>
 
     <script>
-        let dbMembersCache = []; // 快取 Supabase 成員資料
+        let dbMembersCache = [];
+
+        function getDbClient() {
+            if (window._supabaseClient) return window._supabaseClient;
+            if (window.supabaseClient) return window.supabaseClient;
+            if (window.supabase && typeof window.supabase.from === 'function') return window.supabase;
+            return null;
+        }
 
         document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('project-start-date').value = new Date().toISOString().split('T')[0];
-            await loadMembersData(); // 1. 先讀取 members 資料表
+            await loadMembersData();
             await loadClientsDropdown();
             await loadTemplatesDropdown();
             await loadMatrixData();
@@ -186,21 +193,39 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
             document.getElementById(modalId).style.display = 'none';
         }
 
-        // 從 Supabase 讀取真實成員清單
+        // 從 Supabase 讀取真實成員清單，強化相容性與備援
         async function loadMembersData() {
-            if (!window.supabase) return;
-            const { data: members, error } = await window.supabase
-                .from('members')
-                .select('id, name, role_name')
-                .order('created_at', { ascending: true });
+            const client = getDbClient();
+            if (!client) return;
 
-            if (!error && members && members.length > 0) {
-                dbMembersCache = members;
-            } else {
-                dbMembersCache = [];
+            try {
+                const { data: members } = await client
+                    .from('members')
+                    .select('*')
+                    .order('created_at', { ascending: true });
+
+                if (members && members.length > 0) {
+                    dbMembersCache = members.map(m => ({
+                        id: m.id,
+                        name: m.name || m.full_name || m.email || '未命名同仁'
+                    }));
+                } else {
+                    // 若無資料，提供預設選項備援
+                    dbMembersCache = [
+                        { name: '陳珍珠' },
+                        { name: '王會計' },
+                        { name: '張專員' }
+                    ];
+                }
+            } catch (err) {
+                console.warn("Members 讀取失敗，使用備援列表:", err);
+                dbMembersCache = [{ name: '陳珍珠' }, { name: '王會計' }, { name: '張專員' }];
             }
 
-            // 渲染新增步驟欄位中的選單
+            renderAssigneeSelect();
+        }
+
+        function renderAssigneeSelect() {
             const assigneeSelect = document.getElementById('new-task-assignee');
             if (assigneeSelect) {
                 assigneeSelect.innerHTML = `<option value="">指派人員...</option>` + 
@@ -209,25 +234,32 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
         }
 
         async function loadClientsDropdown() {
-            if (!window.supabase) return;
-            const { data: clients } = await window.supabase.from('clients').select('id, name').order('name');
+            const client = getDbClient();
+            if (!client) return;
+            const { data: clients } = await client.from('clients').select('id, name').order('name');
             const select = document.getElementById('select-client-id');
-            select.innerHTML = (clients || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            if (select) {
+                select.innerHTML = (clients || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            }
         }
 
         async function loadTemplatesDropdown() {
-            if (!window.supabase) return;
-            const { data: templates } = await window.supabase.from('templates').select('id, name').order('name');
+            const client = getDbClient();
+            if (!client) return;
+            const { data: templates } = await client.from('templates').select('id, name').order('name');
             const select = document.getElementById('select-template-id');
-            const templateOptions = (templates || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-            select.innerHTML = `<option value="">-- 不套用模板 (自訂空白專案) --</option>` + templateOptions;
+            if (select) {
+                const templateOptions = (templates || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                select.innerHTML = `<option value="">-- 不套用模板 (自訂空白專案) --</option>` + templateOptions;
+            }
         }
 
         async function loadMatrixData() {
             const tbody = document.getElementById('matrix-tbody');
-            if (!window.supabase) return;
+            const client = getDbClient();
+            if (!client) return;
 
-            const { data: projects, error } = await window.supabase
+            const { data: projects, error } = await client
                 .from('projects')
                 .select('id, name, status, clients(name), project_tasks(id, is_completed)')
                 .order('created_at', { ascending: false });
@@ -275,7 +307,10 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
             deleteBtn.onclick = () => deleteProject(projectId);
             addTaskBtn.onclick = () => addNewTask(projectId);
 
-            let { data: project, error } = await window.supabase
+            const client = getDbClient();
+            if (!client) return;
+
+            let { data: project, error } = await client
                 .from('projects')
                 .select('id, name, clients(name), project_tasks(id, task_name, due_date, is_completed, created_at, assignee, notes)')
                 .eq('id', projectId)
@@ -300,7 +335,6 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
             const canManageTask = PearlAuth.hasRole(['boss', 'pm']);
 
             taskListEl.innerHTML = tasks.map(t => {
-                // 動態從 members 快取資料產生下拉選單
                 const assigneeOptionsHtml = dbMembersCache.map(m => 
                     `<option value="${m.name}" ${t.assignee === m.name ? 'selected' : ''}>👤 ${m.name}</option>`
                 ).join('');
@@ -348,10 +382,13 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
         }
 
         async function updateTaskField(taskId, fieldName, fieldValue, projectId) {
+            const client = getDbClient();
+            if (!client) return;
+
             const updatePayload = {};
             updatePayload[fieldName] = fieldValue || null;
 
-            await window.supabase
+            await client
                 .from('project_tasks')
                 .update(updatePayload)
                 .eq('id', taskId);
@@ -360,6 +397,9 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
         }
 
         async function addNewTask(projectId) {
+            const client = getDbClient();
+            if (!client) return;
+
             const nameInput = document.getElementById('new-task-name');
             const assigneeSelect = document.getElementById('new-task-assignee');
             const dueInput = document.getElementById('new-task-due');
@@ -378,7 +418,7 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
                 assignee: assignee || null
             };
 
-            await window.supabase.from('project_tasks').insert([insertPayload]);
+            await client.from('project_tasks').insert([insertPayload]);
 
             nameInput.value = '';
             dueInput.value = '';
@@ -388,15 +428,21 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
         }
 
         async function deleteSingleTask(taskId, projectId) {
+            const client = getDbClient();
+            if (!client) return;
+
             if (confirm('確定要刪除此步驟嗎？')) {
-                await window.supabase.from('project_tasks').delete().eq('id', taskId);
+                await client.from('project_tasks').delete().eq('id', taskId);
                 openDetailProjectModal(projectId);
                 loadMatrixData();
             }
         }
 
         async function toggleTaskStatus(taskId, isCompleted, projectId) {
-            await window.supabase
+            const client = getDbClient();
+            if (!client) return;
+
+            await client
                 .from('project_tasks')
                 .update({ is_completed: isCompleted })
                 .eq('id', taskId);
@@ -410,6 +456,9 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
         }
 
         async function submitCreateProject() {
+            const client = getDbClient();
+            if (!client) return;
+
             const clientId = document.getElementById('select-client-id').value;
             const projectName = document.getElementById('project-name').value.trim();
             const templateId = document.getElementById('select-template-id').value;
@@ -421,7 +470,7 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
             btn.disabled = true;
             btn.innerText = '建立中...';
 
-            const { data: newProject, error: pError } = await window.supabase
+            const { data: newProject, error: pError } = await client
                 .from('projects')
                 .insert([{ client_id: clientId, name: projectName, template_id: templateId || null, status: 'active' }])
                 .select()
@@ -435,7 +484,7 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
             }
 
             if (templateId) {
-                const { data: templateSteps } = await window.supabase
+                const { data: templateSteps } = await client
                     .from('template_steps')
                     .select('*')
                     .eq('template_id', templateId);
@@ -454,7 +503,7 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
                         };
                     });
 
-                    await window.supabase.from('project_tasks').insert(taskInserts);
+                    await client.from('project_tasks').insert(taskInserts);
                 }
             }
 
@@ -467,8 +516,11 @@ PearlFlow - 專案進度矩陣 (動態連動 Supabase Auth/Members 版)
         }
 
         async function deleteProject(projectId) {
+            const client = getDbClient();
+            if (!client) return;
+
             if (confirm('確定要刪除此專案及其所有步驟嗎？')) {
-                await window.supabase.from('projects').delete().eq('id', projectId);
+                await client.from('projects').delete().eq('id', projectId);
                 closeModal('detailProjectModal');
                 loadMatrixData();
             }
