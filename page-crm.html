@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 客戶管理 (CRM) v1.3.1 (修復全域依賴與初始化卡死問題)
+PearlFlow - 客戶管理 (CRM) v1.3.2 (修復 Supabase 全域實例名稱衝突問題)
 @file        page-crm.html
 ==========================================================================
 -->
@@ -11,7 +11,6 @@ PearlFlow - 客戶管理 (CRM) v1.3.1 (修復全域依賴與初始化卡死問�
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>客戶管理 (CRM)</title>
     <link rel="stylesheet" href="css/theme.css">
-    <!-- 補齊完整 Supabase 與全域設定檔引用 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/global-config.js"></script>
     <script src="js/auth-guard.js"></script>
@@ -152,13 +151,16 @@ PearlFlow - 客戶管理 (CRM) v1.3.1 (修復全域依賴與初始化卡死問�
             document.getElementById(modalId).style.display = 'none';
         }
 
-        // 取得 Supabase Client 安全實例
-        function getSupabaseClient() {
-            return window.supabase || window._supabaseClient || null;
+        // 精確取得 global-config.js 初始化出來的 Supabase Client 實例
+        function getDbClient() {
+            if (window._supabaseClient) return window._supabaseClient;
+            if (window.supabaseClient) return window.supabaseClient;
+            if (window.supabase && typeof window.supabase.from === 'function') return window.supabase;
+            return null;
         }
 
         async function loadMembersDropdown() {
-            const client = getSupabaseClient();
+            const client = getDbClient();
             if (!client) return;
             try {
                 const { data } = await client.from('members').select('name').eq('is_active', true);
@@ -169,21 +171,21 @@ PearlFlow - 客戶管理 (CRM) v1.3.1 (修復全域依賴與初始化卡死問�
                         dbMembersCache.map(m => `<option value="${m.name}">👤 ${m.name}</option>`).join('');
                 }
             } catch (err) {
-                console.error("Members 載入失敗:", err);
+                console.error("Members 載入異常:", err);
             }
         }
 
         async function loadClients() {
             const tbody = document.getElementById('crm-tbody');
-            const client = getSupabaseClient();
+            const client = getDbClient();
 
             if (!client) {
-                tbody.innerHTML = `<tr><td colspan="6" style="color: red; text-align: center;">Supabase 連線失敗，請檢查 global-config.js 引用</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="color: red; text-align: center;">資料庫連線尚未準備就緒，請重新整理頁面</td></tr>`;
                 return;
             }
 
             try {
-                // 1. 先讀取客戶資料（核心）
+                // 1. 讀取客戶資料庫
                 const clientsRes = await client.from('clients').select('*').order('created_at', { ascending: false });
 
                 if (clientsRes.error) {
@@ -198,7 +200,7 @@ PearlFlow - 客戶管理 (CRM) v1.3.1 (修復全域依賴與初始化卡死問�
                     return;
                 }
 
-                // 2. 獨立容錯讀取專案資料（即使專案讀取失敗也不影響客戶呈現）
+                // 2. 獨立讀取專案資料庫
                 try {
                     const projectsRes = await client.from('projects').select('*');
                     dbProjectsCache = projectsRes.data || [];
@@ -209,7 +211,7 @@ PearlFlow - 客戶管理 (CRM) v1.3.1 (修復全域依賴與初始化卡死問�
 
                 const canManage = PearlAuth.hasRole(['boss', 'pm', 'hr']);
 
-                // 3. 渲染客戶表格與專案下拉選單
+                // 3. 渲染客戶與專案下拉選單
                 tbody.innerHTML = clients.map(c => {
                     const matchedProjects = dbProjectsCache.filter(p => 
                         (p.client_id && String(p.client_id) === String(c.id)) ||
@@ -267,7 +269,7 @@ PearlFlow - 客戶管理 (CRM) v1.3.1 (修復全域依賴與初始化卡死問�
         async function openClientModal(clientId = null) {
             const modal = document.getElementById('clientModal');
             const titleEl = document.getElementById('modal-title');
-            const client = getSupabaseClient();
+            const client = getDbClient();
             
             if (clientId && client) {
                 titleEl.innerText = '編輯客戶資料';
@@ -302,8 +304,8 @@ PearlFlow - 客戶管理 (CRM) v1.3.1 (修復全域依賴與初始化卡死問�
         }
 
         async function submitClientForm() {
-            const client = getSupabaseClient();
-            if (!client) return alert('Supabase 連線失敗');
+            const client = getDbClient();
+            if (!client) return alert('資料庫連線失敗');
 
             const clientId = document.getElementById('client-id').value;
             const name = document.getElementById('client-name').value.trim();
@@ -354,7 +356,7 @@ PearlFlow - 客戶管理 (CRM) v1.3.1 (修復全域依賴與初始化卡死問�
         }
 
         async function deleteClient(clientId, clientName) {
-            const client = getSupabaseClient();
+            const client = getDbClient();
             if (!client) return;
 
             if (confirm(`確定要刪除客戶「${clientName}」嗎？`)) {
