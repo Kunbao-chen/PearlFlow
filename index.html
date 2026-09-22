@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 主幹入口外殼 (Shell)
+PearlFlow - 主幹入口外殼 (Shell - 身分持久化與動態選單修正版)
 @file        index.html
 ==========================================================================
 -->
@@ -68,7 +68,7 @@ PearlFlow - 主幹入口外殼 (Shell)
                     <span data-pf-icon="users" data-size="18"></span>
                     <span>客戶管理 (CRM)</span>
                 </a>
-                <!-- 成員與權限管理選單 (開放給 Boss 與 HR) -->
+                <!-- 成員與權限管理選單 (僅 Boss 與 HR 可見) -->
                 <a class="menu-item" data-pf-role="boss,hr" onclick="switchPage('page-members.html', this)">
                     <span data-pf-icon="user-check" data-size="18"></span>
                     <span>成員與權限管理</span>
@@ -80,7 +80,7 @@ PearlFlow - 主幹入口外殼 (Shell)
         <div class="sidebar-footer">
             <label class="role-switcher-label">目前模擬身分 (測試用)：</label>
             <select class="role-select" id="demo-role-selector" onchange="changeDemoRole(this.value)">
-                <option value="boss" selected>💼 最高管理者 (Boss)</option>
+                <option value="boss">💼 最高管理者 (Boss)</option>
                 <option value="pm">💼 研發/專案主管 (PM)</option>
                 <option value="hr">💼 人事主管 (HR)</option>
                 <option value="staff">👤 一般執行人員 (Staff)</option>
@@ -95,8 +95,15 @@ PearlFlow - 主幹入口外殼 (Shell)
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const currentRole = PearlAuth.getRole();
-            document.getElementById('demo-role-selector').value = currentRole;
+            // 讀取既有身分 (優先抓 localStorage，預設為 boss)
+            const savedRole = localStorage.getItem('pf_demo_role') || PearlAuth.getRole() || 'boss';
+            
+            // 套用並同步下拉選單
+            PearlAuth.setRole(savedRole);
+            localStorage.setItem('pf_demo_role', savedRole);
+            document.getElementById('demo-role-selector').value = savedRole;
+            
+            // 執行UI選單權限過濾
             PearlAuth.applyRolePermissions();
         });
 
@@ -107,8 +114,14 @@ PearlFlow - 主幹入口外殼 (Shell)
         }
 
         function changeDemoRole(role) {
+            // 1. 持久化儲存至 localStorage
+            localStorage.setItem('pf_demo_role', role);
             PearlAuth.setRole(role);
+
+            // 2. 即時更新主視窗選單控制 (例如顯示/隱藏 成員管理)
             PearlAuth.applyRolePermissions();
+
+            // 3. 通知右側 iframe 頁面重新整理以套用新身分
             const iframe = document.getElementById('main-frame');
             if (iframe && iframe.contentWindow) {
                 iframe.contentWindow.location.reload();
