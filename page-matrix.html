@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 專案進度矩陣 v1.3.2 (嚴格遵守手術刀協議：整合財務與憑證歸檔)
+PearlFlow - 專案進度矩陣 v1.3.3 (修復 Storage 中文檔名 Invalid key 上傳問題)
 @file        page-matrix.html
 ==========================================================================
 -->
@@ -68,7 +68,7 @@ PearlFlow - 專案進度矩陣 v1.3.2 (嚴格遵守手術刀協議：整合財�
         .form-group label { display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: #444; }
         .form-control { width: 100%; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; }
 
-        /* 新增：財務與憑證歸檔樣式外掛 */
+        /* 財務與憑證歸檔樣式外掛 */
         .section-divider { margin: 16px 0; border-top: 1px solid var(--border-color); }
         .file-upload-box { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 12px; text-align: center; background: #F8FAFC; margin-bottom: 10px; }
         .file-list { display: flex; flex-direction: column; gap: 6px; }
@@ -153,7 +153,7 @@ PearlFlow - 專案進度矩陣 v1.3.2 (嚴格遵守手術刀協議：整合財�
                 <span style="cursor: pointer; color: #888; font-weight: bold;" onclick="closeDetailModalWithSync()">✕</span>
             </div>
 
-            <!-- 財務與計費設定區塊 (手術刀精準新增) -->
+            <!-- 財務與計費設定區塊 -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #F8F9FA; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 16px;">
                 <div>
                     <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #555; margin-bottom: 4px;">服務費金額 (NTD)</label>
@@ -183,7 +183,7 @@ PearlFlow - 專案進度矩陣 v1.3.2 (嚴格遵守手術刀協議：整合財�
                 <div style="padding: 20px; text-align: center; color: #888;">步驟載入中...</div>
             </div>
 
-            <!-- 專案憑證與檔案歸檔區塊 (手術刀精準新增) -->
+            <!-- 專案憑證與檔案歸檔區塊 -->
             <div style="margin-top: 16px; background: #FAFAFA; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
                 <div style="font-size: 0.9rem; font-weight: 600; color: var(--primary-color); margin-bottom: 8px;">📁 專案憑證與檔案歸檔</div>
                 <div class="file-upload-box">
@@ -489,7 +489,7 @@ PearlFlow - 專案進度矩陣 v1.3.2 (嚴格遵守手術刀協議：整合財�
             `).join('');
         }
 
-        // 上傳檔案至 Supabase Storage 與 project_files 資料表
+        // 上傳檔案至 Supabase Storage 與 project_files 資料表 (已加入中文檔名安全轉譯)
         async function uploadProjectFile() {
             const client = getDbClient();
             const fileInput = document.getElementById('project-file-input');
@@ -500,8 +500,10 @@ PearlFlow - 專案進度矩陣 v1.3.2 (嚴格遵守手術刀協議：整合財�
                 return;
             }
 
-            const fileName = `${Date.now()}_${file.name}`;
-            const filePath = `projects/${currentOpenProjectId}/${fileName}`;
+            // 自動將中文或特殊符號檔名轉為安全英文隨機檔名，避免 Storage Invalid key 錯誤
+            const fileExt = file.name.split('.').pop();
+            const safeFileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+            const filePath = `projects/${currentOpenProjectId}/${safeFileName}`;
 
             // 1. 上傳至 Storage (pearl-storage)
             const { error: uploadError } = await client.storage.from('pearl-storage').upload(filePath, file);
@@ -514,7 +516,7 @@ PearlFlow - 專案進度矩陣 v1.3.2 (嚴格遵守手術刀協議：整合財�
             const { data: publicUrlData } = client.storage.from('pearl-storage').getPublicUrl(filePath);
             const fileUrl = publicUrlData.publicUrl;
 
-            // 3. 寫入資料庫記錄
+            // 3. 寫入資料庫記錄 (保留原始檔名於 file_name 供畫面上顯示)
             const { error: dbError } = await client.from('project_files').insert([{
                 project_id: currentOpenProjectId,
                 file_name: file.name,
