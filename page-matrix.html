@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 專案進度矩陣與步驟管理頁面
+PearlFlow - 專案進度矩陣與步驟管理頁面 (修復與診斷版)
 @file        page-matrix.html
-@version     1.3.0 (新增專案檔案憑證歸檔與上傳功能)
+@version     1.3.1
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -23,9 +23,7 @@ PearlFlow - 專案進度矩陣與步驟管理頁面
         .btn-primary { background: var(--primary-color); color: #fff; }
         .btn-primary:hover { background: var(--primary-hover); }
         .btn-secondary { background: #e2e8f0; color: #334155; }
-        .btn-secondary:hover { background: #cbd5e1; }
         .btn-danger { background: #ef4444; color: #fff; }
-        .btn-danger:hover { background: #dc2626; }
 
         .card { background: #fff; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
@@ -43,18 +41,14 @@ PearlFlow - 專案進度矩陣與步驟管理頁面
         .modal-container { background: #fff; width: 720px; max-width: 90vw; max-height: 85vh; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
         .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 1.05rem; }
         .modal-close { background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #94a3b8; }
-        .modal-close:hover { color: #334155; }
         .modal-body { padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px; }
         .modal-footer { padding: 16px 20px; border-top: 1px solid var(--border-color); background: #FAFAFA; display: flex; justify-content: space-between; align-items: center; }
 
         .section-title { font-size: 0.95rem; font-weight: 600; color: #1e293b; margin-bottom: 8px; border-left: 3px solid var(--primary-color); padding-left: 8px; }
-        
-        /* 檔案上傳與列表樣式 */
         .file-upload-box { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 16px; text-align: center; background: #F8FAFC; }
         .file-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
         .file-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fff; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; }
         .file-item a { color: var(--primary-color); text-decoration: none; font-weight: 500; }
-        .file-item a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -63,7 +57,7 @@ PearlFlow - 專案進度矩陣與步驟管理頁面
         <div class="page-title">
             <span>📦 專案進度矩陣</span>
         </div>
-        <button class="btn btn-primary" onclick="openNewProjectModal()">建立新專案</button>
+        <button class="btn btn-primary" onclick="alert('請由系統後台或資料庫建立專案')">建立新專案</button>
     </div>
 
     <!-- 專案列表表格 -->
@@ -120,12 +114,10 @@ PearlFlow - 專案進度矩陣與步驟管理頁面
                         <input type="text" id="new-step-name" placeholder="輸入新增步驟名稱..." style="flex: 1; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px;">
                         <button class="btn btn-primary" onclick="addProjectStep()">新增步驟</button>
                     </div>
-                    <div id="steps-container" style="display: flex; flex-direction: column; gap: 8px;">
-                        <!-- 動態載入步驟 -->
-                    </div>
+                    <div id="steps-container" style="display: flex; flex-direction: column; gap: 8px;"></div>
                 </div>
 
-                <!-- 專案憑證與檔案歸檔區塊 (新增) -->
+                <!-- 專案憑證與檔案歸檔區塊 -->
                 <div>
                     <div class="section-title">📁 專案憑證與檔案歸檔</div>
                     <div class="file-upload-box">
@@ -133,7 +125,6 @@ PearlFlow - 專案進度矩陣與步驟管理頁面
                         <button class="btn btn-secondary" style="font-size: 0.8rem;" onclick="uploadProjectFile()">上傳檔案/憑證</button>
                     </div>
                     <div class="file-list" id="project-files-list">
-                        <!-- 動態載入已上傳檔案 -->
                         <div style="font-size: 0.85rem; color: #94a3b8; text-align: center; padding: 8px;">尚無上傳檔案</div>
                     </div>
                 </div>
@@ -150,34 +141,51 @@ PearlFlow - 專案進度矩陣與步驟管理頁面
 
     <script>
         let currentProjectId = null;
-        const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+        // 確保正確讀取 global-config.js 內定義的 SUPABASE_URL 與 SUPABASE_ANON_KEY
+        const supabaseClient = (window.supabase && typeof SUPABASE_URL !== 'undefined') 
+            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) 
+            : null;
 
         document.addEventListener('DOMContentLoaded', () => {
             loadProjects();
         });
 
         async function loadProjects() {
-            if (!supabaseClient) return;
-            const { data, error } = await supabaseClient
-                .from('projects')
-                .select('*, clients(name)')
-                .order('created_at', { ascending: false });
-
             const tbody = document.getElementById('project-table-body');
-            if (error || !data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 30px;">目前沒有專案資料</td></tr>`;
+            if (!supabaseClient) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 30px;">錯誤：Supabase 用戶端未正確初始化，請檢查 global-config.js</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = data.map(p => `
-                <tr onclick="openProjectModal('${p.id}', '${p.name}')" style="cursor: pointer;">
-                    <td>${p.clients?.name || '未指定客戶'}</td>
-                    <td><strong>${p.name}</strong></td>
-                    <td><span class="badge badge-info">${p.progress || '0 / 0'}</span></td>
-                    <td>${formatBillingStatus(p.billing_status)}</td>
-                    <td>${p.status || '進行中'}</td>
-                </tr>
-            `).join('');
+            try {
+                // 嘗試抓取專案與關聯客戶
+                const { data, error } = await supabaseClient
+                    .from('projects')
+                    .select('*, clients(name)')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    throw error;
+                }
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 30px;">目前沒有專案資料</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = data.map(p => `
+                    <tr onclick="openProjectModal('${p.id}', '${p.name}')" style="cursor: pointer;">
+                        <td>${p.clients?.name || '未指定客戶'}</td>
+                        <td><strong>${p.name}</strong></td>
+                        <td><span class="badge badge-info">${p.progress || '0 / 0'}</span></td>
+                        <td>${formatBillingStatus(p.billing_status)}</td>
+                        <td>${p.status || '進行中'}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('載入專案發生錯誤:', err);
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 20px;">載入失敗：${err.message} (請確認資料表 projects 與 clients 是否已正確建立)</td></tr>`;
+            }
         }
 
         function formatBillingStatus(status) {
@@ -191,8 +199,7 @@ PearlFlow - 專案進度矩陣與步驟管理頁面
             document.getElementById('modal-project-title').innerText = `專案詳情：${name}`;
             document.getElementById('project-modal').classList.add('active');
 
-            // 載入專案詳細資料（包含服務費與請款狀態）
-            const { data, error } = await supabaseClient.from('projects').select('*').eq('id', id).single();
+            const { data } = await supabaseClient.from('projects').select('*').eq('id', id).single();
             if (data) {
                 document.getElementById('project-fee-input').value = data.service_fee || 0;
                 document.getElementById('project-billing-status').value = data.billing_status || 'unbilled';
@@ -251,7 +258,6 @@ PearlFlow - 專案進度矩陣與步驟管理頁面
             }
         }
 
-        /* 檔案上傳與歸檔相關函式 */
         async function loadProjectFiles(projectId) {
             const container = document.getElementById('project-files-list');
             const { data, error } = await supabaseClient.from('project_files').select('*').eq('project_id', projectId);
@@ -278,18 +284,15 @@ PearlFlow - 專案進度矩陣與步驟管理頁面
             const fileName = `${Date.now()}_${file.name}`;
             const filePath = `projects/${currentProjectId}/${fileName}`;
 
-            // 1. 上傳至 Supabase Storage (桶名: pearl-storage)
-            const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('pearl-storage').upload(filePath, file);
+            const { error: uploadError } = await supabaseClient.storage.from('pearl-storage').upload(filePath, file);
             if (uploadError) {
-                alert('檔案上傳失敗：' + uploadError.message);
+                alert('檔案上傳失敗 (請確認是否已建立 pearl-storage 儲存桶)：' + uploadError.message);
                 return;
             }
 
-            // 2. 取得公開網址
             const { data: publicUrlData } = supabaseClient.storage.from('pearl-storage').getPublicUrl(filePath);
             const fileUrl = publicUrlData.publicUrl;
 
-            // 3. 將檔案紀錄寫入 project_files 資料庫
             const { error: dbError } = await supabaseClient.from('project_files').insert([{
                 project_id: currentProjectId,
                 file_name: file.name,
@@ -302,7 +305,7 @@ PearlFlow - 專案進度矩陣與步驟管理頁面
                 fileInput.value = '';
                 loadProjectFiles(currentProjectId);
             } else {
-                alert('資料庫紀錄寫入失敗：' + dbError.message);
+                alert('資料庫紀錄寫入失敗 (請確認是否已執行 SQL 建立 project_files 表格)：' + dbError.message);
             }
         }
 
@@ -311,10 +314,6 @@ PearlFlow - 專案進度矩陣與步驟管理頁面
             await supabaseClient.from('projects').delete().eq('id', currentProjectId);
             closeProjectModal();
             loadProjects();
-        }
-
-        function openNewProjectModal() {
-            alert('如需建立新專案，請至主後台或資料庫新增。');
         }
     </script>
 </body>
