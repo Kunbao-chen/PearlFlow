@@ -3,8 +3,8 @@
 ==========================================================================
 PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
 @file        index.html
-@version     1.2.1
-@updated     2026-09-23
+@version     1.2.2
+@updated     2026-09-24
 ==========================================================================
 -->
 <html lang="zh-TW">
@@ -46,27 +46,23 @@ PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
         .menu-item:hover { background: var(--primary-light); color: var(--primary-color); }
         .menu-item.active { background: var(--primary-light); color: var(--primary-color); font-weight: 600; border-left: 4px solid var(--primary-color); }
 
-        .sidebar-footer { padding: 16px; border-top: 1px solid var(--border-color); background: #FAFAFA; }
-        .role-switcher-label { font-size: 0.75rem; color: #777; margin-bottom: 6px; display: block; }
+        .sidebar-footer { padding: 16px; border-top: 1px solid var(--border-color); background: #FAFAFA; display: flex; flex-direction: column; gap: 10px; }
+        .role-switcher-label { font-size: 0.75rem; color: #777; margin-bottom: 2px; display: block; }
         .role-select { width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.82rem; background: #fff; }
+
+        /* 側邊欄左下角的系統版號標籤 */
+        .system-version-tag {
+            font-size: 0.72rem;
+            color: #888;
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
 
         .main-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
         .content-iframe { width: 100%; height: 100%; border: none; background: transparent; }
-
-        /* 螢幕最右下角的系統版號標籤 */
-        .system-version-tag {
-            position: absolute;
-            right: 12px;
-            bottom: 8px;
-            font-size: 0.75rem;
-            color: #999;
-            background: rgba(255, 255, 255, 0.75);
-            padding: 2px 6px;
-            border-radius: 4px;
-            pointer-events: none;
-            z-index: 99;
-            backdrop-filter: blur(2px);
-        }
     </style>
 </head>
 <body>
@@ -74,7 +70,7 @@ PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
     <!-- 左側側邊欄 -->
     <aside class="sidebar">
         <div>
-            <!-- Logo 自適應區塊 (完美相容方形與長條圖，消除多餘文字與上下留白) -->
+            <!-- Logo 自適應區塊 -->
             <div class="sidebar-brand">
                 <img src="logo.png" alt="PearlFlow Logo" onerror="this.style.display='none'">
             </div>
@@ -83,23 +79,25 @@ PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
             <nav class="sidebar-menu" id="sidebar-menu-nav"></nav>
         </div>
 
-        <!-- 測試用模擬角色切換器 -->
+        <!-- 側邊欄底部：角色切換器與左下角版號 -->
         <div class="sidebar-footer">
-            <label class="role-switcher-label">目前模擬身分 (測試用)：</label>
-            <select class="role-select" id="demo-role-selector" onchange="changeDemoRole(this.value)">
-                <option value="boss">💼 最高管理者 (Boss)</option>
-                <option value="pm">💼 研發/專案主管 (PM)</option>
-                <option value="hr">💼 人事主管 (HR)</option>
-                <option value="staff">👤 一般執行人員 (Staff)</option>
-            </select>
+            <div>
+                <label class="role-switcher-label">目前模擬身分 (測試用)：</label>
+                <select class="role-select" id="demo-role-selector" onchange="changeDemoRole(this.value)">
+                    <option value="boss">💼 最高管理者 (Boss)</option>
+                    <option value="pm">💼 研發/專案主管 (PM)</option>
+                    <option value="hr">💼 人事主管 (HR)</option>
+                    <option value="staff">👤 一般執行人員 (Staff)</option>
+                </select>
+            </div>
+            <!-- 系統版號移至左下角呈現 -->
+            <div class="system-version-tag">PearlFlow v1.2.2</div>
         </div>
     </aside>
 
-    <!-- 主頁面載入區 -->
+    <!-- 主頁面載入區 (預設載入儀表板) -->
     <main class="main-container">
-        <iframe id="main-frame" class="content-iframe" src="page-matrix.html"></iframe>
-        <!-- 螢幕最右下角版號呈現 -->
-        <div class="system-version-tag">PearlFlow v1.2.1</div>
+        <iframe id="main-frame" class="content-iframe" src="page-dashboard.html"></iframe>
     </main>
 
     <script>
