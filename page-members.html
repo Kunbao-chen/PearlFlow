@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 成員與權限管理頁面 (預設值調整版)
+PearlFlow - 成員與權限管理頁面 (v1.3.1 - 直接寫入 members 避免管理員被登出)
 @file        page-members.html
 ==========================================================================
 -->
@@ -159,7 +159,7 @@ PearlFlow - 成員與權限管理頁面 (預設值調整版)
             eyeBtn.addEventListener('touchend', hidePassword);
         }
 
-        // 載入成員列表
+        // 載入成員列表[cite: 6]
         async function loadMembers() {
             const tbody = document.getElementById('members-tbody');
             if (!window.supabase) return;
@@ -205,7 +205,7 @@ PearlFlow - 成員與權限管理頁面 (預設值調整版)
             }).join('');
         }
 
-        // 前端新增成員，連動 Supabase Auth + Trigger
+        // 直接寫入 members 表，避免 auth.signUp 導致管理員被強制登出
         async function submitAddMember() {
             const nameInput = document.getElementById('new-member-name');
             const email = document.getElementById('new-member-email').value.trim();
@@ -216,39 +216,36 @@ PearlFlow - 成員與權限管理頁面 (預設值調整版)
             // 如果名字空白，預設帶入 New Employee
             const name = nameInput.value.trim() || 'New Employee';
 
-            if (!email || !password) {
-                return alert('請填寫公務 Email 與預設密碼');
+            if (!email) {
+                return alert('請填寫公務 Email');
             }
 
             btn.disabled = true;
             btn.innerText = '建立中...';
 
-            const { data, error } = await window.supabase.auth.signUp({
-                email: email,
-                password: password,
-                options: {
-                    data: {
-                        full_name: name,
-                        role: role
-                    }
-                }
-            });
-
-            if (error) {
-                alert('帳號建立失敗：' + error.message);
-                btn.disabled = false;
-                btn.innerText = '建立帳號';
-                return;
-            }
+            const { error } = await window.supabase
+                .from('members')
+                .insert([{
+                    name: name,
+                    email: email,
+                    role_name: role,
+                    is_active: true
+                }]);
 
             btn.disabled = false;
             btn.innerText = '建立帳號';
-            alert(`同仁 ${name} 帳號建立成功！預設密碼為 ${password}`);
+
+            if (error) {
+                alert('同仁帳號建立失敗：' + error.message);
+                return;
+            }
+
+            alert(`同仁 ${name} 已經成功加入名冊！`);
             closeModal('addMemberModal');
             loadMembers();
         }
 
-        // 停用/啟用同仁 (Soft Delete)
+        // 停用/啟用同仁 (Soft Delete)[cite: 6]
         async function toggleMemberStatus(memberId, currentStatus) {
             const nextStatus = !currentStatus;
             const actionText = nextStatus ? '啟用' : '停用';
