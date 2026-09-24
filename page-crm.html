@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 客戶管理 (CRM) v1.4 (升級關聯專案聯動與財務營運摘要)
+PearlFlow - 客戶管理 (CRM) v1.4.1 (強化載入防禦與欄位相容性)
 @file        page-crm.html
 ==========================================================================
 -->
@@ -185,8 +185,8 @@ PearlFlow - 客戶管理 (CRM) v1.4 (升級關聯專案聯動與財務營運摘�
             }
 
             try {
-                // 1. 讀取客戶資料庫[cite: 9]
-                const clientsRes = await client.from('clients').select('*').order('created_at', { ascending: false });
+                // 1. 讀取客戶資料庫 (移除強制 created_at 排序以防欄位不存在造成中斷)[cite: 9]
+                const clientsRes = await client.from('clients').select('*');
 
                 if (clientsRes.error) {
                     tbody.innerHTML = `<tr><td colspan="6" style="color: red; text-align: center;">客戶資料讀取失敗：${clientsRes.error.message}</td></tr>`;
@@ -209,7 +209,7 @@ PearlFlow - 客戶管理 (CRM) v1.4 (升級關聯專案聯動與財務營運摘�
                     dbProjectsCache = [];
                 }
 
-                const canManage = PearlAuth.hasRole(['boss', 'pm', 'hr']);
+                const canManage = typeof PearlAuth !== 'undefined' && PearlAuth.hasRole(['boss', 'pm', 'hr']);
 
                 // 3. 渲染客戶與專案下拉選單
                 tbody.innerHTML = clients.map(c => {
@@ -232,7 +232,7 @@ PearlFlow - 客戶管理 (CRM) v1.4 (升級關聯專案聯動與財務營運摘�
                             <select class="project-dropdown" onchange="jumpToProject(this.value)">
                                 <option value="">-- 點擊展開專案矩陣詳情 --</option>
                                 ${matchedProjects.map(p => `
-                                    <option value="${p.id}">📌 ${p.name \vert{}\vert{} p.title \vert{}\vert{} '未命名專案'} (${p.status || '进行中'})</option>
+                                    <option value="${p.id}">📌 ${p.name \vert{}\vert{} p.title \vert{}\vert{} '未命名專案'} (${p.status || '進行中'})</option>
                                 `).join('')}
                             </select>
                         `;
