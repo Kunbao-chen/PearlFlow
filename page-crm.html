@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 客戶管理 (CRM) v1.3.3 (基於 v1.3.2 穩定版微調專案跳轉參數)
+PearlFlow - 客戶管理 (CRM) v1.3.2 (修復 Supabase 全域實例名稱衝突問題)
 @file        page-crm.html
 ==========================================================================
 -->
@@ -151,7 +151,7 @@ PearlFlow - 客戶管理 (CRM) v1.3.3 (基於 v1.3.2 穩定版微調專案跳轉
             document.getElementById(modalId).style.display = 'none';
         }
 
-        // 精確取得 global-config.js 初始化出來的 Supabase Client 實例[cite: 7]
+        // 精確取得 global-config.js 初始化出來的 Supabase Client 實例
         function getDbClient() {
             if (window._supabaseClient) return window._supabaseClient;
             if (window.supabaseClient) return window.supabaseClient;
@@ -185,7 +185,7 @@ PearlFlow - 客戶管理 (CRM) v1.3.3 (基於 v1.3.2 穩定版微調專案跳轉
             }
 
             try {
-                // 1. 讀取客戶資料庫 (使用原本 v1.3.2 驗證過的查詢)[cite: 7]
+                // 1. 讀取客戶資料庫
                 const clientsRes = await client.from('clients').select('*').order('created_at', { ascending: false });
 
                 if (clientsRes.error) {
@@ -200,7 +200,7 @@ PearlFlow - 客戶管理 (CRM) v1.3.3 (基於 v1.3.2 穩定版微調專案跳轉
                     return;
                 }
 
-                // 2. 獨立讀取專案資料庫[cite: 7]
+                // 2. 獨立讀取專案資料庫
                 try {
                     const projectsRes = await client.from('projects').select('*');
                     dbProjectsCache = projectsRes.data || [];
@@ -211,7 +211,7 @@ PearlFlow - 客戶管理 (CRM) v1.3.3 (基於 v1.3.2 穩定版微調專案跳轉
 
                 const canManage = PearlAuth.hasRole(['boss', 'pm', 'hr']);
 
-                // 3. 渲染客戶與專案下拉選單[cite: 7]
+                // 3. 渲染客戶與專案下拉選單
                 tbody.innerHTML = clients.map(c => {
                     const matchedProjects = dbProjectsCache.filter(p => 
                         (p.client_id && String(p.client_id) === String(c.id)) ||
@@ -257,14 +257,12 @@ PearlFlow - 客戶管理 (CRM) v1.3.3 (基於 v1.3.2 穩定版微調專案跳轉
             }
         }
 
-        // 精準帶入 openProjectId 參數跳轉至矩陣頁面
         function jumpToProject(projectId) {
             if (!projectId) return;
-            const targetUrl = `page-matrix.html?openProjectId=${projectId}`;
-            if (window.parent && typeof window.parent.switchPage === 'function') {
-                window.parent.switchPage(targetUrl);
+            if (window.parent && window.parent.switchPage) {
+                window.parent.switchPage('page-matrix.html');
             } else {
-                window.location.href = targetUrl;
+                window.location.href = 'page-matrix.html';
             }
         }
 
