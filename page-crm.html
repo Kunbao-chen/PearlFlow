@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 客戶管理 (CRM) v1.3.2 (修復 Supabase 全域實例名稱衝突問題)
+PearlFlow - 客戶管理 (CRM) v1.4 (升級關聯專案聯動與財務營運摘要)
 @file        page-crm.html
 ==========================================================================
 -->
@@ -62,10 +62,10 @@ PearlFlow - 客戶管理 (CRM) v1.3.2 (修復 Supabase 全域實例名稱衝突�
             <tr>
                 <th style="width: 110px;">統一編號</th>
                 <th style="width: 180px;">客戶名稱</th>
-                <th style="width: 160px;">主要聯絡人 / 電話</th>
-                <th style="width: 120px;">主辦人員</th>
-                <th>進行中專案 (快速跳轉)</th>
-                <th style="width: 150px;">操作</th>
+                <th style="width: 150px;">主要聯絡人 / 電話</th>
+                <th style="width: 110px;">主辦人員</th>
+                <th>關聯專案與業務規模 (快速跳轉)</th>
+                <th style="width: 140px;">操作</th>
             </tr>
         </thead>
         <tbody id="crm-tbody">
@@ -151,7 +151,7 @@ PearlFlow - 客戶管理 (CRM) v1.3.2 (修復 Supabase 全域實例名稱衝突�
             document.getElementById(modalId).style.display = 'none';
         }
 
-        // 精確取得 global-config.js 初始化出來的 Supabase Client 實例
+        // 精確取得 global-config.js 初始化出來的 Supabase Client 實例[cite: 9]
         function getDbClient() {
             if (window._supabaseClient) return window._supabaseClient;
             if (window.supabaseClient) return window.supabaseClient;
@@ -185,7 +185,7 @@ PearlFlow - 客戶管理 (CRM) v1.3.2 (修復 Supabase 全域實例名稱衝突�
             }
 
             try {
-                // 1. 讀取客戶資料庫
+                // 1. 讀取客戶資料庫[cite: 9]
                 const clientsRes = await client.from('clients').select('*').order('created_at', { ascending: false });
 
                 if (clientsRes.error) {
@@ -200,7 +200,7 @@ PearlFlow - 客戶管理 (CRM) v1.3.2 (修復 Supabase 全域實例名稱衝突�
                     return;
                 }
 
-                // 2. 獨立讀取專案資料庫
+                // 2. 獨立讀取專案資料庫 (含 service_fee 欄位以計算業務規模)
                 try {
                     const projectsRes = await client.from('projects').select('*');
                     dbProjectsCache = projectsRes.data || [];
@@ -219,18 +219,25 @@ PearlFlow - 客戶管理 (CRM) v1.3.2 (修復 Supabase 全域實例名稱衝突�
                         (p.client && p.client.trim() === c.name.trim())
                     );
                     
+                    // 計算該客戶的總服務費規模
+                    const totalClientFee = matchedProjects.reduce((sum, p) => sum + (parseFloat(p.service_fee) || 0), 0);
+
                     let projectSelectHtml = '';
                     if (matchedProjects.length > 0) {
                         projectSelectHtml = `
+                            <div style="margin-bottom: 4px; font-size: 0.8rem; color: #555; display: flex; justify-content: space-between;">
+                                <span>📦 關聯專案數：<strong>${matchedProjects.length}</strong> 筆</span>
+                                <span>💰 服務費總額：<strong>NT$ ${totalClientFee.toLocaleString()}</strong></span>
+                            </div>
                             <select class="project-dropdown" onchange="jumpToProject(this.value)">
-                                <option value="">-- 選擇專案前往 (${matchedProjects.length}) --</option>
+                                <option value="">-- 點擊展開專案矩陣詳情 --</option>
                                 ${matchedProjects.map(p => `
-                                    <option value="${p.id}">📌 ${p.name || p.title || '未命名專案'}</option>
+                                    <option value="${p.id}">📌 ${p.name \vert{}\vert{} p.title \vert{}\vert{} '未命名專案'} (${p.status || '进行中'})</option>
                                 `).join('')}
                             </select>
                         `;
                     } else {
-                        projectSelectHtml = `<span style="color: #aaa; font-size: 0.85rem;">尚無進行中專案</span>`;
+                        projectSelectHtml = `<span style="color: #aaa; font-size: 0.85rem;">尚無關聯專案</span>`;
                     }
 
                     return `
@@ -244,7 +251,7 @@ PearlFlow - 客戶管理 (CRM) v1.3.2 (修復 Supabase 全域實例名稱衝突�
                             <td>${c.manager ? '👤 ' + c.manager : '-'}</td>
                             <td>${projectSelectHtml}</td>
                             <td>
-                                <button class="btn-sm" onclick="openClientModal('${c.id}')">✏️ 編輯 / 詳情</button>
+                                <button class="btn-sm" onclick="openClientModal('${c.id}')">✏️ 編輯</button>
                                 ${canManage ? `<button class="btn-sm btn-danger-sm" onclick="deleteClient('${c.id}', '${c.name}')">🗑</button>` : ''}
                             </td>
                         </tr>
@@ -257,12 +264,14 @@ PearlFlow - 客戶管理 (CRM) v1.3.2 (修復 Supabase 全域實例名稱衝突�
             }
         }
 
+        // 精準帶入 openProjectId 跳轉至專案進度矩陣
         function jumpToProject(projectId) {
             if (!projectId) return;
-            if (window.parent && window.parent.switchPage) {
-                window.parent.switchPage('page-matrix.html');
+            const targetUrl = `page-matrix.html?openProjectId=${projectId}`;
+            if (window.parent && typeof window.parent.switchPage === 'function') {
+                window.parent.switchPage(targetUrl);
             } else {
-                window.location.href = 'page-matrix.html';
+                window.location.href = targetUrl;
             }
         }
 
