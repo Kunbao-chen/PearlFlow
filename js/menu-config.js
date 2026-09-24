@@ -2,6 +2,7 @@
 ==========================================================================
 PearlFlow - 選單與權限組態設定檔 (含內建 SVG 圖示庫)
 @file        js/menu-config.js
+@version     1.2.4
 ==========================================================================
 */
 
@@ -28,20 +29,20 @@ const PearlIcons = {
     }
 };
 
-// 2. 集中管理選單與角色權限表
+// 2. 集中管理選單與角色權限表 (將 Dashboard 儀表板調至第一位)
 const PearlMenuConfig = [
-    {
-        id: 'matrix',
-        title: '專案進度矩陣',
-        icon: 'grid',
-        url: 'page-matrix.html',
-        roles: ['boss', 'pm', 'hr', 'staff']
-    },
     {
         id: 'dashboard',
         title: 'Dashboard 儀表板',
         icon: 'dashboard',
         url: 'page-dashboard.html',
+        roles: ['boss', 'pm', 'hr', 'staff']
+    },
+    {
+        id: 'matrix',
+        title: '專案進度矩陣',
+        icon: 'grid',
+        url: 'page-matrix.html',
         roles: ['boss', 'pm', 'hr', 'staff']
     },
     {
