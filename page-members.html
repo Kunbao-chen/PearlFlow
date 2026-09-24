@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 成員與權限管理頁面 (v1.3.1 - 直接寫入 members 避免管理員被登出)
+PearlFlow - 成員與權限管理頁面 (v1.3.2 - 支援編輯同仁資料與狀態維護)
 @file        page-members.html
 ==========================================================================
 -->
@@ -117,6 +117,43 @@ PearlFlow - 成員與權限管理頁面 (v1.3.1 - 直接寫入 members 避免管
         </div>
     </div>
 
+    <!-- 編輯同仁 Modal -->
+    <div class="modal-overlay" id="editMemberModal">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="margin: 0; color: var(--primary-color); font-size: 1.15rem;">編輯同仁資料</h3>
+                <span style="cursor: pointer; color: #888; font-weight: bold;" onclick="closeModal('editMemberModal')">✕</span>
+            </div>
+
+            <input type="hidden" id="edit-member-id">
+
+            <div class="form-group">
+                <label>同仁姓名 *</label>
+                <input type="text" class="form-control" id="edit-member-name" placeholder="請輸入姓名">
+            </div>
+
+            <div class="form-group">
+                <label>公務 Email *</label>
+                <input type="email" class="form-control" id="edit-member-email" placeholder="例：ming@pearl.com">
+            </div>
+
+            <div class="form-group">
+                <label>角色權限 *</label>
+                <select class="form-control" id="edit-member-role">
+                    <option value="staff">👤 一般執行人員 (Staff)</option>
+                    <option value="pm">💼 研發/專案主管 (PM)</option>
+                    <option value="hr">💼 人事主管 (HR)</option>
+                    <option value="boss">💼 最高管理者 (Boss)</option>
+                </select>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <button class="btn-secondary" onclick="closeModal('editMemberModal')">取消</button>
+                <button class="btn-primary" id="btn-update-member" onclick="submitEditMember()">儲存變更</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             loadMembers();
@@ -132,6 +169,15 @@ PearlFlow - 成員與權限管理頁面 (v1.3.1 - 直接寫入 members 避免管
             document.getElementById('new-member-email').value = '';
             document.getElementById('new-member-password').value = '000000';
             document.getElementById('addMemberModal').style.display = 'flex';
+        }
+
+        // 開啟編輯 Modal 並代入現有資料
+        function openEditMemberModal(id, name, email, roleName) {
+            document.getElementById('edit-member-id').value = id;
+            document.getElementById('edit-member-name').value = name || '';
+            document.getElementById('edit-member-email').value = email || '';
+            document.getElementById('edit-member-role').value = roleName || 'staff';
+            document.getElementById('editMemberModal').style.display = 'flex';
         }
 
         // 綁定「按住顯示密碼，放開恢復隱藏」的事件 handler
@@ -187,6 +233,11 @@ PearlFlow - 成員與權限管理頁面 (v1.3.1 - 直接寫入 members 避免管
                     ? `<span class="status-badge status-active">在職</span>`
                     : `<span class="status-badge status-inactive">已停用/離職</span>`;
 
+                // 安全跳脫單引號傳遞字串參數
+                const safeName = (m.name || '').replace(/'/g, "\\'");
+                const safeEmail = (m.email || '').replace(/'/g, "\\'");
+                const safeRole = (m.role_name || 'staff').replace(/'/g, "\\'");
+
                 return `
                     <tr>
                         <td style="font-weight: 600;">${m.name}</td>
@@ -195,9 +246,12 @@ PearlFlow - 成員與權限管理頁面 (v1.3.1 - 直接寫入 members 避免管
                         <td>${statusBadge}</td>
                         <td>
                             ${canManage ? `
-                                <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="toggleMemberStatus('${m.id}',${isActive})">
-                                    ${isActive ? '停用帳號' : '重新啟用'}
-                                </button>
+                                <div style="display: flex; gap: 6px;">
+                                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="openEditMemberModal('${m.id}', '${safeName}', '${safeEmail}', '${safeRole}')">編輯</button>
+                                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="toggleMemberStatus('${m.id}',${isActive})">
+                                        ${isActive ? '停用帳號' : '重新啟用'}
+                                    </button>
+                                </div>
                             ` : '<span style="color:#aaa;">僅限檢視</span>'}
                         </td>
                     </tr>
@@ -205,15 +259,13 @@ PearlFlow - 成員與權限管理頁面 (v1.3.1 - 直接寫入 members 避免管
             }).join('');
         }
 
-        // 直接寫入 members 表，避免 auth.signUp 導致管理員被強制登出
+        // 直接寫入 members 表
         async function submitAddMember() {
             const nameInput = document.getElementById('new-member-name');
             const email = document.getElementById('new-member-email').value.trim();
-            const password = document.getElementById('new-member-password').value;
             const role = document.getElementById('new-member-role').value;
             const btn = document.getElementById('btn-save-member');
 
-            // 如果名字空白，預設帶入 New Employee
             const name = nameInput.value.trim() || 'New Employee';
 
             if (!email) {
@@ -242,6 +294,43 @@ PearlFlow - 成員與權限管理頁面 (v1.3.1 - 直接寫入 members 避免管
 
             alert(`同仁 ${name} 已經成功加入名冊！`);
             closeModal('addMemberModal');
+            loadMembers();
+        }
+
+        // 提交編輯更新
+        async function submitEditMember() {
+            const id = document.getElementById('edit-member-id').value;
+            const name = document.getElementById('edit-member-name').value.trim();
+            const email = document.getElementById('edit-member-email').value.trim();
+            const role = document.getElementById('edit-member-role').value;
+            const btn = document.getElementById('btn-update-member');
+
+            if (!name || !email) {
+                return alert('姓名與公務 Email 不得為空');
+            }
+
+            btn.disabled = true;
+            btn.innerText = '儲存中...';
+
+            const { error } = await window.supabase
+                .from('members')
+                .update({
+                    name: name,
+                    email: email,
+                    role_name: role
+                })
+                .eq('id', id);
+
+            btn.disabled = false;
+            btn.innerText = '儲存變更';
+
+            if (error) {
+                alert('更新失敗：' + error.message);
+                return;
+            }
+
+            alert('同仁資料更新成功！');
+            closeModal('editMemberModal');
             loadMembers();
         }
 
