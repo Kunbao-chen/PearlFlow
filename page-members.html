@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 成員與權限管理頁面 (v1.3.2 - 支援編輯同仁資料與狀態維護)
+PearlFlow - 成員與權限管理頁面 (v1.3.3 - 支援員工編號編輯與維護)
 @file        page-members.html
 ==========================================================================
 -->
@@ -61,6 +61,7 @@ PearlFlow - 成員與權限管理頁面 (v1.3.2 - 支援編輯同仁資料與狀
     <table class="data-table">
         <thead>
             <tr>
+                <th>員工編號</th>
                 <th>姓名</th>
                 <th>電子郵件</th>
                 <th>職稱 / 角色</th>
@@ -69,7 +70,7 @@ PearlFlow - 成員與權限管理頁面 (v1.3.2 - 支援編輯同仁資料與狀
             </tr>
         </thead>
         <tbody id="members-tbody">
-            <tr><td colspan="5" style="text-align: center; color: #888;">成員資料載入中...</td></tr>
+            <tr><td colspan="6" style="text-align: center; color: #888;">成員資料載入中...</td></tr>
         </tbody>
     </table>
 
@@ -79,6 +80,11 @@ PearlFlow - 成員與權限管理頁面 (v1.3.2 - 支援編輯同仁資料與狀
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                 <h3 style="margin: 0; color: var(--primary-color); font-size: 1.15rem;">新增事務所同仁</h3>
                 <span style="cursor: pointer; color: #888; font-weight: bold;" onclick="closeModal('addMemberModal')">✕</span>
+            </div>
+
+            <div class="form-group">
+                <label>員工編號 (Employee Code)</label>
+                <input type="text" class="form-control" id="new-member-code" placeholder="例：EMP001">
             </div>
 
             <div class="form-group">
@@ -128,6 +134,11 @@ PearlFlow - 成員與權限管理頁面 (v1.3.2 - 支援編輯同仁資料與狀
             <input type="hidden" id="edit-member-id">
 
             <div class="form-group">
+                <label>員工編號 (Employee Code)</label>
+                <input type="text" class="form-control" id="edit-member-code" placeholder="例：EMP001">
+            </div>
+
+            <div class="form-group">
                 <label>同仁姓名 *</label>
                 <input type="text" class="form-control" id="edit-member-name" placeholder="請輸入姓名">
             </div>
@@ -165,15 +176,17 @@ PearlFlow - 成員與權限管理頁面 (v1.3.2 - 支援編輯同仁資料與狀
         }
 
         function openAddMemberModal() {
+            document.getElementById('new-member-code').value = '';
             document.getElementById('new-member-name').value = '';
             document.getElementById('new-member-email').value = '';
             document.getElementById('new-member-password').value = '000000';
             document.getElementById('addMemberModal').style.display = 'flex';
         }
 
-        // 開啟編輯 Modal 並代入現有資料
-        function openEditMemberModal(id, name, email, roleName) {
+        // 開啟編輯 Modal 並代入現有資料 (包含員工編號)
+        function openEditMemberModal(id, code, name, email, roleName) {
             document.getElementById('edit-member-id').value = id;
+            document.getElementById('edit-member-code').value = code || '';
             document.getElementById('edit-member-name').value = name || '';
             document.getElementById('edit-member-email').value = email || '';
             document.getElementById('edit-member-role').value = roleName || 'staff';
@@ -216,12 +229,12 @@ PearlFlow - 成員與權限管理頁面 (v1.3.2 - 支援編輯同仁資料與狀
                 .order('created_at', { ascending: true });
 
             if (error) {
-                tbody.innerHTML = `<tr><td colspan="5" style="color: red;">載入失敗：${error.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="color: red;">載入失敗：${error.message}</td></tr>`;
                 return;
             }
 
             if (!members || members.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888;">目前尚無成員資料，請點擊「新增同仁帳號」</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #888;">目前尚無成員資料，請點擊「新增同仁帳號」</td></tr>`;
                 return;
             }
 
@@ -234,12 +247,14 @@ PearlFlow - 成員與權限管理頁面 (v1.3.2 - 支援編輯同仁資料與狀
                     : `<span class="status-badge status-inactive">已停用/離職</span>`;
 
                 // 安全跳脫單引號傳遞字串參數
+                const safeCode = (m.employee_code || '').replace(/'/g, "\\'");
                 const safeName = (m.name || '').replace(/'/g, "\\'");
                 const safeEmail = (m.email || '').replace(/'/g, "\\'");
                 const safeRole = (m.role_name || 'staff').replace(/'/g, "\\'");
 
                 return `
                     <tr>
+                        <td style="font-family: monospace; color: var(--primary-color); font-weight: 600;">${m.employee_code || '<span style="color:#aaa; font-weight:normal;">未編號</span>'}</td>
                         <td style="font-weight: 600;">${m.name}</td>
                         <td style="color: #666;">${m.email || '未設定'}</td>
                         <td>${m.role_name || '一般同仁'}</td>
@@ -247,7 +262,7 @@ PearlFlow - 成員與權限管理頁面 (v1.3.2 - 支援編輯同仁資料與狀
                         <td>
                             ${canManage ? `
                                 <div style="display: flex; gap: 6px;">
-                                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="openEditMemberModal('${m.id}', '${safeName}', '${safeEmail}', '${safeRole}')">編輯</button>
+                                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="openEditMemberModal('${m.id}', '${safeCode}', '${safeName}', '${safeEmail}', '${safeRole}')">編輯</button>
                                     <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="toggleMemberStatus('${m.id}',${isActive})">
                                         ${isActive ? '停用帳號' : '重新啟用'}
                                     </button>
@@ -259,8 +274,9 @@ PearlFlow - 成員與權限管理頁面 (v1.3.2 - 支援編輯同仁資料與狀
             }).join('');
         }
 
-        // 直接寫入 members 表
+        // 直接寫入 members 表 (包含 employee_code)
         async function submitAddMember() {
+            const code = document.getElementById('new-member-code').value.trim();
             const nameInput = document.getElementById('new-member-name');
             const email = document.getElementById('new-member-email').value.trim();
             const role = document.getElementById('new-member-role').value;
@@ -278,6 +294,7 @@ PearlFlow - 成員與權限管理頁面 (v1.3.2 - 支援編輯同仁資料與狀
             const { error } = await window.supabase
                 .from('members')
                 .insert([{
+                    employee_code: code || null,
                     name: name,
                     email: email,
                     role_name: role,
@@ -297,9 +314,10 @@ PearlFlow - 成員與權限管理頁面 (v1.3.2 - 支援編輯同仁資料與狀
             loadMembers();
         }
 
-        // 提交編輯更新
+        // 提交編輯更新 (包含 employee_code)
         async function submitEditMember() {
             const id = document.getElementById('edit-member-id').value;
+            const code = document.getElementById('edit-member-code').value.trim();
             const name = document.getElementById('edit-member-name').value.trim();
             const email = document.getElementById('edit-member-email').value.trim();
             const role = document.getElementById('edit-member-role').value;
@@ -315,6 +333,7 @@ PearlFlow - 成員與權限管理頁面 (v1.3.2 - 支援編輯同仁資料與狀
             const { error } = await window.supabase
                 .from('members')
                 .update({
+                    employee_code: code || null,
                     name: name,
                     email: email,
                     role_name: role
