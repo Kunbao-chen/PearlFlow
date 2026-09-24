@@ -3,7 +3,7 @@
 ==========================================================================
 PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
 @file        index.html
-@version     1.2.3
+@version     1.2.4
 @updated     2026-09-24
 ==========================================================================
 -->
@@ -23,7 +23,6 @@ PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
         
         .sidebar { width: 240px; background: #fff; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0; }
         
-        /* 側邊欄 Logo 專屬自適應容器 */
         .sidebar-brand { 
             padding: 10px 16px; 
             height: 72px; 
@@ -50,7 +49,6 @@ PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
         .role-switcher-label { font-size: 0.75rem; color: #777; margin-bottom: 2px; display: block; }
         .role-select { width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.82rem; background: #fff; }
 
-        /* 側邊欄左下角的系統版號標籤 */
         .system-version-tag {
             font-size: 0.72rem;
             color: #888;
@@ -70,16 +68,12 @@ PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
     <!-- 左側側邊欄 -->
     <aside class="sidebar">
         <div>
-            <!-- Logo 自適應區塊 -->
             <div class="sidebar-brand">
                 <img src="logo.png" alt="PearlFlow Logo" onerror="this.style.display='none'">
             </div>
-
-            <!-- 動態導覽列容器 -->
             <nav class="sidebar-menu" id="sidebar-menu-nav"></nav>
         </div>
 
-        <!-- 側邊欄底部：角色切換器與左下角版號 -->
         <div class="sidebar-footer">
             <div>
                 <label class="role-switcher-label">目前模擬身分 (測試用)：</label>
@@ -90,11 +84,11 @@ PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
                     <option value="staff">👤 一般執行人員 (Staff)</option>
                 </select>
             </div>
-            <div class="system-version-tag">PearlFlow v1.2.3</div>
+            <div class="system-version-tag">PearlFlow v1.2.4</div>
         </div>
     </aside>
 
-    <!-- 主頁面載入區 -->
+    <!-- 主頁面載入區：強制預設載入儀表板 -->
     <main class="main-container">
         <iframe id="main-frame" class="content-iframe" src="page-dashboard.html"></iframe>
     </main>
@@ -105,17 +99,8 @@ PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
             PearlAuth.setRole(savedRole);
             document.getElementById('demo-role-selector').value = savedRole;
             
-            // 1. 根據目前角色渲染動態選單
+            // 渲染選單
             renderDynamicSidebarMenu();
-
-            // 2. 自動將第一個選單項目（儀表板）設為 active 狀態，與預設載入的 iframe 保持同步
-            setTimeout(() => {
-                const firstMenu = document.querySelector('.sidebar-menu .menu-item');
-                if (firstMenu) {
-                    document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
-                    firstMenu.classList.add('active');
-                }
-            }, 50);
         });
 
         function switchPage(pageUrl, element) {
@@ -128,19 +113,10 @@ PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
             localStorage.setItem('pf_demo_role', role);
             PearlAuth.setRole(role);
 
-            // 1. 重新渲染導覽列選單與 Icon
+            // 重新渲染選單
             renderDynamicSidebarMenu();
 
-            // 2. 切換角色後也自動對齊第一項（儀表板）或維持預設
-            setTimeout(() => {
-                const firstMenu = document.querySelector('.sidebar-menu .menu-item');
-                if (firstMenu) {
-                    document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
-                    firstMenu.classList.add('active');
-                }
-            }, 50);
-
-            // 3. 重新載入內嵌 iframe 頁面並導向儀表板
+            // 切換角色時，重置 iframe 回儀表板
             const iframe = document.getElementById('main-frame');
             if (iframe) {
                 iframe.src = 'page-dashboard.html';
