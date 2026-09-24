@@ -3,7 +3,7 @@
 ==========================================================================
 PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
 @file        index.html
-@version     1.2.2
+@version     1.2.3
 @updated     2026-09-24
 ==========================================================================
 -->
@@ -23,7 +23,7 @@ PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
         
         .sidebar { width: 240px; background: #fff; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0; }
         
-        /* 側邊欄 Logo 專屬自適應容器：鎖定高寬與置中，完美相容方形與長條圖 */
+        /* 側邊欄 Logo 專屬自適應容器 */
         .sidebar-brand { 
             padding: 10px 16px; 
             height: 72px; 
@@ -90,12 +90,11 @@ PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
                     <option value="staff">👤 一般執行人員 (Staff)</option>
                 </select>
             </div>
-            <!-- 系統版號移至左下角呈現 -->
-            <div class="system-version-tag">PearlFlow v1.2.2</div>
+            <div class="system-version-tag">PearlFlow v1.2.3</div>
         </div>
     </aside>
 
-    <!-- 主頁面載入區 (預設載入儀表板) -->
+    <!-- 主頁面載入區 -->
     <main class="main-container">
         <iframe id="main-frame" class="content-iframe" src="page-dashboard.html"></iframe>
     </main>
@@ -106,8 +105,17 @@ PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
             PearlAuth.setRole(savedRole);
             document.getElementById('demo-role-selector').value = savedRole;
             
-            // 根據目前角色，動態渲染導覽列
+            // 1. 根據目前角色渲染動態選單
             renderDynamicSidebarMenu();
+
+            // 2. 自動將第一個選單項目（儀表板）設為 active 狀態，與預設載入的 iframe 保持同步
+            setTimeout(() => {
+                const firstMenu = document.querySelector('.sidebar-menu .menu-item');
+                if (firstMenu) {
+                    document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+                    firstMenu.classList.add('active');
+                }
+            }, 50);
         });
 
         function switchPage(pageUrl, element) {
@@ -123,10 +131,19 @@ PearlFlow - 主幹入口外殼 (Shell - 動態選單配置化版)
             // 1. 重新渲染導覽列選單與 Icon
             renderDynamicSidebarMenu();
 
-            // 2. 重新載入內嵌 iframe 頁面
+            // 2. 切換角色後也自動對齊第一項（儀表板）或維持預設
+            setTimeout(() => {
+                const firstMenu = document.querySelector('.sidebar-menu .menu-item');
+                if (firstMenu) {
+                    document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+                    firstMenu.classList.add('active');
+                }
+            }, 50);
+
+            // 3. 重新載入內嵌 iframe 頁面並導向儀表板
             const iframe = document.getElementById('main-frame');
-            if (iframe && iframe.contentWindow) {
-                iframe.contentWindow.location.reload();
+            if (iframe) {
+                iframe.src = 'page-dashboard.html';
             }
         }
     </script>
