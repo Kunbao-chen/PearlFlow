@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 客戶管理 (CRM) v1.4.1 (強化載入防禦與欄位相容性)
+PearlFlow - 客戶管理 (CRM) v1.3.3 (基於 v1.3.2 穩定版微調專案跳轉參數)
 @file        page-crm.html
 ==========================================================================
 -->
@@ -62,10 +62,10 @@ PearlFlow - 客戶管理 (CRM) v1.4.1 (強化載入防禦與欄位相容性)
             <tr>
                 <th style="width: 110px;">統一編號</th>
                 <th style="width: 180px;">客戶名稱</th>
-                <th style="width: 150px;">主要聯絡人 / 電話</th>
-                <th style="width: 110px;">主辦人員</th>
-                <th>關聯專案與業務規模 (快速跳轉)</th>
-                <th style="width: 140px;">操作</th>
+                <th style="width: 160px;">主要聯絡人 / 電話</th>
+                <th style="width: 120px;">主辦人員</th>
+                <th>進行中專案 (快速跳轉)</th>
+                <th style="width: 150px;">操作</th>
             </tr>
         </thead>
         <tbody id="crm-tbody">
@@ -151,7 +151,7 @@ PearlFlow - 客戶管理 (CRM) v1.4.1 (強化載入防禦與欄位相容性)
             document.getElementById(modalId).style.display = 'none';
         }
 
-        // 精確取得 global-config.js 初始化出來的 Supabase Client 實例[cite: 9]
+        // 精確取得 global-config.js 初始化出來的 Supabase Client 實例[cite: 7]
         function getDbClient() {
             if (window._supabaseClient) return window._supabaseClient;
             if (window.supabaseClient) return window.supabaseClient;
@@ -185,8 +185,8 @@ PearlFlow - 客戶管理 (CRM) v1.4.1 (強化載入防禦與欄位相容性)
             }
 
             try {
-                // 1. 讀取客戶資料庫 (移除強制 created_at 排序以防欄位不存在造成中斷)[cite: 9]
-                const clientsRes = await client.from('clients').select('*');
+                // 1. 讀取客戶資料庫 (使用原本 v1.3.2 驗證過的查詢)[cite: 7]
+                const clientsRes = await client.from('clients').select('*').order('created_at', { ascending: false });
 
                 if (clientsRes.error) {
                     tbody.innerHTML = `<tr><td colspan="6" style="color: red; text-align: center;">客戶資料讀取失敗：${clientsRes.error.message}</td></tr>`;
@@ -200,7 +200,7 @@ PearlFlow - 客戶管理 (CRM) v1.4.1 (強化載入防禦與欄位相容性)
                     return;
                 }
 
-                // 2. 獨立讀取專案資料庫 (含 service_fee 欄位以計算業務規模)
+                // 2. 獨立讀取專案資料庫[cite: 7]
                 try {
                     const projectsRes = await client.from('projects').select('*');
                     dbProjectsCache = projectsRes.data || [];
@@ -209,9 +209,9 @@ PearlFlow - 客戶管理 (CRM) v1.4.1 (強化載入防禦與欄位相容性)
                     dbProjectsCache = [];
                 }
 
-                const canManage = typeof PearlAuth !== 'undefined' && PearlAuth.hasRole(['boss', 'pm', 'hr']);
+                const canManage = PearlAuth.hasRole(['boss', 'pm', 'hr']);
 
-                // 3. 渲染客戶與專案下拉選單
+                // 3. 渲染客戶與專案下拉選單[cite: 7]
                 tbody.innerHTML = clients.map(c => {
                     const matchedProjects = dbProjectsCache.filter(p => 
                         (p.client_id && String(p.client_id) === String(c.id)) ||
@@ -219,25 +219,18 @@ PearlFlow - 客戶管理 (CRM) v1.4.1 (強化載入防禦與欄位相容性)
                         (p.client && p.client.trim() === c.name.trim())
                     );
                     
-                    // 計算該客戶的總服務費規模
-                    const totalClientFee = matchedProjects.reduce((sum, p) => sum + (parseFloat(p.service_fee) || 0), 0);
-
                     let projectSelectHtml = '';
                     if (matchedProjects.length > 0) {
                         projectSelectHtml = `
-                            <div style="margin-bottom: 4px; font-size: 0.8rem; color: #555; display: flex; justify-content: space-between;">
-                                <span>📦 關聯專案數：<strong>${matchedProjects.length}</strong> 筆</span>
-                                <span>💰 服務費總額：<strong>NT$ ${totalClientFee.toLocaleString()}</strong></span>
-                            </div>
                             <select class="project-dropdown" onchange="jumpToProject(this.value)">
-                                <option value="">-- 點擊展開專案矩陣詳情 --</option>
+                                <option value="">-- 選擇專案前往 (${matchedProjects.length}) --</option>
                                 ${matchedProjects.map(p => `
-                                    <option value="${p.id}">📌 ${p.name \vert{}\vert{} p.title \vert{}\vert{} '未命名專案'} (${p.status || '進行中'})</option>
+                                    <option value="${p.id}">📌 ${p.name || p.title || '未命名專案'}</option>
                                 `).join('')}
                             </select>
                         `;
                     } else {
-                        projectSelectHtml = `<span style="color: #aaa; font-size: 0.85rem;">尚無關聯專案</span>`;
+                        projectSelectHtml = `<span style="color: #aaa; font-size: 0.85rem;">尚無進行中專案</span>`;
                     }
 
                     return `
@@ -251,7 +244,7 @@ PearlFlow - 客戶管理 (CRM) v1.4.1 (強化載入防禦與欄位相容性)
                             <td>${c.manager ? '👤 ' + c.manager : '-'}</td>
                             <td>${projectSelectHtml}</td>
                             <td>
-                                <button class="btn-sm" onclick="openClientModal('${c.id}')">✏️ 編輯</button>
+                                <button class="btn-sm" onclick="openClientModal('${c.id}')">✏️ 編輯 / 詳情</button>
                                 ${canManage ? `<button class="btn-sm btn-danger-sm" onclick="deleteClient('${c.id}', '${c.name}')">🗑</button>` : ''}
                             </td>
                         </tr>
@@ -264,7 +257,7 @@ PearlFlow - 客戶管理 (CRM) v1.4.1 (強化載入防禦與欄位相容性)
             }
         }
 
-        // 精準帶入 openProjectId 跳轉至專案進度矩陣
+        // 精準帶入 openProjectId 參數跳轉至矩陣頁面
         function jumpToProject(projectId) {
             if (!projectId) return;
             const targetUrl = `page-matrix.html?openProjectId=${projectId}`;
