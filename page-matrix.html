@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 專案進度矩陣 v1.3.3 (修復 Storage 中文檔名 Invalid key 上傳問題)
+PearlFlow - 專案進度矩陣 v1.3.4 (升級為員工編號與 ID 關聯，支援改名自動連動)
 @file        page-matrix.html
 ==========================================================================
 -->
@@ -172,7 +172,7 @@ PearlFlow - 專案進度矩陣 v1.3.3 (修復 Storage 中文檔名 Invalid key �
             <!-- 新增步驟列 -->
             <div class="add-task-bar" data-pf-role="boss,pm">
                 <input type="text" id="new-task-name" placeholder="輸入新增步驟名稱..." style="flex: 1;">
-                <select id="new-task-assignee" style="width: 150px;">
+                <select id="new-task-assignee" style="width: 160px;">
                     <option value="">指派人員...</option>
                 </select>
                 <input type="date" id="new-task-due" style="width: 140px;">
@@ -252,14 +252,14 @@ PearlFlow - 專案進度矩陣 v1.3.3 (修復 Storage 中文檔名 Invalid key �
                 taskItems.forEach(item => {
                     const taskId = item.id.replace('task-item-', '');
                     const isCompleted = item.querySelector('input[type="checkbox"]').checked;
-                    const assignee = item.querySelector('.task-select-sm').value.trim() || null;
+                    const assigneeId = item.querySelector('.task-select-sm').value.trim() || null;
                     const dueDate = item.querySelector('.task-date-sm').value || null;
                     const notes = item.querySelector('.task-notes-input').value.trim() || null;
 
                     updatePromises.push(
                         client.from('project_tasks').update({
                             is_completed: isCompleted,
-                            assignee: assignee,
+                            assignee_id: assigneeId,
                             due_date: dueDate,
                             notes: notes
                         }).eq('id', taskId)
@@ -287,13 +287,14 @@ PearlFlow - 專案進度矩陣 v1.3.3 (修復 Storage 中文檔名 Invalid key �
                 if (members && members.length > 0) {
                     dbMembersCache = members.map(m => ({
                         id: m.id,
+                        code: m.employee_code || '未編號',
                         name: m.name || m.full_name || m.email || '未命名同仁'
                     }));
                 } else {
-                    dbMembersCache = [{ name: '陳珍珠' }, { name: '張會計師' }, { name: '王會計' }, { name: '張專員' }];
+                    dbMembersCache = [];
                 }
             } catch (err) {
-                dbMembersCache = [{ name: '陳珍珠' }, { name: '張會計師' }, { name: '王會計' }, { name: '張專員' }];
+                dbMembersCache = [];
             }
 
             renderAssigneeSelect();
@@ -303,7 +304,7 @@ PearlFlow - 專案進度矩陣 v1.3.3 (修復 Storage 中文檔名 Invalid key �
             const assigneeSelect = document.getElementById('new-task-assignee');
             if (assigneeSelect) {
                 assigneeSelect.innerHTML = `<option value="">指派人員...</option>` + 
-                    dbMembersCache.map(m => `<option value="${m.name}">👤 ${m.name}</option>`).join('');
+                    dbMembersCache.map(m => `<option value="${m.id}">[${m.code}] 👤 ${m.name}</option>`).join('');
             }
         }
 
@@ -432,13 +433,8 @@ PearlFlow - 專案進度矩陣 v1.3.3 (修復 Storage 中文檔名 Invalid key �
             const canManageTask = PearlAuth.hasRole(['boss', 'pm']);
 
             taskListEl.innerHTML = tasks.map(t => {
-                let currentMembers = [...dbMembersCache];
-                if (t.assignee && !currentMembers.some(m => m.name === t.assignee)) {
-                    currentMembers.push({ name: t.assignee });
-                }
-
-                const assigneeOptionsHtml = currentMembers.map(m => 
-                    `<option value="${m.name}" ${t.assignee === m.name ? 'selected' : ''}>👤 ${m.name}</option>`
+                const assigneeOptionsHtml = dbMembersCache.map(m => 
+                    `<option value="${m.id}" ${t.assignee_id === m.id ? 'selected' : ''}>[${m.code}] 👤 ${m.name}</option>`
                 ).join('');
 
                 return `
@@ -450,7 +446,7 @@ PearlFlow - 專案進度矩陣 v1.3.3 (修復 Storage 中文檔名 Invalid key �
                             </div>
 
                             <div class="task-control-group">
-                                <select class="task-select-sm" onchange="updateTaskFieldLocally('${t.id}', 'assignee', this.value)">
+                                <select class="task-select-sm" onchange="updateTaskFieldLocally('${t.id}', 'assignee_id', this.value)">
                                     <option value="">👤 指派人員...</option>
                                     ${assigneeOptionsHtml}
                                 </select>
@@ -583,7 +579,7 @@ PearlFlow - 專案進度矩陣 v1.3.3 (修復 Storage 中文檔名 Invalid key �
             const dueInput = document.getElementById('new-task-due');
             
             const taskName = nameInput.value.trim();
-            const rawAssignee = assigneeSelect.value.trim();
+            const rawAssigneeId = assigneeSelect.value.trim();
             const dueDate = dueInput.value;
 
             if (!taskName) return alert('請輸入步驟名稱');
@@ -593,7 +589,7 @@ PearlFlow - 專案進度矩陣 v1.3.3 (修復 Storage 中文檔名 Invalid key �
                 task_name: taskName,
                 due_date: dueDate || null,
                 is_completed: false,
-                assignee: rawAssignee !== '' ? rawAssignee : null
+                assignee_id: rawAssigneeId !== '' ? rawAssigneeId : null
             };
 
             await client.from('project_tasks').insert([insertPayload]);
@@ -663,7 +659,7 @@ PearlFlow - 專案進度矩陣 v1.3.3 (修復 Storage 中文檔名 Invalid key �
                             task_name: step.step_name,
                             due_date: dueDate.toISOString().split('T')[0],
                             is_completed: false,
-                            assignee: null,
+                            assignee_id: null,
                             sort_order: step.step_order || (index + 1)
                         };
                     });
