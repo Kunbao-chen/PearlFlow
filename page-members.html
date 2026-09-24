@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 ==========================================================================
-PearlFlow - 成員與權限管理頁面 (v1.3.3 - 支援員工編號編輯與維護)
+PearlFlow - 成員與權限管理頁面 (v1.3.4 - 支援員工編號編輯與唯一性防重機制)
 @file        page-members.html
 ==========================================================================
 -->
@@ -183,7 +183,7 @@ PearlFlow - 成員與權限管理頁面 (v1.3.3 - 支援員工編號編輯與維
             document.getElementById('addMemberModal').style.display = 'flex';
         }
 
-        // 開啟編輯 Modal 並代入現有資料 (包含員工編號)
+        // 開啟編輯 Modal 並代入現有資料
         function openEditMemberModal(id, code, name, email, roleName) {
             document.getElementById('edit-member-id').value = id;
             document.getElementById('edit-member-code').value = code || '';
@@ -218,7 +218,7 @@ PearlFlow - 成員與權限管理頁面 (v1.3.3 - 支援員工編號編輯與維
             eyeBtn.addEventListener('touchend', hidePassword);
         }
 
-        // 載入成員列表[cite: 6]
+        // 載入成員列表
         async function loadMembers() {
             const tbody = document.getElementById('members-tbody');
             if (!window.supabase) return;
@@ -246,7 +246,6 @@ PearlFlow - 成員與權限管理頁面 (v1.3.3 - 支援員工編號編輯與維
                     ? `<span class="status-badge status-active">在職</span>`
                     : `<span class="status-badge status-inactive">已停用/離職</span>`;
 
-                // 安全跳脫單引號傳遞字串參數
                 const safeCode = (m.employee_code || '').replace(/'/g, "\\'");
                 const safeName = (m.name || '').replace(/'/g, "\\'");
                 const safeEmail = (m.email || '').replace(/'/g, "\\'");
@@ -274,7 +273,7 @@ PearlFlow - 成員與權限管理頁面 (v1.3.3 - 支援員工編號編輯與維
             }).join('');
         }
 
-        // 直接寫入 members 表 (包含 employee_code)
+        // 提交新增同仁（含員工編號唯一性前端檢查）
         async function submitAddMember() {
             const code = document.getElementById('new-member-code').value.trim();
             const nameInput = document.getElementById('new-member-name');
@@ -286,6 +285,19 @@ PearlFlow - 成員與權限管理頁面 (v1.3.3 - 支援員工編號編輯與維
 
             if (!email) {
                 return alert('請填寫公務 Email');
+            }
+
+            // 若有填寫員工編號，先向資料庫檢查是否已被佔用
+            if (code) {
+                const { data: existing } = await window.supabase
+                    .from('members')
+                    .select('id, name')
+                    .eq('employee_code', code)
+                    .maybeSingle();
+
+                if (existing) {
+                    return alert(`⚠️ 員工編號「${code}」已經被同仁【${existing.name}】使用中，請更換不同的編號！`);
+                }
             }
 
             btn.disabled = true;
@@ -314,7 +326,7 @@ PearlFlow - 成員與權限管理頁面 (v1.3.3 - 支援員工編號編輯與維
             loadMembers();
         }
 
-        // 提交編輯更新 (包含 employee_code)
+        // 提交編輯更新（含員工編號唯一性前端檢查）
         async function submitEditMember() {
             const id = document.getElementById('edit-member-id').value;
             const code = document.getElementById('edit-member-code').value.trim();
@@ -325,6 +337,20 @@ PearlFlow - 成員與權限管理頁面 (v1.3.3 - 支援員工編號編輯與維
 
             if (!name || !email) {
                 return alert('姓名與公務 Email 不得為空');
+            }
+
+            // 若有填寫員工編號，檢查是否被「其他人」佔用
+            if (code) {
+                const { data: existing } = await window.supabase
+                    .from('members')
+                    .select('id, name')
+                    .eq('employee_code', code)
+                    .neq('id', id) // 排除自己
+                    .maybeSingle();
+
+                if (existing) {
+                    return alert(`⚠️ 員工編號「${code}」已經被同仁【${existing.name}】使用中，無法重複指派！`);
+                }
             }
 
             btn.disabled = true;
@@ -353,7 +379,7 @@ PearlFlow - 成員與權限管理頁面 (v1.3.3 - 支援員工編號編輯與維
             loadMembers();
         }
 
-        // 停用/啟用同仁 (Soft Delete)[cite: 6]
+        // 停用/啟用同仁 (Soft Delete)
         async function toggleMemberStatus(memberId, currentStatus) {
             const nextStatus = !currentStatus;
             const actionText = nextStatus ? '啟用' : '停用';
